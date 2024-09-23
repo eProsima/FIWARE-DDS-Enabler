@@ -35,8 +35,12 @@ list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
 set(TEST_LIST
         ddsenabler_creation
         ddsenabler_reload_configuration
-        ddsenabler_send_samples
-        ddsenabler_FALSE
+        ddsenabler_send_samples_type1
+        ddsenabler_send_samples_type2
+        ddsenabler_send_samples_type3
+        ddsenabler_send_samples_type4
+        ddsenabler_send_samples_multiple_types
+        ddsenabler_send_samples_repeated_type
     )
 
 set(TEST_NEEDED_SOURCES

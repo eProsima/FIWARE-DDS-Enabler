@@ -22,23 +22,11 @@
 
 #include <cpp_utils/exception/InitializationException.hpp>
 
-// #include <ddsenabler_participants/common/types/logging/DDSEnablerLogEntry.hpp>
 #include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
-
-void log_to_file(
-        const std::string& logMessage)
-{
-    std::ofstream logFile("/tmp/DDSEnablerLogConsumer.txt", std::ios_base::app); // Use an absolute path
-    if (logFile.is_open())
-    {
-        logFile << logMessage << std::endl;
-        logFile.close();
-    }
-}
 
 DDSEnablerLogConsumer::DDSEnablerLogConsumer(
         const ddspipe::core::DdsPipeLogConfiguration* configuration)
@@ -55,10 +43,12 @@ void DDSEnablerLogConsumer::Consume(
         return;
     }
 
-    //CALLBACK FOR CB
-    // dds_log_callback(entry.timestamp, entry.message)
-
-    log_to_file(entry.timestamp + ": " + entry.message);
+    log_callback_(
+        entry.context.filename,
+        entry.context.line,
+        entry.context.function,
+        static_cast<int>(entry.kind),
+        entry.message.c_str());
 }
 
 } /* namespace participants */

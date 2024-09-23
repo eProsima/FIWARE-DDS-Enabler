@@ -24,6 +24,7 @@
 #include <ddspipe_core/configuration/DdsPipeLogConfiguration.hpp>
 
 #include <ddsenabler_participants/library/library_dll.h>
+#include <ddsenabler_participants/CBCallbacks.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -46,6 +47,12 @@ public:
     {
     }
 
+    void set_log_callback(
+            DdsLogFunc callback)
+    {
+        log_callback_ = callback;
+    }
+
     /**
      * @brief Implements \c LogConsumer \c Consume method.
      *
@@ -60,6 +67,9 @@ public:
     void Consume(
             const utils::Log::Entry& entry) override;
 
+private:
+
+        DdsLogFunc log_callback_;
 };
 
 } /* namespace participants */

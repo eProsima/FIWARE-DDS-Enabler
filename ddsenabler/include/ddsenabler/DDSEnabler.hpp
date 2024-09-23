@@ -65,13 +65,13 @@ public:
 
 
     void set_data_callback(
-            participants::DdsDataNotificationFunction callback)
+            participants::DdsNotification callback)
     {
         cb_handler_.get()->set_data_callback(callback);
     }
 
     void set_type_callback(
-            participants::DdsTypeNotificationFunction callback)
+            participants::DdsTypeNotification callback)
     {
         cb_handler_.get()->set_type_callback(callback);
     }

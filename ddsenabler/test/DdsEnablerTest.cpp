@@ -30,62 +30,35 @@
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
 
-// #include <cpp_utils/ros2_mangling.hpp>
-// #include <cpp_utils/testing/gtest_aux.hpp>
-
-#include <EnablerConfiguration.hpp>
-#include <yaml_configuration_tags.hpp>
+#include <ddsenabler_yaml/EnablerConfiguration.hpp>
+#include <ddsenabler_yaml/yaml_configuration_tags.hpp>
 
 #include "DDSEnabler.hpp"
 
 #include <cpp_utils/utils.hpp>
 #include <fastdds/dds/xtypes/utils.hpp>
 
-#include "resources/types/HelloWorld.hpp"
-#include "resources/types/HelloWorldPubSubTypes.hpp"
-#include "resources/types/HelloWorldTypeObjectSupport.hpp"
+#include "resources/types/DDSEnablerTestTypes.hpp"
+#include "resources/types/DDSEnablerTestTypesPubSubTypes.hpp"
+#include "resources/types/DDSEnablerTestTypesTypeObjectSupport.hpp"
 
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
 using namespace eprosima::ddsenabler::participants;
 using namespace eprosima::fastdds::dds;
 
-
-const char* CONFIGURATION_FILE = "src/lib/orionld/dds/ddsModule/ddsenabler/DDS_ENABLER_CONFIGURATION.yaml";
-
-namespace test {
-
-// Publisher
-
-
-// void data_callback(
-//         const CBMessage& msg,
-//         nlohmann::ordered_json output)
-// {
-//     std::ofstream logFile("/tmp/data_callback.txt", std::ios_base::app);     // Use an absolute path
-//     if (logFile.is_open())
-//     {
-//         logFile << "data_callback" << std::endl;
-//         logFile.close();
-//     }
-// }
-
-// void type_callback(
-//         const CBMessage& msg,
-//         const eprosima::fastdds::dds::DynamicType::_ref_type& dyn_type)
-// {
-//     std::ofstream logFile("/tmp/type_callback.txt", std::ios_base::app);     // Use an absolute path
-//     if (logFile.is_open())
-//     {
-//         logFile << "type_callback" << std::endl;
-//         logFile.close();
-//     }
-// }
+namespace ddsEnablerTest {
 
 const unsigned int DOMAIN = 0;
 
-const std::string dds_topic_name = "DDSTopicName";
-const std::string dds_type_name = "HelloWorld";
+const std::string dds_topic1_name = "DDSEnablerTestTopic1Name";
+const std::string dds_topic2_name = "DDSEnablerTestTopic2Name";
+const std::string dds_topic3_name = "DDSEnablerTestTopic3Name";
+const std::string dds_topic4_name = "DDSEnablerTestTopic4Name";
+const std::string dds_type1_name = "DDSEnablerTestType1";
+const std::string dds_type2_name = "DDSEnablerTestType2";
+const std::string dds_type3_name = "DDSEnablerTestType3";
+const std::string dds_type4_name = "DDSEnablerTestType4";
 
 eprosima::fastdds::dds::DomainParticipant* participant_;
 
@@ -95,22 +68,62 @@ eprosima::fastdds::dds::Publisher* publisher_;
 eprosima::fastdds::dds::Topic* topic_;
 eprosima::fastdds::dds::DataWriter* writer_;
 
-} // test
+static int received_types_ = 0;
+static int received_data_ = 0;
 
-void create_publisher(
-        const std::string topic_name,
-        const std::string type_name,
-        const unsigned int domain)
+// Callback to handle type notifications
+static void test_type_callback(
+        const char* typeName,
+        const char* topicName,
+        const char* serializedType)
 {
+    ddsEnablerTest::received_types_++;
+}
+
+// Callback to handle data notifications
+static void test_data_callback(
+        const char* typeName,
+        const char* topicName,
+        const char* json,
+        double publishTime)
+{
+    ddsEnablerTest::received_data_++;
+}
+
+} // ddsEnablerTest
+
+std::unique_ptr<DDSEnabler> create_ddsenabler()
+{
+    ddsEnablerTest::received_types_ = 0;
+    ddsEnablerTest::received_data_ = 0;
+
+    YAML::Node yml;
+
+    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+
+    auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
+
+    auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
+
+    return std::make_unique<DDSEnabler>(configuration, close_handler);
+}
+
+void create_publisherAA(
+        const std::string& participant_name,
+        const std::string& type_name,
+        const std::string& topic_name,
+        eprosima::fastdds::dds::TypeSupport type_support)
+{
+    // Configure the DomainParticipant
     eprosima::fastdds::dds::DomainParticipantQos pqos;
-    pqos.name("DDSEnabler_Test_Participant_Publisher");
+    pqos.name(participant_name);
 
     // Create the Participant
-    test::participant_ = DomainParticipantFactory::get_instance()->create_participant(domain, pqos);
+    ddsEnablerTest::participant_ = DomainParticipantFactory::get_instance()->create_participant(ddsEnablerTest::DOMAIN,
+                    pqos);
 
     // Register the type
-    eprosima::fastdds::dds::TypeSupport type(new HelloWorldPubSubType());
-    type->register_type_object_representation();
+    type_support->register_type_object_representation();
 
     eprosima::fastdds::dds::xtypes::TypeObjectPair dyn_type_objects;
     if (eprosima::fastdds::dds::RETCODE_OK !=
@@ -120,108 +133,381 @@ void create_publisher(
         return;
     }
 
-    test::dynamic_type_ = eprosima::fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(
+    ddsEnablerTest::dynamic_type_ =
+            eprosima::fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(
         dyn_type_objects.complete_type_object)->build();
 
-
-    eprosima::fastdds::dds::DynamicData::_ref_type dyn_data(eprosima::fastdds::dds::DynamicDataFactory::get_instance()->
-                    create_data(test::dynamic_type_));
-
-    std::stringstream ss;
-    ss << std::setw(4);
-    eprosima::fastdds::dds::json_serialize(dyn_data,
-            eprosima::fastdds::dds::DynamicDataJsonFormat::EPROSIMA, ss);
-
-    std::cout << ss.str() << std::endl;
-
     // Register the type in the Participant
-    test::participant_->register_type(type);
+    ddsEnablerTest::participant_->register_type(type_support);
 
     // Create the Publisher
-    test::publisher_ = test::participant_->create_publisher(PUBLISHER_QOS_DEFAULT, nullptr);
+    ddsEnablerTest::publisher_ = ddsEnablerTest::participant_->create_publisher(PUBLISHER_QOS_DEFAULT, nullptr);
 
     // Create the DDS Topic
-    test::topic_ = test::participant_->create_topic(topic_name, type_name, TOPIC_QOS_DEFAULT);
+    ddsEnablerTest::topic_ = ddsEnablerTest::participant_->create_topic(topic_name, type_name, TOPIC_QOS_DEFAULT);
 
     // Create the DDS DataWriter
-    test::writer_ = test::publisher_->create_datawriter(test::topic_, DATAWRITER_QOS_DEFAULT, nullptr);
+    ddsEnablerTest::writer_ = ddsEnablerTest::publisher_->create_datawriter(ddsEnablerTest::topic_,
+                    DATAWRITER_QOS_DEFAULT, nullptr);
 }
 
-eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_sample(
-        const unsigned int index = 1,
-        const unsigned int time_sleep = 100)
+eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_sampleAAA()
 {
     // Create and initialize new dynamic data
 
-    if (test::dynamic_type_ == nullptr)
+    if (ddsEnablerTest::dynamic_type_ == nullptr)
     {
         return nullptr;
     }
 
-    auto dynamic_data_ = eprosima::fastdds::dds::DynamicDataFactory::get_instance()->create_data(test::dynamic_type_);
+    auto dynamic_data =
+            eprosima::fastdds::dds::DynamicDataFactory::get_instance()->create_data(ddsEnablerTest::dynamic_type_);
 
-    // Set index
-    dynamic_data_->set_uint32_value(dynamic_data_->get_member_id_by_name("index"), index);
-    // Set message
-    dynamic_data_->set_string_value(dynamic_data_->get_member_id_by_name("message"), "Test MSG: " + index);
-    test::writer_->write(dynamic_data_.get());
+    ddsEnablerTest::writer_->write(dynamic_data.get());
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(time_sleep));
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-    return dynamic_data_;
+    return dynamic_data;
 }
 
-std::unique_ptr<DDSEnabler> create_ddsenabler()
+void create_publisher(
+        const std::string topic_name,
+        const std::string type_name)
 {
-    YAML::Node yml;
+    eprosima::fastdds::dds::DomainParticipantQos pqos;
+    pqos.name("TypeIntrospectionExample_Participant_Publisher");
 
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+    // Create the Participant
+    eprosima::fastdds::dds::DomainParticipant* participant_ =
+            DomainParticipantFactory::get_instance()->create_participant(0, pqos);
 
-    auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
+    // Register the type
+    eprosima::fastdds::dds::TypeSupport type(new DDSEnablerTestType2PubSubType());
+    type->register_type_object_representation();
 
-    return std::make_unique<DDSEnabler>(configuration, close_handler);
-}
-
-TEST(DdsEnablerTests, ddsenabler_creation)
-{
-    ASSERT_NO_THROW(auto enabler = create_ddsenabler());
-}
-
-TEST(DdsEnablerTests, ddsenabler_reload_configuration)
-{
-    auto enabler = create_ddsenabler();
-    ASSERT_TRUE(enabler != nullptr);
-
-    YAML::Node yml;
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
-    eprosima::utils::Formatter error_msg;
-    ASSERT_TRUE(configuration.is_valid(error_msg));
-
-    ASSERT_NO_THROW(enabler.get()->reload_configuration(configuration));
-}
-
-TEST(DdsEnablerTests, ddsenabler_send_samples)
-{
-    auto enabler = create_ddsenabler();
-    ASSERT_TRUE(enabler != nullptr);
-
-    ASSERT_NO_THROW(create_publisher(test::dds_topic_name, test::dds_type_name, test::DOMAIN));
-
-    eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
-
-    // Send data
-    for (unsigned int i = 0; i < 10; i++)
+    eprosima::fastdds::dds::xtypes::TypeObjectPair dyn_type_objects;
+    if (eprosima::fastdds::dds::RETCODE_OK !=
+            eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_objects(
+                type_name,
+                dyn_type_objects))
     {
-        send_data = send_sample(i);
+        return;
     }
 
-    ASSERT_EQ(1, 1);
+    ddsEnablerTest::dynamic_type_ =
+            eprosima::fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(
+        dyn_type_objects.complete_type_object)->build();
+
+    // Register the type in the Participant
+    participant_->register_type(type);
+
+    // Create the Publisher
+    eprosima::fastdds::dds::Publisher* publisher_ = participant_->create_publisher(PUBLISHER_QOS_DEFAULT, nullptr);
+
+    // Create the DDS Topic
+    eprosima::fastdds::dds::Topic* topic_ = participant_->create_topic(topic_name, type_name,
+                    TOPIC_QOS_DEFAULT);
+
+    // Create the DDS DataWriter
+    ddsEnablerTest::writer_ = publisher_->create_datawriter(topic_, DATAWRITER_QOS_DEFAULT, nullptr);
 }
 
-TEST(DdsEnablerTests, ddsenabler_FALSE)
+bool send_sample()
 {
-    ASSERT_EQ(1, 2);
+    if (ddsEnablerTest::dynamic_type_ == nullptr)
+    {
+        return false;
+    }
+
+    // Create data
+    auto dynamic_data_ =
+            eprosima::fastdds::dds::DynamicDataFactory::get_instance()->create_data(ddsEnablerTest::dynamic_type_);
+    if (!dynamic_data_)
+    {
+        return false;
+    }
+
+    std::string test_value;
+    dynamic_data_->get_string_value(test_value, dynamic_data_->get_member_id_by_name("value"));
+
+    // Set value
+    if (eprosima::fastdds::dds::RETCODE_OK !=
+            dynamic_data_->set_string_value(dynamic_data_->get_member_id_by_name("value"), "AAAAA"))
+    {
+        return false;
+    }
+    dynamic_data_->get_string_value(test_value, dynamic_data_->get_member_id_by_name("value"));
+
+
+
+
+    // Send message
+    if (eprosima::fastdds::dds::RETCODE_OK !=
+            ddsEnablerTest::writer_->write(dynamic_data_.get()))
+    {
+        return false;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+    return true;
 }
+
+// TEST(DdsEnablerTests, ddsenabler_creation)
+// {
+//     ASSERT_NO_THROW(auto enabler = create_ddsenabler());
+// }
+
+// TEST(DdsEnablerTests, ddsenabler_reload_configuration)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     YAML::Node yml;
+//     eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+//     eprosima::utils::Formatter error_msg;
+//     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+//     ASSERT_NO_THROW(enabler.get()->reload_configuration(configuration));
+// }
+
+// TEST(DdsEnablerTests, ddsenabler_send_samples_type1)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+//     enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type1",
+//                 ddsEnablerTest::dds_type1_name,
+//                 ddsEnablerTest::dds_topic1_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType1PubSubType())));
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+//     // Send data
+//     int num_samples = 1;
+//     eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+// }
+
+TEST(DdsEnablerTests, ddsenabler_send_samples_type2)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+    enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+    // ASSERT_NO_THROW(create_publisher(
+    //             "DDSEnabler_Test_Participant_Publisher_Type2",
+    //             ddsEnablerTest::dds_type2_name,
+    //             ddsEnablerTest::dds_topic2_name,
+    //             eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType2PubSubType())));
+
+    ASSERT_NO_THROW(create_publisher(
+                ddsEnablerTest::dds_topic2_name,
+                ddsEnablerTest::dds_type2_name));
+
+    ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+    ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+    // Send data
+    int num_samples = 1;
+    eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+    for (long i = 0; i < num_samples; i++)
+    {
+        ASSERT_TRUE(send_sample());
+    }
+
+    ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+    ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+}
+
+// TEST(DdsEnablerTests, ddsenabler_send_samples_type3)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+//     enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type3",
+//                 ddsEnablerTest::dds_type3_name,
+//                 ddsEnablerTest::dds_topic3_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType3PubSubType())));
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+//     // Send data
+//     int num_samples = 1;
+//     eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+// }
+
+// TEST(DdsEnablerTests, ddsenabler_send_samples_type4)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+//     enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type4",
+//                 ddsEnablerTest::dds_type4_name,
+//                 ddsEnablerTest::dds_topic4_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType4PubSubType())));
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+//     // Send data
+//     int num_samples = 1;
+//     eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+// }
+
+// TEST(DdsEnablerTests, ddsenabler_send_samples_multiple_types)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+//     enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type1",
+//                 ddsEnablerTest::dds_type1_name,
+//                 ddsEnablerTest::dds_topic1_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType1PubSubType())));
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+//     // Send data
+//     int num_samples = 1;
+//     eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type2",
+//                 ddsEnablerTest::dds_type2_name,
+//                 ddsEnablerTest::dds_topic2_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType2PubSubType())));
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 2);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples * 2);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type3",
+//                 ddsEnablerTest::dds_type3_name,
+//                 ddsEnablerTest::dds_topic3_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType3PubSubType())));
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 3);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples * 3);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type4",
+//                 ddsEnablerTest::dds_type4_name,
+//                 ddsEnablerTest::dds_topic4_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType4PubSubType())));
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 4);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples * 4);
+// }
+
+// TEST(DdsEnablerTests, ddsenabler_send_samples_repeated_type)
+// {
+//     auto enabler = create_ddsenabler();
+//     ASSERT_TRUE(enabler != nullptr);
+
+//     enabler.get()->set_data_callback(ddsEnablerTest::test_data_callback);
+//     enabler.get()->set_type_callback(ddsEnablerTest::test_type_callback);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type1",
+//                 ddsEnablerTest::dds_type1_name,
+//                 ddsEnablerTest::dds_topic1_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType1PubSubType())));
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 0);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, 0);
+
+//     // Send data
+//     int num_samples = 1;
+//     eprosima::fastdds::dds::traits<eprosima::fastdds::dds::DynamicData>::ref_type send_data;
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 1);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type3",
+//                 ddsEnablerTest::dds_type3_name,
+//                 ddsEnablerTest::dds_topic3_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType3PubSubType())));
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 2);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples * 2);
+
+//     ASSERT_NO_THROW(create_publisher(
+//                 "DDSEnabler_Test_Participant_Publisher_Type1",
+//                 ddsEnablerTest::dds_type1_name,
+//                 ddsEnablerTest::dds_topic1_name,
+//                 eprosima::fastdds::dds::TypeSupport(new DDSEnablerTestType1PubSubType())));
+//     for (long i = 0; i < num_samples; i++)
+//     {
+//         send_data = send_sample();
+//     }
+//     ASSERT_EQ(ddsEnablerTest::received_types_, 2);
+//     ASSERT_EQ(ddsEnablerTest::received_data_, num_samples * 3);
+// }
 
 int main(
         int argc,

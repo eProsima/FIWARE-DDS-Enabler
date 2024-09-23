@@ -53,7 +53,11 @@ std::unique_ptr<eprosima::utils::event::PeriodicEventHandler> create_periodic_ha
         const eprosima::utils::Duration_ms& reload_time);
 
 int init_dds_enabler(
-        const char* ddsEnablerConfigFile);
+        const char* ddsEnablerConfigFile,
+        participants::DdsNotification data_callback,
+        participants::DdsTypeNotification type_callback,
+        participants::DdsLogFunc log_callback);
+
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */

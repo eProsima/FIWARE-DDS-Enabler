@@ -174,8 +174,5 @@ DDS (Data Distribution Service) Specification defined by the Object Management G
 CBHandler
 ---------
 
-The 
-
-
- * Class that manages the interaction between DDS Pipe \c (SchemaParticipant) and CB.
- * Payloads are efficiently passed from DDS Pipe to CB without copying data (only references).
+The class that manages the interaction between DDS Pipe \c (SchemaParticipant) and CB.
+Payloads are efficiently passed from DDS Pipe to CB without copying data (only references).

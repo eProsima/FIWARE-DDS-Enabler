@@ -27,32 +27,13 @@
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
 #include <ddsenabler_participants/library/library_dll.h>
+#include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
 #include <ddsenabler_participants/nlohmann/json.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
-
-/**
- * DdsDataNotificationFunction - callback for reception of DDS data
- *
- * @param msg: Structure encapsulating all msg data.
- * @param output: json of the payload.
- */
-typedef void (*DdsDataNotificationFunction)(
-        const participants::CBMessage& msg,
-        nlohmann::ordered_json output);
-
-/**
- * DdsTypeNotificationFunction - callback for reception of DDS types
- *
- * @param msg: Structure encapsulating all msg data.
- * @param dyn_type: description of the type.
- */
-typedef void (*DdsTypeNotificationFunction)(
-        const participants::CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
 class CBWriter
 {
@@ -62,13 +43,13 @@ public:
     ~CBWriter() = default;
 
     void set_data_callback(
-            DdsDataNotificationFunction callback)
+            DdsNotification callback)
     {
         data_callback_ = callback;
     }
 
     void set_type_callback(
-            DdsTypeNotificationFunction callback)
+            DdsTypeNotification callback)
     {
         type_callback_ = callback;
     }
@@ -101,7 +82,7 @@ protected:
      * @param [in] msg Pointer to the data.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    fastdds::dds::DynamicData::_ref_type get_dynamic_data_(
+    fastdds::dds::DynamicData::_ref_type get_dynamic_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
 
@@ -112,8 +93,8 @@ protected:
     std::mutex mutex_;
 
     // Callbacks to notify the CB
-    DdsDataNotificationFunction data_callback_;
-    DdsTypeNotificationFunction type_callback_;
+    DdsNotification data_callback_;
+    DdsTypeNotification type_callback_;
 };
 
 } /* namespace participants */

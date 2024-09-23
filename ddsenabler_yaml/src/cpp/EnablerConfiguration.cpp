@@ -246,22 +246,20 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
         const std::string& file_path)
 {
     Yaml yml;
-
-    // Load file
-    try
+    if (!file_path.empty())
     {
-        if (!file_path.empty())
+        // Load file
+        try
         {
             yml = YamlManager::load_file(file_path);
         }
+        catch (const std::exception& e)
+        {
+            throw eprosima::utils::ConfigurationException(
+                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                        "> :\n " << e.what());
+        }
     }
-    catch (const std::exception& e)
-    {
-        throw eprosima::utils::ConfigurationException(
-                  utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
-                      "> :\n " << e.what());
-    }
-
     EnablerConfiguration::load_ddsenabler_configuration_(yml);
 }
 

@@ -35,25 +35,11 @@
 #include <ddsenabler_participants/constants.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 
-#include <fstream>
-#include <string>
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
 using namespace eprosima::ddspipe::core::types;
-
-
-// void log_to_file(
-//         const std::string& write_msg)
-// {
-//     std::ofstream logFile("/tmp/CBHandlerlog.txt", std::ios_base::app); // Use an absolute path
-//     if (logFile.is_open())
-//     {
-//         logFile << write_msg << std::endl;
-//         logFile.close();
-//     }
-// }
 
 CBHandler::CBHandler(
         const CBHandlerConfiguration& config,
@@ -79,13 +65,7 @@ void CBHandler::add_schema(
 {
     std::lock_guard<std::mutex> lock(mtx_);
 
-    std::ofstream logFile("/tmp/CBHandlerlog.txt", std::ios_base::app); // Use an absolute path
-    if (logFile.is_open())
-    {
-        logFile << "CBHandler::add_schema IN" << std::endl;
-        logFile.close();
-    }
-
+    auto received_type = dyn_type->get_name().to_string();
 
     assert(nullptr != dyn_type);
 
@@ -98,32 +78,15 @@ void CBHandler::add_schema(
 
     // Add to schemas map
     logInfo(DDSENABLER_CB_HANDLER,
-            "Adding schema with name " << dyn_type->get_name().to_string() << " :\n" << data << ".");
+            "Adding schema with name " << dyn_type->get_name().to_string() << ".");
 
     schemas_[type_id] = dyn_type;
-
-
-    std::ofstream logFile2("/tmp/CBHandlerlog.txt", std::ios_base::app); // Use an absolute path
-    if (logFile2.is_open())
-    {
-        logFile2 << "CBHandler::add_schema OUT" << std::endl;
-        logFile2.close();
-    }
-
 }
 
 void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)
 {
-
-    std::ofstream logFile("/tmp/CBHandlerlog.txt", std::ios_base::app); // Use an absolute path
-    if (logFile.is_open())
-    {
-        logFile << "CBHandler::add_data IN" << std::endl;
-    }
-
-
     std::unique_lock<std::mutex> lock(mtx_);
 
     logInfo(DDSENABLER_CB_HANDLER,
@@ -161,46 +124,33 @@ void CBHandler::add_data(
 
     if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier1()._d())
     {
-        logFile << "CBHandler::add_data type_identifier1 != TK_NONE" << std::endl;
         type_id = topic.type_identifiers.type_identifier1();
     }
     else if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier2()._d())
     {
-        logFile << "CBHandler::add_data type_identifier2 != TK_NONE" << std::endl;
         type_id = topic.type_identifiers.type_identifier2();
     }
     else
     {
-        logFile << "CBHandler::add_data NO TYPE_IDENTIFIERS" << std::endl;
-        return; // NO TYPE_IDENTIFIERS
+        // NO TYPE_IDENTIFIERS
+        logWarning(DDSENABLER_CB_HANDLER,
+                "Received Schema for type " << topic.type_name << " with no TypeIdentifier.");
+        return;
     }
 
-    try
+    auto it = schemas_.find(type_id);
+    if (it != schemas_.end())
     {
-        auto it = schemas_.find(type_id);
-        if (it != schemas_.end())
-        {
-            dyn_type = it->second;
-            // Schema available -> write
-            write_sample(msg, dyn_type);
-        }
-        else
-        {
-            logWarning(DDSENABLER_CB_HANDLER,
-                    "Schema for topic " << topic << " not available.");
-        }
-
+        dyn_type = it->second;
+        // Schema available -> write
+        write_sample(msg, dyn_type);
     }
-    catch (const std::exception& e)
+    else
     {
-        logFile << "CBHandler::add_data exception: " << std::endl;
+        logWarning(DDSENABLER_CB_HANDLER,
+                "Schema for type " << topic.type_name << " not available.");
     }
 
-    if (logFile.is_open())
-    {
-        logFile << "CBHandler::add_data OUT" << std::endl;
-        logFile.close();
-    }
 }
 
 void CBHandler::write_sample(

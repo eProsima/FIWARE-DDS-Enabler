@@ -24,6 +24,8 @@
 
 #include "ddsenabler/dds_enabler_runner.hpp"
 
+#include <cpp_utils/Log.hpp>
+
 using namespace eprosima::ddspipe;
 
 namespace eprosima {
@@ -33,6 +35,11 @@ std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
         const std::unique_ptr<DDSEnabler>& enabler,
         const std::string& file_path)
 {
+    if (file_path.empty())
+    {
+        return nullptr;
+    }
+
     // Callback will reload configuration and pass it to DdsPipe
     // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
     std::function<void(std::string)> filewatcher_callback =
@@ -57,36 +64,12 @@ std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
     return std::make_unique<eprosima::utils::event::FileWatcherHandler>(filewatcher_callback, file_path);
 }
 
-// std::unique_ptr<eprosima::utils::event::PeriodicEventHandler> create_periodic_handler(
-//         const std::unique_ptr<DDSEnabler>& enabler,
-//         const std::string& file_path,
-//         const eprosima::utils::Duration_ms& reload_time)
-// {
-//     // Callback will reload configuration and pass it to DdsPipe
-//     std::function<void()> periodic_callback =
-//             [&enabler, &file_path]
-//             ()
-//             {
-//                 logInfo(DDSENABLER_EXECUTION,
-//                         "Periodic Timer raised. Reloading configuration from file " << file_path << ".");
-//                 try
-//                 {
-//                     eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
-//                     enabler->reload_configuration(new_configuration);
-//                 }
-//                 catch (const std::exception& e)
-//                 {
-//                     logWarning(DDSENABLER_EXECUTION,
-//                             "Error reloading configuration file " << file_path << " with error: " << e.what());
-//                 }
-//             };
-
-//     // Creating periodic handler
-//     return std::make_unique<eprosima::utils::event::PeriodicEventHandler>(periodic_callback, reload_time);
-// }
-
 int init_dds_enabler(
-        const char* ddsEnablerConfigFile)
+        const char* ddsEnablerConfigFile,
+        participants::DdsNotification data_callback,
+        participants::DdsTypeNotification type_callback,
+        participants::DdsLogFunc log_callback)
+
 {
     logInfo(DDSENABLER_EXECUTION,
             "Starting DDS Enabler execution.");
@@ -96,7 +79,7 @@ int init_dds_enabler(
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
-        // Load configuration from YAML
+        // Load configuration from file
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(CONFIGURATION_FILE);
 
         // Verify that the configuration is correct
@@ -114,9 +97,16 @@ int init_dds_enabler(
             eprosima::utils::Log::ClearConsumers();
             eprosima::utils::Log::SetVerbosity(log_configuration.verbosity);
 
-            // DDS Enabler Log Consumer
+            // // DDS Enabler Log Consumer
+            auto* log_consumer = new eprosima::ddsenabler::participants::DDSEnablerLogConsumer(&log_configuration);
+            log_consumer->set_log_callback(log_callback);
+
             eprosima::utils::Log::RegisterConsumer(
-                std::make_unique<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(&log_configuration));
+                std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
+
+            // // DDS Enabler Log Consumer
+            // eprosima::utils::Log::RegisterConsumer(
+            //     std::make_unique<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(&log_configuration));
 
             // Std Log Consumer
             if (log_configuration.stdout_enable)
@@ -135,6 +125,8 @@ int init_dds_enabler(
 
         // Start recording right away
         auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
+        enabler.get()->set_data_callback(data_callback);
+        enabler.get()->set_type_callback(type_callback);
 
         logInfo(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
@@ -142,10 +134,6 @@ int init_dds_enabler(
         // Create File Watcher Handler
         std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler;
         file_watcher_handler = create_filewatcher(enabler, CONFIGURATION_FILE);
-
-        // // Create Periodic Handler
-        // std::unique_ptr<eprosima::utils::event::PeriodicEventHandler> periodic_handler;
-        // periodic_handler = create_periodic_handler(enabler, CONFIGURATION_FILE, 10);
 
         // Wait until signal arrives
         close_handler->wait_for_event();
