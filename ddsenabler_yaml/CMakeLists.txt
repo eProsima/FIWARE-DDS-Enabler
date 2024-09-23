@@ -16,7 +16,7 @@
 # CMake build rules for DDS Enabler Submodule
 ###############################################################################
 cmake_minimum_required(VERSION 3.5)
-add_compile_options(-fPIC)
+add_definitions(-fPIC)
 
 # Done this to set machine architecture and be able to call cmake_utils
 enable_language(CXX)
