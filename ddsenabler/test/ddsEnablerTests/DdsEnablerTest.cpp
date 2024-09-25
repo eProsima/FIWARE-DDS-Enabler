@@ -38,9 +38,9 @@
 #include <cpp_utils/utils.hpp>
 #include <fastdds/dds/xtypes/utils.hpp>
 
-#include "resources/types/DDSEnablerTestTypes.hpp"
-#include "resources/types/DDSEnablerTestTypesPubSubTypes.hpp"
-#include "resources/types/DDSEnablerTestTypesTypeObjectSupport.hpp"
+#include "../resources/types/DDSEnablerTestTypes.hpp"
+#include "../resources/types/DDSEnablerTestTypesPubSubTypes.hpp"
+#include "../resources/types/DDSEnablerTestTypesTypeObjectSupport.hpp"
 
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
@@ -58,7 +58,7 @@ struct PubKnownType
 
 const unsigned int DOMAIN_ = 0;
 static int num_samples_ =  3;
-static int write_delay_ =  500;
+static int write_delay_ =  100;
 static int received_types_ = 0;
 static int received_data_ = 0;
 
@@ -153,15 +153,15 @@ bool create_publisher(
 
     // CREATE THE DATAWRITER
     DataWriterQos wqos = publisher->get_default_datawriter_qos();
-    wqos.data_sharing().off();
-    // wqos.reliability().kind = RELIABLE_RELIABILITY_QOS;
-    // wqos.durability().kind = TRANSIENT_LOCAL_DURABILITY_QOS;
+    wqos.reliability().kind = BEST_EFFORT_RELIABILITY_QOS;
+
     a_type.writer_ = publisher->create_datawriter(topic, wqos);
     if (a_type.writer_ == nullptr)
     {
         std::cout << "ERROR ddsEnablerTest: create_datawriter: " << a_type.type_sup_.get_type_name() << std::endl;
         return false;
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     return true;
 }
 
