@@ -77,7 +77,7 @@ if(BUILD_TESTING)
 endif()
 
 compile_test_library(
-    "${PROJECT_SOURCE_DIR}/test" # Test directory
+    "${PROJECT_SOURCE_DIR}/test/" # Test directory
 )
 
 ###############################################################################
