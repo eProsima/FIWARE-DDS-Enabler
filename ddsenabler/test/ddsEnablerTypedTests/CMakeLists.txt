@@ -18,25 +18,25 @@ file(
     GLOB_RECURSE TEST_SOURCES
     DdsEnablerTypedTest.cpp
     "${PROJECT_SOURCE_DIR}/test/resources/types/*.c*"
-    )
+)
 
 file(
     GLOB_RECURSE TEST_LIBRARY_SOURCES
     "${PROJECT_SOURCE_DIR}/src/cpp/*.c*"
-    )
+)
 
 list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
 
 set(TEST_LIST
-    ddsenabler_send_samples_type*
+    ddsenabler_send_samples_*
 )
 
 set(TEST_NEEDED_SOURCES
-    )
+)
 
 set(TEST_EXTRA_HEADERS
     ${PROJECT_SOURCE_DIR}/test/resources/types/
-    )
+)
 
 add_blackbox_executable(
     "${TEST_NAME}"
