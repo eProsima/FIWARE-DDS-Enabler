@@ -1,0 +1,13 @@
+/usr/local/include/ddsenabler/dds_enabler_runner.hpp
+/usr/local/include/ddsenabler/DDSEnabler.hpp
+/usr/local/include/ddsenabler/library/config.h
+/usr/local/include/ddsenabler/library/eProsima_auto_link.h
+/usr/local/include/ddsenabler/library/library_dll.h
+/usr/local/lib/libddsenabler.so.0.1.0
+/usr/local/lib/libddsenabler.so.0
+/usr/local/lib/libddsenabler.so
+/usr/local/lib/cmake/ddsenabler/ddsenabler-targets.cmake
+/usr/local/lib/cmake/ddsenabler/ddsenabler-targets-debug.cmake
+/usr/local/lib/cmake/ddsenabler/ddsenabler-config.cmake
+/usr/local/lib/cmake/ddsenabler/ddsenabler-config-version.cmake
+/usr/local/share/ddsenabler/LICENSE
