@@ -41,8 +41,6 @@ using namespace eprosima::ddsenabler;
 namespace eprosima {
 namespace ddsenabler {
 
-const char* CONFIGURATION_FILE;
-
 std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
         const std::unique_ptr<DDSEnabler>& enabler,
         const std::string& file_path);

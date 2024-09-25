@@ -256,9 +256,14 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
         catch (const std::exception& e)
         {
             throw eprosima::utils::ConfigurationException(
-                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
-                        "> :\n " << e.what());
+                      utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                          "> :\n " << e.what());
         }
+    }
+    else
+    {
+        logWarning(DDSENABLER_YAML,
+                "No configuration file specified, using default values.");
     }
     EnablerConfiguration::load_ddsenabler_configuration_(yml);
 }

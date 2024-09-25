@@ -71,16 +71,18 @@ int init_dds_enabler(
         participants::DdsLogFunc log_callback)
 
 {
-    logInfo(DDSENABLER_EXECUTION,
-            "Starting DDS Enabler execution.");
+    std::string dds_enabler_config_file = "";
+    if (ddsEnablerConfigFile != NULL)
+    {
+        dds_enabler_config_file = ddsEnablerConfigFile;
+    }
 
-    CONFIGURATION_FILE = ddsEnablerConfigFile;
 
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
         // Load configuration from file
-        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(CONFIGURATION_FILE);
+        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
 
         // Verify that the configuration is correct
         eprosima::utils::Formatter error_msg;
@@ -104,10 +106,6 @@ int init_dds_enabler(
             eprosima::utils::Log::RegisterConsumer(
                 std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
 
-            // // DDS Enabler Log Consumer
-            // eprosima::utils::Log::RegisterConsumer(
-            //     std::make_unique<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(&log_configuration));
-
             // Std Log Consumer
             if (log_configuration.stdout_enable)
             {
@@ -119,6 +117,8 @@ int init_dds_enabler(
         }
 
         // DDS Enabler Initialization
+        logInfo(DDSENABLER_EXECUTION,
+                "Starting DDS Enabler execution.");
 
         // Create a multiple event handler that handles all events that make the enabler stop
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
@@ -133,7 +133,7 @@ int init_dds_enabler(
 
         // Create File Watcher Handler
         std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler;
-        file_watcher_handler = create_filewatcher(enabler, CONFIGURATION_FILE);
+        file_watcher_handler = create_filewatcher(enabler, dds_enabler_config_file);
 
         // Wait until signal arrives
         close_handler->wait_for_event();
@@ -147,7 +147,7 @@ int init_dds_enabler(
     catch (const eprosima::utils::ConfigurationException& e)
     {
         logError(DDSENABLER_ERROR,
-                "Error Loading DDS Enabler Configuration from file " << CONFIGURATION_FILE <<
+                "Error Loading DDS Enabler Configuration from file " << dds_enabler_config_file <<
                 ". Error message:\n " << e.what());
         return -1;
     }

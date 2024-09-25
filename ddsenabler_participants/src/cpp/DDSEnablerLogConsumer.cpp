@@ -43,12 +43,16 @@ void DDSEnablerLogConsumer::Consume(
         return;
     }
 
+    char* filename = (entry.context.filename != NULL)? (char*) entry.context.filename : (char*) "no-filename";
+    char* funcname = (entry.context.function != NULL)? (char*) entry.context.function : (char*) "no-funcname";
+    char* message = (entry.message.c_str() != NULL)? (char*) entry.message.c_str() : (char*) "no-message";
+
     log_callback_(
-        entry.context.filename,
+        filename,
         entry.context.line,
-        entry.context.function,
+        funcname,
         static_cast<int>(entry.kind),
-        entry.message.c_str());
+        message);
 }
 
 } /* namespace participants */
