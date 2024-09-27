@@ -201,7 +201,7 @@ protected:
                 std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         return true;
     }
 
@@ -879,8 +879,6 @@ DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_UnionULongLong, UnionULongL
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_UnionUShort, UnionUShortPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_UnionWChar, UnionWCharPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_UnionWString, UnionWStringPubSubType);
-
-
 } // namespace ddsenablertypedtests
 
 

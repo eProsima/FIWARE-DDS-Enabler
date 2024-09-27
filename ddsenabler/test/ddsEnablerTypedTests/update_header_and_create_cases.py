@@ -129,6 +129,38 @@ def update_tests_macros(structs_info, struct_names_to_ignore):
 
     print(f"Test macros in DdsEnablerTypedTest.cpp updated successfully.")
 
+def update_tests_cmake(structs_info, struct_names_to_ignore):
+    # Update the CMakeLists.txt with a new list of tests, excluding ignored struct names
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    cmake_file_path = os.path.join(script_dir, "CMakeLists.txt")
+    temp_cmake_file_path = cmake_file_path + ".tmp"
+
+    with open(cmake_file_path, 'r') as file:
+        content = file.read()
+
+    # Prepare new test list lines, filtering out ignored struct names
+    new_test_lines = []
+    structs_info = sorted(list(structs_info), key=lambda x: (x[1], x[0]))  # Sort structs_info alphabetically
+    for struct_name, _, _, _ in structs_info:
+        if not any(fnmatch.fnmatch(struct_name, pattern) for pattern in struct_names_to_ignore):
+            new_test_line = f"    ddsenabler_send_samples_{struct_name}\n"
+            new_test_lines.append(new_test_line)
+
+    # Replace the existing set(TEST_LIST ...) block with the new test list
+    test_list_pattern = r'set\(TEST_LIST\s*\n(.*?)\)'
+    new_test_list_block = f"set(TEST_LIST\n{''.join(new_test_lines)})"
+    updated_content = re.sub(test_list_pattern, new_test_list_block, content, flags=re.DOTALL)
+
+    # Write the updated content to a temporary file
+    with open(temp_cmake_file_path, 'w') as file:
+        file.write(updated_content)
+
+    # Replace the original CMakeLists.txt file with the updated one
+    os.replace(temp_cmake_file_path, cmake_file_path)
+
+    print(f"Test list in CMakeLists.txt updated successfully.")
+
+
 def main():
     print("This script updates the header files and creates macros to test the all the structures found in the IDL files.")
 
@@ -141,8 +173,8 @@ def main():
         return
 
     update_types_header_file(processor.structs_info)
-
     update_tests_macros(processor.structs_info, processor.struct_names_to_ignore)
+    update_tests_cmake(processor.structs_info, processor.struct_names_to_ignore)
 
 
 if __name__ == "__main__":
