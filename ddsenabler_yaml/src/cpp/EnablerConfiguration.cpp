@@ -262,7 +262,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
     }
     else
     {
-        logWarning(DDSENABLER_YAML,
+        EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                 "No configuration file specified, using default values.");
     }
     EnablerConfiguration::load_ddsenabler_configuration_(yml);

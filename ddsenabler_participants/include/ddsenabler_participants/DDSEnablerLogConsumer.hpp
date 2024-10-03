@@ -69,7 +69,7 @@ public:
 
 private:
 
-        DdsLogFunc log_callback_;
+    DdsLogFunc log_callback_;
 };
 
 } /* namespace participants */
