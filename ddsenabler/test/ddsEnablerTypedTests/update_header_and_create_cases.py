@@ -15,8 +15,15 @@ class IDLProcessor:
         }
         # List of struct names to ignore
         self.struct_names_to_ignore = ["MapWString*", "MapInnerAliasBoundedWStringHelper*", "AnnotatedStruct", "foo"]
+        if self.struct_names_to_ignore:
+            print("Struct names to ignore:")
+            print(self.struct_names_to_ignore)
+    
         # List of IDL files that don't have a TypeObject
         self.idl_without_typeobjects = {"XtypesTestsTypeNoTypeObject", "declarations", "external"}
+        if self.struct_names_to_ignore:
+            print("IDL files file whitout TypeObject:")
+            print(self.idl_without_typeobjects)
 
     def extract_structures(self, idl_text):
         # Regular expressions for module and struct extraction
@@ -81,7 +88,7 @@ def update_types_header_file(structs_info):
     # Add new include lines before the #endif directive
     new_include_lines = set()
     for _, idl_file_name, _, idls_path in structs_info:
-        include_line = f'#include "../resources/types/{idl_file_name}PubSubTypes.hpp"\n'
+        include_line = f'#include "types/{idl_file_name}PubSubTypes.hpp"\n'
         new_include_lines.add(include_line)
 
     content = content[:endif_index].rstrip() + '\n' + '\n' + ''.join(sorted(list(new_include_lines))) + '\n' + content[endif_index:]
@@ -162,14 +169,14 @@ def update_tests_cmake(structs_info, struct_names_to_ignore):
 
 
 def main():
-    print("This script updates the header files and creates macros to test the all the structures found in the IDL files.")
+    print("This script updates the types header file and creates macros to test the all the structures found in the IDL files.")
 
     processor = IDLProcessor()
     processor.process_idl_files("../resources/dds-types-test/IDL")
 
     if not processor.structs_info:
         print("No structures found in the IDL files.")
-        print("Expected to find them in: ../resources/dds-types-test")
+        print("Expected to find them in: ../resources/dds-types-test/IDL")
         return
 
     update_types_header_file(processor.structs_info)

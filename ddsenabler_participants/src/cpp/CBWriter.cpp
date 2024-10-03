@@ -56,9 +56,9 @@ void CBWriter::write_data(
     // Create the base JSON structure
     nlohmann::ordered_json json_output;
 
-    std::stringstream ss_source_guid;
-    ss_source_guid << msg.source_guid;
-    json_output["id"] = ss_source_guid.str();
+    std::stringstream ss_source_guid_prefix;
+    ss_source_guid_prefix << msg.source_guid.guid_prefix();
+    json_output["id"] = ss_source_guid_prefix.str();
     json_output["type"] = "fastdds";
     json_output[msg.topic.topic_name()] = {
         {"type", msg.topic.type_name},

@@ -21,26 +21,26 @@
 #define _TEST_DDSENABLERTYPEDTESTS_HPP_
 
 // This header will include all the headers for the types that will be tested
-// They will be added automatically by the update_headers.py script
+// They will be added automatically by the update_header_and_create_cases.py script
 
-#include "../resources/types/aliasesPubSubTypes.hpp"
-#include "../resources/types/annotationsPubSubTypes.hpp"
-#include "../resources/types/appendablePubSubTypes.hpp"
-#include "../resources/types/arraysPubSubTypes.hpp"
-#include "../resources/types/bitsetsPubSubTypes.hpp"
-#include "../resources/types/constantsPubSubTypes.hpp"
-#include "../resources/types/enumerationsPubSubTypes.hpp"
-#include "../resources/types/finalPubSubTypes.hpp"
-#include "../resources/types/helpers/basic_inner_typesPubSubTypes.hpp"
-#include "../resources/types/inheritancePubSubTypes.hpp"
-#include "../resources/types/keyPubSubTypes.hpp"
-#include "../resources/types/mapsPubSubTypes.hpp"
-#include "../resources/types/mutablePubSubTypes.hpp"
-#include "../resources/types/optionalPubSubTypes.hpp"
-#include "../resources/types/primitivesPubSubTypes.hpp"
-#include "../resources/types/sequencesPubSubTypes.hpp"
-#include "../resources/types/stringsPubSubTypes.hpp"
-#include "../resources/types/structuresPubSubTypes.hpp"
-#include "../resources/types/unionsPubSubTypes.hpp"
+#include "types/aliasesPubSubTypes.hpp"
+#include "types/annotationsPubSubTypes.hpp"
+#include "types/appendablePubSubTypes.hpp"
+#include "types/arraysPubSubTypes.hpp"
+#include "types/bitsetsPubSubTypes.hpp"
+#include "types/constantsPubSubTypes.hpp"
+#include "types/enumerationsPubSubTypes.hpp"
+#include "types/finalPubSubTypes.hpp"
+#include "types/helpers/basic_inner_typesPubSubTypes.hpp"
+#include "types/inheritancePubSubTypes.hpp"
+#include "types/keyPubSubTypes.hpp"
+#include "types/mapsPubSubTypes.hpp"
+#include "types/mutablePubSubTypes.hpp"
+#include "types/optionalPubSubTypes.hpp"
+#include "types/primitivesPubSubTypes.hpp"
+#include "types/sequencesPubSubTypes.hpp"
+#include "types/stringsPubSubTypes.hpp"
+#include "types/structuresPubSubTypes.hpp"
+#include "types/unionsPubSubTypes.hpp"
 
 #endif /* _TEST_DDSENABLERTYPEDTESTS_HPP_ */

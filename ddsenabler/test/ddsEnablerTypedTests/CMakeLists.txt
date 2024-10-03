@@ -17,7 +17,7 @@ set(TEST_NAME DDSEnablerTypedTest)
 file(
     GLOB_RECURSE TEST_SOURCES
     DdsEnablerTypedTest.cpp
-    "${PROJECT_SOURCE_DIR}/test/resources/types/*.c*"
+    types/*.cxx
 )
 
 file(
@@ -679,7 +679,8 @@ set(TEST_NEEDED_SOURCES
 )
 
 set(TEST_EXTRA_HEADERS
-    ${PROJECT_SOURCE_DIR}/test/resources/types/
+    ${PROJECT_SOURCE_DIR}/test
+    ${PROJECT_SOURCE_DIR}/test/ddsEnablerTypedTests/types
 )
 
 add_blackbox_executable(

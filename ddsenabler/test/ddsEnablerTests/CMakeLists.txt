@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(TEST_NAME DdsEnablerTest)
+set(TEST_NAME DDSEnablerTest)
 
 file(
     GLOB_RECURSE TEST_SOURCES
     DdsEnablerTest.cpp
-    "${PROJECT_SOURCE_DIR}/test/resources/types/*.c*"
+    types/*.cxx
 )
 
 file(
@@ -30,19 +30,21 @@ list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
 set(TEST_LIST
     ddsenabler_creation
     ddsenabler_reload_configuration
-    ddsenabler_send_samples_type1
-    ddsenabler_send_samples_type2
-    ddsenabler_send_samples_type3
-    ddsenabler_send_samples_type4
-    ddsenabler_send_samples_multiple_types
-    ddsenabler_send_samples_repeated_type
+    send_type1
+    send_many_type1
+    send_type2
+    send_type3
+    send_type4
+    send_multiple_types
+    send_repeated_type
 )
 
 set(TEST_NEEDED_SOURCES
 )
 
 set(TEST_EXTRA_HEADERS
-    ${PROJECT_SOURCE_DIR}/test/resources/types/
+    ${PROJECT_SOURCE_DIR}/test
+    ${PROJECT_SOURCE_DIR}/test/ddsEnablerTests/types
 )
 
 add_blackbox_executable(
