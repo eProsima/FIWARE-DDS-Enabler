@@ -184,7 +184,7 @@ public:
             const char* typeName,
             const char* topicName,
             const char* json,
-            double publishTime)
+            int64_t publishTime)
     {
         if (current_test_instance_)
         {
