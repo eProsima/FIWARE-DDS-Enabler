@@ -94,9 +94,9 @@ int init_dds_enabler(
 
         // Logging
         {
-            const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
             // Disable stdout always
             configuration.ddspipe_configuration.log_configuration.stdout_enable = false;
+            const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
 
             eprosima::utils::Log::ClearConsumers();
             eprosima::utils::Log::SetVerbosity(log_configuration.verbosity);
