@@ -274,6 +274,91 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 }
 
+TEST_F(DDSEnablerTest, send_history_bigger_than_writer)
+{
+    ddsenablertester::num_samples_ = 5;
+    int history_depth = 3;
+
+    KnownType a_type;
+    a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type));
+
+    auto enabler = create_ddsenabler_w_history();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(history_depth * 100));
+
+    ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_data(), history_depth);
+}
+
+TEST_F(DDSEnablerTest, send_history_smaller_than_writer)
+{
+    ddsenablertester::num_samples_ = 20;
+    int history_depth = 15;
+
+    KnownType a_type;
+    a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type));
+
+    auto enabler = create_ddsenabler_w_history();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(history_depth * 100));
+
+    ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_data(), history_depth);
+}
+
+TEST_F(DDSEnablerTest, send_history_multiple_types)
+{
+    ddsenablertester::num_samples_ = 5;
+    int types = 4;
+    int history_depth = 3;
+
+    KnownType a_type1;
+    a_type1.type_sup_.reset(new DDSEnablerTestType1PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type1, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type1));
+
+    KnownType a_type2;
+    a_type2.type_sup_.reset(new DDSEnablerTestType2PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type2, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type2));
+
+    KnownType a_type3;
+    a_type3.type_sup_.reset(new DDSEnablerTestType3PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type3, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type3));
+
+    KnownType a_type4;
+    a_type4.type_sup_.reset(new DDSEnablerTestType4PubSubType());
+
+    ASSERT_TRUE(create_publisher_w_history(a_type4, history_depth));
+    // Send data
+    ASSERT_TRUE(send_samples(a_type4));
+
+    auto enabler = create_ddsenabler_w_history();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(types * history_depth * 100));
+
+    ASSERT_EQ(get_received_types(), types);
+    ASSERT_EQ(get_received_data(), types * history_depth);
+}
+
 int main(
         int argc,
         char** argv)

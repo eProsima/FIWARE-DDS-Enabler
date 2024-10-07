@@ -37,6 +37,9 @@ set(TEST_LIST
     send_type4
     send_multiple_types
     send_repeated_type
+    send_history_bigger_than_writer
+    send_history_smaller_than_writer
+    send_history_multiple_types
 )
 
 set(TEST_NEEDED_SOURCES

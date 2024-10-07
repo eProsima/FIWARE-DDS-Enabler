@@ -57,7 +57,7 @@ public:
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
-    // Reset the static pointer after each test
+    // Reset after each test
     void TearDown() override
     {
         std::cout << "Tearing down test..." << std::endl;
@@ -74,6 +74,37 @@ public:
         YAML::Node yml;
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+
+        auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
+
+        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
+
+        // Bind the static callbacks (no captures allowed)
+        enabler->set_data_callback(test_data_callback);
+        enabler->set_type_callback(test_type_callback);
+
+        return enabler;
+    }
+
+    // Create the DDSEnabler and bind the static callbacks
+    std::unique_ptr<DDSEnabler> create_ddsenabler_w_history()
+    {
+        const char* yml_str =
+                R"(
+                topics:
+                  name: "*"
+                  qos:
+                    durability: TRANSIENT_LOCAL
+                    history-depth: 10
+            )";
+        eprosima::Yaml yml = YAML::Load(yml_str);
+        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+
+        eprosima::utils::Formatter error_msg;
+        if (!configuration.is_valid(error_msg))
+        {
+            return nullptr;
+        }
 
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
@@ -123,6 +154,56 @@ public:
         }
 
         DataWriterQos wqos = publisher->get_default_datawriter_qos();
+        a_type.writer_ = publisher->create_datawriter(topic, wqos);
+        if (a_type.writer_ == nullptr)
+        {
+            std::cout << "ERROR DDSEnablerTester: create_datawriter: " <<
+                a_type.type_sup_.get_type_name() << std::endl;
+            return false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return true;
+    }
+
+    bool create_publisher_w_history(
+            KnownType& a_type,
+            int history_depth)
+    {
+        DomainParticipant* participant = DomainParticipantFactory::get_instance()
+                        ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+        if (participant == nullptr)
+        {
+            std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
+            return false;
+        }
+
+        if (RETCODE_OK != a_type.type_sup_.register_type(participant))
+        {
+            std::cout << "ERROR DDSEnablerTester: fail to register type: " <<
+                a_type.type_sup_.get_type_name() << std::endl;
+            return false;
+        }
+
+        Publisher* publisher = participant->create_publisher(PUBLISHER_QOS_DEFAULT);
+        if (publisher == nullptr)
+        {
+            std::cout << "ERROR DDSEnablerTester: create_publisher: " <<
+                a_type.type_sup_.get_type_name() << std::endl;
+            return false;
+        }
+
+        std::ostringstream topic_name;
+        topic_name << a_type.type_sup_.get_type_name() << "TopicName";
+        Topic* topic = participant->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
+        if (topic == nullptr)
+        {
+            std::cout << "ERROR DDSEnablerTester: create_topic: " <<
+                a_type.type_sup_.get_type_name() << std::endl;
+            return false;
+        }
+
+        DataWriterQos wqos = publisher->get_default_datawriter_qos();
+        wqos.history().depth = history_depth;
         a_type.writer_ = publisher->create_datawriter(topic, wqos);
         if (a_type.writer_ == nullptr)
         {
@@ -196,9 +277,6 @@ public:
         }
     }
 
-    // Pointer to the current test instance (for use in the static callback)
-    static DDSEnablerTester* current_test_instance_;
-
     int get_received_types()
     {
         if (current_test_instance_)
@@ -227,7 +305,8 @@ public:
         }
     }
 
-private:
+    // Pointer to the current test instance (for use in the static callback)
+    static DDSEnablerTester* current_test_instance_;
 
     // Test-specific received counters
     int received_types_ = 0;
