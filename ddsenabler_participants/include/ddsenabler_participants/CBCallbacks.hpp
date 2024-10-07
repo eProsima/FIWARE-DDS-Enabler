@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
