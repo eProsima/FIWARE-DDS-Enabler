@@ -36,7 +36,6 @@
 using namespace eprosima;
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::ddsenabler;
-using namespace eprosima::ddsenabler::participants;
 
 DynamicType::_ref_type create_schema(
         ddspipe::core::types::DdsTopic& topic)
@@ -51,40 +50,29 @@ DynamicType::_ref_type create_schema(
     return type_builder->build();
 }
 
-class CBWriterTest : public CBWriter
+class CBWriterTest : public participants::CBWriter
 {
 public:
 
     CBWriterTest() = default;
     ~CBWriterTest() = default;
 
-    void write_data(
-            const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type) override
-    {
-    }
-
+    // Expose protected methods
+    using CBWriter::write_data;
     using CBWriter::write_schema;
     using CBWriter::stored_schemas_;
-
-    // void write_schema(
-    //         const CBMessage& msg,
-    //         const fastdds::dds::DynamicType::_ref_type& dyn_type) override
-    // {
-    // }
-
 };
 
-class CBHandlerTest : public CBHandler
+class CBHandlerTest : public participants::CBHandler
 {
 public:
 
     // Inherit the constructor from CBHandler
-    using CBHandler::CBHandler;
+    using participants::CBHandler::CBHandler;
 
     // Expose protected members
-    using CBHandler::schemas_;
-    using CBHandler::cb_writer_;
+    using participants::CBHandler::schemas_;
+    using participants::CBHandler::cb_writer_;
 };
 
 TEST(DdsEnablerParticipantsTest, ddsenabler_participants_cb_handler_creation)
@@ -94,10 +82,10 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_cb_handler_creation)
     ASSERT_NE(payload_pool_, nullptr);
 
     // Create CB Handler configuration
-    CBHandlerConfiguration handler_config;
+    participants::CBHandlerConfiguration handler_config;
 
     // Create CB Handler
-    auto cb_handler_ = std::make_shared<CBHandler>(handler_config, payload_pool_);
+    auto cb_handler_ = std::make_shared<participants::CBHandler>(handler_config, payload_pool_);
 
     ASSERT_NE(cb_handler_, nullptr);
 }
@@ -109,7 +97,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_new_schemas)
     ASSERT_NE(payload_pool_, nullptr);
 
     // Create CB Handler configuration
-    CBHandlerConfiguration handler_config;
+    participants::CBHandlerConfiguration handler_config;
 
     // Create CB Handler
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
@@ -164,7 +152,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_same_type_id_schema
     ASSERT_NE(payload_pool_, nullptr);
 
     // Create CB Handler configuration
-    CBHandlerConfiguration handler_config;
+    participants::CBHandlerConfiguration handler_config;
 
     // Create CB Handler
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
@@ -218,7 +206,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_same_type_name_sche
     ASSERT_NE(payload_pool_, nullptr);
 
     // Create CB Handler configuration
-    CBHandlerConfiguration handler_config;
+    participants::CBHandlerConfiguration handler_config;
 
     // Create CB Handler
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
@@ -273,7 +261,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_data_with_schema)
     ASSERT_NE(payload_pool_, nullptr);
 
     // Create CB Handler configuration
-    CBHandlerConfiguration handler_config;
+    participants::CBHandlerConfiguration handler_config;
 
     // Create CB Handler
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
@@ -366,7 +354,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
     payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
     data->payload_owner = payload_pool_.get();
 
-    CBMessage msg;
+    participants::CBMessage msg;
     msg.sequence_number = 1;
     msg.publish_time = data->source_timestamp;
     msg.topic = topic;
@@ -405,7 +393,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
     payload2.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
     data2->payload_owner = payload_pool_.get();
 
-    CBMessage msg2;
+    participants::CBMessage msg2;
     msg2.sequence_number = 1;
     msg2.publish_time = data2->source_timestamp;
     msg2.topic = topic2;
@@ -462,7 +450,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_repeated)
     payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
     data->payload_owner = payload_pool_.get();
 
-    CBMessage msg;
+    participants::CBMessage msg;
     msg.sequence_number = 1;
     msg.publish_time = data->source_timestamp;
     msg.topic = topic;

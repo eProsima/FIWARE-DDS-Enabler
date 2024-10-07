@@ -32,7 +32,6 @@
 #include <cpp_utils/time/time_utils.hpp>
 #include <cpp_utils/utils.hpp>
 
-#include <ddsenabler_participants/constants.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {

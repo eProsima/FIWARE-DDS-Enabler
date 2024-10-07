@@ -71,12 +71,15 @@ void CBWriter::write_data(
     json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = parsed_dyn_data;
 
     //STORE DATA
-    data_callback_(
-        msg.topic.type_name.c_str(),
-        msg.topic.topic_name().c_str(),
-        json_output.dump(4).c_str(),
-        msg.publish_time.to_ns()
-        );
+    if (data_callback_)
+    {
+        data_callback_(
+            msg.topic.type_name.c_str(),
+            msg.topic.topic_name().c_str(),
+            json_output.dump(4).c_str(),
+            msg.publish_time.to_ns()
+            );
+    }
 }
 
 void CBWriter::write_schema(
@@ -107,11 +110,14 @@ void CBWriter::write_schema(
         stored_schemas_[topic_name] = type_id;
 
         //STORE SCHEMA
-        type_callback_(
-            type_name.c_str(),
-            topic_name.c_str(),
-            ss_idl.str().c_str()
-            );
+        if (type_callback_)
+        {
+            type_callback_(
+                type_name.c_str(),
+                topic_name.c_str(),
+                ss_idl.str().c_str()
+                );
+        }
     }
     else
     {

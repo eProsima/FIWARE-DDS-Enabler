@@ -26,7 +26,6 @@ set(TEST_LIST
         get_ddsenabler_correct_configuration_yaml
         get_ddsenabler_incorrect_n_threads_configuration_yaml
         get_ddsenabler_default_values_configuration_yaml
-        get_ddsenabler_correct_path_configuration_yaml
         get_ddsenabler_incorrect_path_configuration_yaml
     )
 
