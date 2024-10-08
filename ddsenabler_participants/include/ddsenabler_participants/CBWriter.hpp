@@ -20,6 +20,8 @@
 
 #include <mutex>
 
+#include <nlohmann/json.hpp>
+
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
@@ -29,7 +31,6 @@
 #include <ddsenabler_participants/library/library_dll.h>
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
-#include <ddsenabler_participants/nlohmann/json.hpp>
 
 namespace eprosima {
 namespace ddsenabler {

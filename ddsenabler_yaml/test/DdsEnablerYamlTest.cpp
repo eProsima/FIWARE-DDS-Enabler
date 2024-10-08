@@ -22,6 +22,47 @@
 using namespace eprosima;
 using namespace eprosima::ddsenabler::yaml;
 
+TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_json)
+{
+    const char* json_str =
+            "{"
+            "  \"dds\": {"
+            "    \"domain\": 0"
+            "  },"
+            "  \"ddsenabler\": null,"
+            "  \"specs\": {"
+            "    \"threads\": 12,"
+            "    \"logging\": {"
+            "      \"verbosity\": \"info\","
+            "      \"filter\": {"
+            "        \"error\": \"DDSENABLER_ERROR\","
+            "        \"warning\": \"DDSENABLER_WARNING\","
+            "        \"info\": \"DDSENABLER_INFO\""
+            "      }"
+            "    }"
+            "  }"
+            "}";
+
+    nlohmann::json json = nlohmann::json::parse(json_str);
+
+    // Load configuration from JSON
+    EnablerConfiguration configuration(true, json);
+
+    utils::Formatter error_msg;
+
+    ASSERT_TRUE(configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.n_threads, 12);
+
+    ASSERT_TRUE(configuration.ddspipe_configuration.log_configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.verbosity.get_value(), utils::VerbosityKind::Info);
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Error].get_value(),
+            "DDSENABLER_ERROR");
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Warning].get_value(),
+            "DDSENABLER_WARNING");
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Info].get_value(),
+            "DDSENABLER_INFO");
+}
+
 TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_yaml)
 {
     const char* yml_str =

@@ -1,0 +1,23 @@
+{
+  "dds": {
+    "domain": 0,
+    "allowlist": [
+      {
+        "name": "*"
+      }
+    ],
+    "blocklist": [
+      {
+        "name": "add_blocked_topics_list_here"
+      }
+    ]
+  },
+  "ddsenabler": null,
+  "specs": {
+    "threads": 12,
+    "logging": {
+      "stdout": false,
+      "verbosity": "info"
+    }
+  }
+}

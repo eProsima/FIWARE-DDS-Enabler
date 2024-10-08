@@ -44,6 +44,14 @@ using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
 EnablerConfiguration::EnablerConfiguration(
+        bool is_json,
+        const nlohmann::json& json)
+{
+    Yaml yml = json_to_yaml(json);
+    load_ddsenabler_configuration_(yml);
+}
+
+EnablerConfiguration::EnablerConfiguration(
         const Yaml& yml)
 {
     load_ddsenabler_configuration_(yml);
@@ -59,6 +67,58 @@ bool EnablerConfiguration::is_valid(
         utils::Formatter& error_msg) const noexcept
 {
     return true;
+}
+
+YAML::Node EnablerConfiguration::json_to_yaml(
+        const nlohmann::json& json)
+{
+    YAML::Node yaml_node;
+
+    // Iterate through the JSON object
+    for (auto& element : json.items())
+    {
+        if (element.value().is_object())
+        {
+            // Recursively convert nested objects
+            yaml_node[element.key()] = json_to_yaml(element.value());
+        }
+        else if (element.value().is_array())
+        {
+            // Handle arrays
+            YAML::Node arrayNode;
+            for (const auto& item : element.value())
+            {
+                arrayNode.push_back(json_to_yaml(item));
+            }
+            yaml_node[element.key()] = arrayNode;
+        }
+        else
+        {
+            // Handle basic data types explicitly
+            if (element.value().is_string())
+            {
+                yaml_node[element.key()] = element.value().get<std::string>();
+            }
+            else if (element.value().is_number_integer())
+            {
+                yaml_node[element.key()] = element.value().get<int>();
+            }
+            else if (element.value().is_number_float())
+            {
+                yaml_node[element.key()] = element.value().get<double>();
+            }
+            else if (element.value().is_boolean())
+            {
+                yaml_node[element.key()] = element.value().get<bool>();
+            }
+            else
+            {
+                // Fallback for any other types (like null)
+                yaml_node[element.key()] = "";
+            }
+        }
+    }
+    return yaml_node;
 }
 
 void EnablerConfiguration::load_ddsenabler_configuration_(
