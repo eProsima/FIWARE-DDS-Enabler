@@ -146,7 +146,6 @@ protected:
     std::shared_ptr<ddspipe::core::PayloadPool> payload_pool_;
 
     //! CB writer
-    //CBWriter cb_writer_;
     std::unique_ptr<CBWriter> cb_writer_;
 
     //! Schemas map

@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 #include <cpp_utils/Formatter.hpp>
 #include <cpp_utils/memory/Heritable.hpp>
 
@@ -51,6 +53,10 @@ class DDSENABLER_YAML_DllAPI EnablerConfiguration
 public:
 
     EnablerConfiguration(
+            bool is_json,
+            const nlohmann::json& json);
+
+    EnablerConfiguration(
             const Yaml& yml);
 
     EnablerConfiguration(
@@ -71,6 +77,9 @@ public:
     ddspipe::core::types::TopicQoS topic_qos{};
 
 protected:
+
+    YAML::Node json_to_yaml(
+            const nlohmann::json& json);
 
     void load_ddsenabler_configuration_(
             const Yaml& yml);
