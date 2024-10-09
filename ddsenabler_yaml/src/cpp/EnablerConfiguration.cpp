@@ -17,6 +17,10 @@
  *
  */
 
+#include <fstream>
+
+#include <nlohmann/json.hpp>
+
 #include <cpp_utils/Log.hpp>
 #include <cpp_utils/utils.hpp>
 
@@ -43,44 +47,19 @@ using namespace eprosima::ddspipe::participants;
 using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
-EnablerConfiguration::EnablerConfiguration(
-        bool is_json,
-        const nlohmann::json& json)
-{
-    Yaml yml = json_to_yaml(json);
-    load_ddsenabler_configuration_(yml);
-}
 
-EnablerConfiguration::EnablerConfiguration(
-        const Yaml& yml)
-{
-    load_ddsenabler_configuration_(yml);
-}
-
-EnablerConfiguration::EnablerConfiguration(
-        const std::string& file_path)
-{
-    load_ddsenabler_configuration_from_file_(file_path);
-}
-
-bool EnablerConfiguration::is_valid(
-        utils::Formatter& error_msg) const noexcept
-{
-    return true;
-}
-
-YAML::Node EnablerConfiguration::json_to_yaml(
+// Helper method to handle nlohmann::json to YAML conversion
+YAML::Node convert_json_to_yaml(
         const nlohmann::json& json)
 {
     YAML::Node yaml_node;
 
-    // Iterate through the JSON object
     for (auto& element : json.items())
     {
         if (element.value().is_object())
         {
             // Recursively convert nested objects
-            yaml_node[element.key()] = json_to_yaml(element.value());
+            yaml_node[element.key()] = convert_json_to_yaml(element.value());
         }
         else if (element.value().is_array())
         {
@@ -88,7 +67,7 @@ YAML::Node EnablerConfiguration::json_to_yaml(
             YAML::Node arrayNode;
             for (const auto& item : element.value())
             {
-                arrayNode.push_back(json_to_yaml(item));
+                arrayNode.push_back(convert_json_to_yaml(item));
             }
             yaml_node[element.key()] = arrayNode;
         }
@@ -118,7 +97,65 @@ YAML::Node EnablerConfiguration::json_to_yaml(
             }
         }
     }
+
     return yaml_node;
+}
+
+EnablerConfiguration::EnablerConfiguration(
+        bool is_json,
+        const std::string& json_file_path)
+{
+    Yaml yml = load_config_from_json_file(json_file_path);
+    load_ddsenabler_configuration_(yml);
+}
+
+EnablerConfiguration::EnablerConfiguration(
+        const Yaml& yml)
+{
+    load_ddsenabler_configuration_(yml);
+}
+
+EnablerConfiguration::EnablerConfiguration(
+        const std::string& file_path)
+{
+    load_ddsenabler_configuration_from_file_(file_path);
+}
+
+bool EnablerConfiguration::is_valid(
+        utils::Formatter& error_msg) const noexcept
+{
+    return true;
+}
+
+YAML::Node EnablerConfiguration::load_config_from_json_file(
+        const std::string& json_file_path)
+{
+    // Load the JSON file
+    std::ifstream file(json_file_path);
+    if (!file.is_open())
+    {
+        throw eprosima::utils::ConfigurationException(
+                  utils::Formatter() << "Could not open JSON file");
+    }
+
+    // Parse the JSON file
+    nlohmann::json json;
+    file >> json;
+
+    // Close the file
+    file.close();
+
+    // Extract only the "ddsmodule" part
+    if (json.contains("ddsmodule") && json["ddsmodule"].is_object())
+    {
+        // Convert the "ddsmodule" content to YAML
+        return convert_json_to_yaml(json["ddsmodule"]);
+    }
+    else
+    {
+        throw eprosima::utils::ConfigurationException(
+                  utils::Formatter() << "\"ddsmodule\" not found or is not an object in the JSON file");
+    }
 }
 
 void EnablerConfiguration::load_ddsenabler_configuration_(
