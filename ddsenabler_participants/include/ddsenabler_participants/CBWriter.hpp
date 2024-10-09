@@ -20,8 +20,6 @@
 
 #include <mutex>
 
-#include <nlohmann/json.hpp>
-
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
