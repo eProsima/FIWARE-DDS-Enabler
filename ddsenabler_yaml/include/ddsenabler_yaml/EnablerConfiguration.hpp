@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <nlohmann/json.hpp>
-
 #include <cpp_utils/Formatter.hpp>
 #include <cpp_utils/memory/Heritable.hpp>
 
@@ -54,7 +52,7 @@ public:
 
     EnablerConfiguration(
             bool is_json,
-            const nlohmann::json& json);
+            const std::string& json_file_path);
 
     EnablerConfiguration(
             const Yaml& yml);
@@ -78,8 +76,8 @@ public:
 
 protected:
 
-    YAML::Node json_to_yaml(
-            const nlohmann::json& json);
+    YAML::Node load_config_from_json_file(
+            const std::string& json_file_path);
 
     void load_ddsenabler_configuration_(
             const Yaml& yml);

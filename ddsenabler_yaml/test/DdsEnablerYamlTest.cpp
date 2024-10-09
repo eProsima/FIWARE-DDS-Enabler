@@ -15,6 +15,8 @@
 #include <cpp_utils/testing/gtest_aux.hpp>
 #include <gtest/gtest.h>
 
+#include <nlohmann/json.hpp>
+
 #include <ddspipe_yaml/YamlReader.hpp>
 
 #include <EnablerConfiguration.hpp>
