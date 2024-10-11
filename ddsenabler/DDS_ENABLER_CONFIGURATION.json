@@ -1,45 +1,47 @@
 {
-  "ddsmodule": {
-    "dds": {
-      "domain": 0,
-      "allowlist": [
-        {
-          "name": "*"
-        }
-      ],
-      "blocklist": [
-        {
-          "name": "add_blocked_topics_list_here"
-        }
-      ]
-    },
-    "topics": {
-      "name": "*",
-      "qos": {
-        "durability": "TRANSIENT_LOCAL",
-        "history-depth": 10
-      }
-    },
-    "ddsenabler": null,
-    "specs": {
-      "threads": 12,
-      "logging": {
-        "stdout": false,
-        "verbosity": "info"
-      }
-    }
-  },
-  "ngsild": {
-    "topics": {
-      "P1": {
-        "entityType": "Camera",
-        "entityId": "urn:ngsi-ld:camera:cam1",
-        "attribute": "shutterSpeed"
+  "dds": {
+    "ddsmodule": {
+      "dds": {
+        "domain": 0,
+        "allowlist": [
+          {
+            "name": "*"
+          }
+        ],
+        "blocklist": [
+          {
+            "name": "add_blocked_topics_list_here"
+          }
+        ]
       },
-      "P2": {
-        "entityType": "Arm",
-        "entityId": "urn:ngsi-ld:arm:arm1",
-        "attribute": "armReach"
+      "topics": {
+        "name": "*",
+        "qos": {
+          "durability": "TRANSIENT_LOCAL",
+          "history-depth": 10
+        }
+      },
+      "ddsenabler": null,
+      "specs": {
+        "threads": 12,
+        "logging": {
+          "stdout": false,
+          "verbosity": "info"
+        }
+      }
+    },
+    "ngsild": {
+      "topics": {
+        "P1": {
+          "entityType": "Camera",
+          "entityId": "urn:ngsi-ld:camera:cam1",
+          "attribute": "shutterSpeed"
+        },
+        "P2": {
+          "entityType": "Arm",
+          "entityId": "urn:ngsi-ld:arm:arm1",
+          "attribute": "armReach"
+        }
       }
     }
   }
