@@ -145,16 +145,25 @@ YAML::Node EnablerConfiguration::load_config_from_json_file(
     // Close the file
     file.close();
 
-    // Extract only the "ddsmodule" part
-    if (json.contains("ddsmodule") && json["ddsmodule"].is_object())
+    // Extract the "dds" part which contains "ddsmodule"
+    if (json.contains("dds") && json["dds"].is_object())
     {
-        // Convert the "ddsmodule" content to YAML
-        return convert_json_to_yaml(json["ddsmodule"]);
+        if (json["dds"].contains("ddsmodule") && json["dds"]["ddsmodule"].is_object())
+        {
+            // Convert the "ddsmodule" content to YAML
+            return convert_json_to_yaml(json["dds"]["ddsmodule"]);
+        }
+        else
+        {
+            throw eprosima::utils::ConfigurationException(
+                      utils::Formatter() <<
+                          "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
+        }
     }
     else
     {
         throw eprosima::utils::ConfigurationException(
-                  utils::Formatter() << "\"ddsmodule\" not found or is not an object in the JSON file");
+                  utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
     }
 }
 
