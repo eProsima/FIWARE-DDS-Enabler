@@ -77,12 +77,11 @@ int init_dds_enabler(
         dds_enabler_config_file = ddsEnablerConfigFile;
     }
 
-
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
         // Load configuration from file
-        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(true, dds_enabler_config_file);
+        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
 
         // Verify that the configuration is correct
         eprosima::utils::Formatter error_msg;
