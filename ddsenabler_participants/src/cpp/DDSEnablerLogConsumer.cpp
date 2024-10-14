@@ -35,6 +35,12 @@ DDSEnablerLogConsumer::DDSEnablerLogConsumer(
     verbosity_ = configuration->verbosity;
 }
 
+void DDSEnablerLogConsumer::set_log_callback(
+        DdsLogFunc callback)
+{
+    log_callback_ = callback;
+}
+
 void DDSEnablerLogConsumer::Consume(
         const utils::Log::Entry& entry)
 {

@@ -13,37 +13,33 @@
 // limitations under the License.
 
 /**
- * @file CBMessage.cpp
+ * @file KnownType.hpp
  */
 
-#include <ddsenabler_participants/CBMessage.hpp>
+#pragma once
+
+#include <fastdds/dds/domain/DomainParticipant.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
+
+using namespace eprosima::fastdds::dds;
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
-CBMessage::CBMessage(
-        const CBMessage& msg)
+struct KnownType
 {
-    payload_owner = msg.payload_owner;
-    payload_owner->get_payload(
-        msg.payload,
-        this->payload);
-    topic = msg.topic;
-    instanceHandle = msg.instanceHandle;
-    source_guid = msg.source_guid;
-    sequence_number = msg.sequence_number;
-    publish_time = msg.publish_time;
-}
+    xtypes::TypeIdentifier type_id_;
+    DynamicType::_ref_type dyn_type_ = nullptr;
+    TypeSupport type_sup_;
+    bool is_written_ = false;
+};
 
-CBMessage::~CBMessage()
-{
-    // If payload owner exists and payload has size, release it correctly in pool
-    if (payload_owner && payload.length > 0)
-    {
-        payload_owner->release_payload(payload);
-    }
-}
 
 } /* namespace participants */
 } /* namespace ddsenabler */

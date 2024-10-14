@@ -44,7 +44,18 @@ struct CBMessage
      *
      */
     CBMessage(
-            const CBMessage& data);
+            const CBMessage& msg)
+    {
+        payload_owner = msg.payload_owner;
+        payload_owner->get_payload(
+            msg.payload,
+            this->payload);
+        topic = msg.topic;
+        instanceHandle = msg.instanceHandle;
+        source_guid = msg.source_guid;
+        sequence_number = msg.sequence_number;
+        publish_time = msg.publish_time;
+    }
 
     /**
      * Message destructor
@@ -55,7 +66,14 @@ struct CBMessage
      * the situation described in copy constructor's note.
      *
      */
-    ~CBMessage();
+    ~CBMessage()
+    {
+        // If payload owner exists and payload has size, release it correctly in pool
+        if (payload_owner && payload.length > 0)
+        {
+            payload_owner->release_payload(payload);
+        }
+    }
 
     //! DdsTopic
     ddspipe::core::types::DdsTopic topic;

@@ -28,6 +28,7 @@ file(
 list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
 
 set(TEST_LIST
+    AAAAA
     ddsenabler_creation
     ddsenabler_reload_configuration
     send_type1

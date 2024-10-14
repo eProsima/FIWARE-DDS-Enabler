@@ -38,6 +38,7 @@ namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
+using namespace eprosima::fastdds::dds;
 using namespace eprosima::ddspipe::core::types;
 
 CBHandler::CBHandler(
@@ -50,6 +51,7 @@ CBHandler::CBHandler(
             "Creating CB handler instance.");
 
     cb_writer_ = std::make_unique<CBWriter>();
+    cb_publisher_ = std::make_unique<CBPublisher>();
 }
 
 CBHandler::~CBHandler()
@@ -58,28 +60,51 @@ CBHandler::~CBHandler()
             "Destroying CB handler.");
 }
 
+eprosima::fastdds::rtps::GuidPrefix_t CBHandler::get_publisher_guid()
+{
+    return cb_publisher_.get()->get_publisher_guid();
+}
+
+void CBHandler::set_data_callback(
+        participants::DdsNotification callback)
+{
+    cb_writer_.get()->set_data_callback(callback);
+}
+
+void CBHandler::set_type_callback(
+        participants::DdsTypeNotification callback)
+{
+    cb_writer_.get()->set_type_callback(callback);
+}
+
 void CBHandler::add_schema(
-        const fastdds::dds::DynamicType::_ref_type& dyn_type,
-        const fastdds::dds::xtypes::TypeIdentifier& type_id)
+        const DynamicType::_ref_type& dyn_type,
+        const xtypes::TypeIdentifier& type_id)
 {
     std::lock_guard<std::mutex> lock(mtx_);
 
-    auto received_type = dyn_type->get_name().to_string();
-
     assert(nullptr != dyn_type);
-
-    // Check if it exists already
-    auto it = schemas_.find(type_id);
-    if (it != schemas_.end())
-    {
-        return;
-    }
 
     // Add to schemas map
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding schema with name " << dyn_type->get_name().to_string() << ".");
 
-    schemas_[type_id] = dyn_type;
+    auto ret =  add_known_type(dyn_type, type_id);
+    if (ret == utils::ReturnCode::RETCODE_OK)
+    {
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+                "Schema with name " << dyn_type->get_name().to_string() << " added successfully.");
+    }
+    else if (ret == utils::ReturnCode::RETCODE_NO_DATA)
+    {
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+                "Schema with name " << dyn_type->get_name().to_string() << " already added.");
+    }
+    else
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
+                "Error adding schema with name " << dyn_type->get_name().to_string() << ".");
+    }
 }
 
 void CBHandler::add_data(
@@ -118,18 +143,8 @@ void CBHandler::add_data(
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
 
-    fastdds::dds::DynamicType::_ref_type dyn_type;
-    fastdds::dds::xtypes::TypeIdentifier type_id;
-
-    if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier1()._d())
-    {
-        type_id = topic.type_identifiers.type_identifier1();
-    }
-    else if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier2()._d())
-    {
-        type_id = topic.type_identifiers.type_identifier2();
-    }
-    else
+    if (xtypes::TK_NONE == topic.type_identifiers.type_identifier1()._d() &&
+            xtypes::TK_NONE == topic.type_identifiers.type_identifier2()._d())
     {
         // NO TYPE_IDENTIFIERS
         EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
@@ -137,26 +152,119 @@ void CBHandler::add_data(
         return;
     }
 
-    auto it = schemas_.find(type_id);
-    if (it != schemas_.end())
+    auto it = known_types_.find(topic.type_name);
+    if (it != known_types_.end())
     {
-        dyn_type = it->second;
         // Schema available -> write
-        write_sample(msg, dyn_type);
+        write_schema(msg, it->second);
+        write_sample(msg, it->second);
     }
     else
     {
         EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
                 "Schema for type " << topic.type_name << " not available.");
     }
+}
 
+ReturnCode_t CBHandler::publish_sample(
+        std::string topic_name,
+        std::string type_name,
+        std::string data_json)
+{
+    auto known_type = get_known_type(type_name);
+
+    if (known_type.has_value())
+    {
+        if (!cb_publisher_->create_writer(topic_name, known_type.value()))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
+            return RETCODE_PRECONDITION_NOT_MET;
+        }
+    }
+    else
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "CBHandler::publish_sample, uknown type: " << type_name << ".");
+        return RETCODE_PRECONDITION_NOT_MET;
+    }
+
+    return cb_publisher_->publish_data(topic_name, known_type.value(), data_json);
+}
+
+void CBHandler::write_schema(
+        const CBMessage& msg,
+        KnownType& known_type)
+{
+    if (!known_type.is_written_)
+    {
+        //Schema has not been registered
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+                "Writing schema: " << msg.topic.type_name << ".");
+
+        //STORE SCHEMA
+        cb_writer_->write_schema(msg, known_type);
+    }
+    else
+    {
+        //Schema has been registered
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+                "Schema: " << msg.topic.type_name << " already registered.");
+    }
 }
 
 void CBHandler::write_sample(
         const CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type)
+        KnownType& known_type)
 {
-    cb_writer_->write_data(msg, dyn_type);
+    cb_writer_->write_data(msg, known_type);
+}
+
+utils::ReturnCode CBHandler::add_known_type(
+        const DynamicType::_ref_type& dyn_type,
+        const xtypes::TypeIdentifier& type_id)
+{
+    std::lock_guard<std::mutex> guard(known_types_mutex_);
+    const std::string type_name = dyn_type->get_name().to_string();
+    try
+    {
+        if (known_types_.find(type_name) == known_types_.end())
+        {
+            KnownType a_type;
+            a_type.type_id_ = type_id;
+            a_type.dyn_type_ = dyn_type;
+            a_type.type_sup_.reset(new DynamicPubSubType(dyn_type));
+
+            known_types_.emplace(type_name, a_type);
+        }
+        else
+        {
+            return utils::ReturnCode::RETCODE_PRECONDITION_NOT_MET;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return utils::ReturnCode::RETCODE_ERROR;
+    }
+
+    return utils::ReturnCode::RETCODE_OK;
+}
+
+std::optional<KnownType> CBHandler::get_known_type(
+        const std::string type_name)
+{
+    std::lock_guard<std::mutex> guard(known_types_mutex_);
+    auto it = known_types_.find(type_name);
+    if (it != known_types_.end())
+    {
+        return it->second;
+    }
+    else
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
+                "Tried to get uknown type " << type_name << ".");
+        return std::nullopt;
+    }
 }
 
 } /* namespace participants */

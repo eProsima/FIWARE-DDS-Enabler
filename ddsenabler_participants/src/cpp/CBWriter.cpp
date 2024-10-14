@@ -25,25 +25,36 @@
 #include <fastdds/dds/xtypes/utils.hpp>
 
 #include <ddsenabler_participants/CBWriter.hpp>
+#include <ddsenabler_participants/DynamicTypesSerializer.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
 
+void CBWriter::set_data_callback(
+        DdsNotification callback)
+{
+    data_callback_ = callback;
+}
+
+void CBWriter::set_type_callback(
+        DdsTypeNotification callback)
+{
+    type_callback_ = callback;
+}
+
 void CBWriter::write_data(
         const CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type)
+        KnownType& known_type)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-
-    write_schema(msg, dyn_type);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writing message from topic: " << msg.topic.topic_name() << ".");
 
     // Get the data as JSON
-    fastdds::dds::DynamicData::_ref_type dyn_data = get_dynamic_data(msg, dyn_type);
+    fastdds::dds::DynamicData::_ref_type dyn_data = get_dynamic_data(msg, known_type.dyn_type_);
 
     std::stringstream ss_dyn_data;
     ss_dyn_data << std::setw(4);
@@ -82,34 +93,32 @@ void CBWriter::write_data(
             msg.publish_time.to_ns()
             );
     }
+    else
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Missing DdsNotification callback.");
+    }
 }
 
 void CBWriter::write_schema(
         const CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type)
+        KnownType& known_type)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     const std::string topic_name = msg.topic.topic_name();
     const std::string type_name = msg.topic.type_name;
-    const fastdds::dds::xtypes::TypeIdentifier type_id = msg.topic.type_identifiers.type_identifier1();
 
-    auto it = stored_schemas_.find(topic_name);
-    if (it == stored_schemas_.end())
+    DynamicTypesCollection dynamic_types;
+
+    // Store dynamic type in dynamic_types collection
+    if (DynamicTypesSerializer::store_dynamic_type(type_name, known_type.type_id_, dynamic_types))
     {
-        //Schema has not been registered
-        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-                "Writing schema: " << type_name << " on topic: " << topic_name << ".");
+        // Serialize dynamic types collection
+        const auto serialized_dynamic_types = DynamicTypesSerializer::serialize_dynamic_types(dynamic_types);
 
-        std::stringstream ss_idl;
-        auto ret = fastdds::dds::idl_serialize(dyn_type, ss_idl);
-        if (ret != fastdds::dds::RETCODE_OK)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                    "Failed to serialize DynamicType to idl for type with name: " << type_name);
-            return;
-        }
-
-        //Add the schema and topic to stored_schemas_
-        stored_schemas_[topic_name] = type_id;
+        auto serialized_data = reinterpret_cast<std::byte*>(serialized_dynamic_types->data);
+        auto dataSize = serialized_dynamic_types->length;
+        auto serialized_data_char = reinterpret_cast<const char*>(serialized_dynamic_types->data);
 
         //STORE SCHEMA
         if (type_callback_)
@@ -117,15 +126,16 @@ void CBWriter::write_schema(
             type_callback_(
                 type_name.c_str(),
                 topic_name.c_str(),
-                ss_idl.str().c_str()
+                serialized_data_char
                 );
+
+            known_type.is_written_ = true;
         }
-    }
-    else
-    {
-        //Schema has been registered
-        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-                "Schema: " + type_name + " already registered for topic: " + topic_name + ".");
+        else
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                    "Missing DdsTypeNotification callback.");
+        }
     }
 }
 

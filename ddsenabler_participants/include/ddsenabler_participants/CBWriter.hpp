@@ -28,7 +28,8 @@
 
 #include <ddsenabler_participants/library/library_dll.h>
 #include <ddsenabler_participants/CBCallbacks.hpp>
-#include <ddsenabler_participants/CBMessage.hpp>
+#include <ddsenabler_participants/types/CBMessage.hpp>
+#include <ddsenabler_participants/types/KnownType.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -41,39 +42,41 @@ public:
     CBWriter() = default;
     ~CBWriter() = default;
 
+    /**
+     * @brief Set the callback to notify the context broker of data reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
     void set_data_callback(
-            DdsNotification callback)
-    {
-        data_callback_ = callback;
-    }
+            DdsNotification callback);
 
+    /**
+     * @brief Set the callback to notify the context broker of type reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
     void set_type_callback(
-            DdsTypeNotification callback)
-    {
-        type_callback_ = callback;
-    }
+            DdsTypeNotification callback);
 
     /**
      * @brief Writes data.
      *
      * @param [in] msg Pointer to the data to be written.
-     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] known_type Structure containing the type information required.
      */
     void write_data(
             const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type);
-
-protected:
+            KnownType& known_type);
 
     /**
      * @brief Writes the type information used in this topic the first time it is received.
      *
      * @param [in] msg Pointer to the data.
-     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] known_type Structure containing the type information required.
      */
     void write_schema(
             const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+            KnownType& known_type);
 
     /**
      * @brief Returns the dyn_data of a dyn_type.
@@ -84,9 +87,6 @@ protected:
     fastdds::dds::DynamicData::_ref_type get_dynamic_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
-
-    //! Schemas map
-    std::unordered_map<std::string, fastdds::dds::xtypes::TypeIdentifier> stored_schemas_;
 
     // The mutex to protect the calls to write
     std::mutex mutex_;

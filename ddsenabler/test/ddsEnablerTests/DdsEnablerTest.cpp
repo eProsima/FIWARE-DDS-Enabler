@@ -53,7 +53,7 @@ TEST_F(DDSEnablerTest, send_type1)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -76,7 +76,7 @@ TEST_F(DDSEnablerTest, send_many_type1)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -98,7 +98,7 @@ TEST_F(DDSEnablerTest, send_type2)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType2PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -120,7 +120,7 @@ TEST_F(DDSEnablerTest, send_type3)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType3PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -148,7 +148,7 @@ TEST_F(DDSEnablerTest, send_type4)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType4PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -170,7 +170,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type1;
+    TestKnownType a_type1;
     a_type1.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type1));
@@ -184,7 +184,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 
-    KnownType a_type2;
+    TestKnownType a_type2;
     a_type2.type_sup_.reset(new DDSEnablerTestType2PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type2));
@@ -198,7 +198,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_EQ(get_received_types(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
-    KnownType a_type3;
+    TestKnownType a_type3;
     a_type3.type_sup_.reset(new DDSEnablerTestType3PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type3));
@@ -212,7 +212,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_EQ(get_received_types(), 3);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 
-    KnownType a_type4;
+    TestKnownType a_type4;
     a_type4.type_sup_.reset(new DDSEnablerTestType4PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type4));
@@ -234,7 +234,7 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher(a_type));
@@ -248,7 +248,7 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 
-    KnownType another_type;
+    TestKnownType another_type;
     another_type.type_sup_.reset(new DDSEnablerTestType2PubSubType());
 
     ASSERT_TRUE(create_publisher(another_type));
@@ -259,7 +259,7 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     ASSERT_EQ(get_received_types(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
-    KnownType same_type;
+    TestKnownType same_type;
     same_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher(same_type));
@@ -279,7 +279,7 @@ TEST_F(DDSEnablerTest, send_history_bigger_than_writer)
     ddsenablertester::num_samples_ = 5;
     int history_depth = 3;
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type, history_depth));
@@ -300,7 +300,7 @@ TEST_F(DDSEnablerTest, send_history_smaller_than_writer)
     ddsenablertester::num_samples_ = 20;
     int history_depth = 15;
 
-    KnownType a_type;
+    TestKnownType a_type;
     a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type, history_depth));
@@ -322,28 +322,28 @@ TEST_F(DDSEnablerTest, send_history_multiple_types)
     int types = 4;
     int history_depth = 3;
 
-    KnownType a_type1;
+    TestKnownType a_type1;
     a_type1.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type1, history_depth));
     // Send data
     ASSERT_TRUE(send_samples(a_type1));
 
-    KnownType a_type2;
+    TestKnownType a_type2;
     a_type2.type_sup_.reset(new DDSEnablerTestType2PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type2, history_depth));
     // Send data
     ASSERT_TRUE(send_samples(a_type2));
 
-    KnownType a_type3;
+    TestKnownType a_type3;
     a_type3.type_sup_.reset(new DDSEnablerTestType3PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type3, history_depth));
     // Send data
     ASSERT_TRUE(send_samples(a_type3));
 
-    KnownType a_type4;
+    TestKnownType a_type4;
     a_type4.type_sup_.reset(new DDSEnablerTestType4PubSubType());
 
     ASSERT_TRUE(create_publisher_w_history(a_type4, history_depth));

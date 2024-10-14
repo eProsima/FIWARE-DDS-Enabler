@@ -52,7 +52,8 @@ public:
 
     DDSENABLER_YAML_DllAPI
     EnablerConfiguration(
-            const std::string& file_path,bool is_json = true);
+            const std::string& file_path,
+            bool is_json = true);
 
     DDSENABLER_YAML_DllAPI
     EnablerConfiguration(

@@ -33,9 +33,8 @@ using namespace eprosima::fastdds::dds;
 
 namespace ddsenablertester {
 
-struct KnownType
+struct TestKnownType
 {
-    DynamicType::_ref_type dyn_type_;
     TypeSupport type_sup_;
     DataWriter* writer_ = nullptr;
 };
@@ -118,7 +117,7 @@ public:
     }
 
     bool create_publisher(
-            KnownType& a_type)
+            TestKnownType& a_type)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
                         ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
@@ -145,7 +144,8 @@ public:
 
         std::ostringstream topic_name;
         topic_name << a_type.type_sup_.get_type_name() << "TopicName";
-        Topic* topic = participant->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
+        eprosima::fastdds::dds::Topic* topic = participant->create_topic(topic_name.str(),
+                        a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
         if (topic == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_topic: " <<
@@ -166,7 +166,7 @@ public:
     }
 
     bool create_publisher_w_history(
-            KnownType& a_type,
+            TestKnownType& a_type,
             int history_depth)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
@@ -194,7 +194,8 @@ public:
 
         std::ostringstream topic_name;
         topic_name << a_type.type_sup_.get_type_name() << "TopicName";
-        Topic* topic = participant->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
+        eprosima::fastdds::dds::Topic* topic = participant->create_topic(topic_name.str(),
+                        a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
         if (topic == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_topic: " <<
@@ -216,7 +217,7 @@ public:
     }
 
     bool send_samples(
-            KnownType& a_type)
+            TestKnownType& a_type)
     {
         std::cout << "Sending samples for type: " << a_type.type_sup_.get_type_name() << std::endl;
         for (long i = 0; i < ddsenablertester::num_samples_; i++)
@@ -255,8 +256,8 @@ public:
             std::lock_guard<std::mutex> lock(current_test_instance_->type_received_mutex_);
 
             current_test_instance_->received_types_++;
-            std::cout << "Type callback received: " << typeName << ", Total types: " <<
-                current_test_instance_->received_types_ << std::endl;
+            std::cout << "Type callback received: " << topicName << "||" << typeName <<
+                ", Total types: " << current_test_instance_->received_types_ << std::endl;
         }
     }
 
@@ -272,8 +273,8 @@ public:
             std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
 
             current_test_instance_->received_data_++;
-            std::cout << "Data callback received: " << typeName << ", Total data: " <<
-                current_test_instance_->received_data_ << std::endl;
+            std::cout << "Data callback received: " << topicName << "||" << typeName <<
+                ", Total data: " << current_test_instance_->received_data_ << std::endl;
         }
     }
 

@@ -13,12 +13,14 @@
 // limitations under the License.
 
 #include <filesystem>
+#include <functional>
 #include <math.h>
 
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/types/dynamic_types/types.hpp>
+#include <ddspipe_core/types/topic/filter/WildcardDdsFilterTopic.hpp>
 
 #include "ddsenabler/DDSEnabler.hpp"
 
@@ -53,17 +55,18 @@ DDSEnabler::DDSEnabler(
     // Create CB Handler configuration
     participants::CBHandlerConfiguration handler_config;
 
-    // Create DynTypes Participant
-    dyn_participant_ = std::make_shared<DynTypesParticipant>(
-        configuration_.simple_configuration,
-        payload_pool_,
-        discovery_database_);
-    dyn_participant_->init();
-
     // Create CB Handler
     cb_handler_ = std::make_shared<participants::CBHandler>(
         handler_config,
         payload_pool_);
+
+    // Create DynTypes Participant
+    dyn_participant_ = std::make_shared<ddsenabler::participants::DDSEnablerParticipant>(
+        configuration_.simple_configuration,
+        payload_pool_,
+        discovery_database_,
+        cb_handler_.get()->get_publisher_guid());
+    dyn_participant_->init();
 
     // Create Enabler Participant
     enabler_participant_ = std::make_shared<SchemaParticipant>(
@@ -80,6 +83,7 @@ DDSEnabler::DDSEnabler(
         dyn_participant_->id(),
         dyn_participant_);
 
+
     participants_database_->add_participant(
         enabler_participant_->id(),
         enabler_participant_);
@@ -93,6 +97,18 @@ DDSEnabler::DDSEnabler(
         thread_pool_);
 }
 
+void DDSEnabler::set_data_callback(
+        participants::DdsNotification callback)
+{
+    cb_handler_.get()->set_data_callback(callback);
+}
+
+void DDSEnabler::set_type_callback(
+        participants::DdsTypeNotification callback)
+{
+    cb_handler_.get()->set_type_callback(callback);
+}
+
 utils::ReturnCode DDSEnabler::reload_configuration(
         yaml::EnablerConfiguration& new_configuration)
 {
@@ -103,6 +119,14 @@ utils::ReturnCode DDSEnabler::reload_configuration(
     configuration_ = new_configuration;
 
     return pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+}
+
+ReturnCode_t DDSEnabler::publish_json(
+        std::string topic_name,
+        std::string type_name,
+        std::string data_json)
+{
+    return cb_handler_.get()->publish_sample(topic_name, type_name, data_json);
 }
 
 void DDSEnabler::load_internal_topics_(

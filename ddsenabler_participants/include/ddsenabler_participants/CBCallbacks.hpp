@@ -51,7 +51,6 @@ typedef void (*DdsNotification)(
         const char* json,
         int64_t publishTime);
 
-
 } /* namespace participants */
 } /* namespace ddsenabler */
 } /* namespace eprosima */
