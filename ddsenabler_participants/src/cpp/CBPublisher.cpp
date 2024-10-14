@@ -16,7 +16,6 @@
  * @file CBPublisher.cpp
  */
 
-
 #include <ddsenabler_participants/CBPublisher.hpp>
 
 using namespace eprosima::fastdds::dds;
@@ -40,18 +39,94 @@ CBPublisher::~CBPublisher()
             "Destroying CB publisher.");
 }
 
+bool CBPublisher::create_writer(
+        std::string topic_name,
+        KnownType& a_type)
+{
+    auto it = writers_.find(topic_name);
+    if (it == writers_.end())
+    {
+        //Writer does not exist
+        try
+        {
+            if (RETCODE_OK != a_type.type_sup_.register_type(participant_))
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error register_type: " <<
+                        a_type.type_sup_.get_type_name());
+                return false;
+            }
+
+            // std::ostringstream topic_name;
+            // topic_name << "CBPublisher" << a_type.type_sup_.get_type_name() << "TopicName";
+            Topic* topic = participant_->create_topic(topic_name, a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
+            if (topic == nullptr)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_topic: " <<
+                        a_type.type_sup_.get_type_name());
+                return false;
+            }
+
+            DataWriterQos wqos = publisher_->get_default_datawriter_qos();
+            writers_[topic_name] = publisher_->create_datawriter(topic, wqos);
+            if (writers_[topic_name] == nullptr)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_datawriter: " <<
+                        a_type.type_sup_.get_type_name());
+                return false;
+            }
+
+            //DataWriterQos wqos = publisher_->get_default_datawriter_qos();
+            //a_type.writer_ = publisher_->create_datawriter(topic, wqos);
+            // if (a_type.writer_ == nullptr)
+            // {
+            //     EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_datawriter: " <<
+            //             a_type.type_sup_.get_type_name());
+            //     return false;
+            // }
+
+            //a_type.has_writer_ = true;
+        }
+        catch (const std::exception& e)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        //Writer already exists
+        // EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+        //         "Schema: " + type_name + " already registered.");
+    }
+
+    return true;
+}
+
 ReturnCode_t CBPublisher::publish_data(
+        std::string topic_name,
         KnownType& a_type,
         const std::string data_json)
 {
-    // WIP Use JSON -> DynamicData FUNCTION
-    DynamicData::_ref_type sample = DynamicDataFactory::get_instance()->create_data(a_type.dyn_type_);
+    ReturnCode_t ret;
+    auto it = writers_.find(topic_name);
+    if (it != writers_.end())
+    {
+        // WIP Use data_json -> DynamicData FUNCTION
+        DynamicData::_ref_type sample = DynamicDataFactory::get_instance()->create_data(a_type.dyn_type_);
 
-    auto ret = a_type.writer_->write(&sample);
+        ret = it->second->write(&sample);
+        // ret = a_type.writer_->write(&sample);
+    }
+    else
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER,
+                "CBPublisher::publish_data writer does not exist in topic: " << topic_name << "." );
+        ret = RETCODE_PRECONDITION_NOT_MET;
+    }
+
     if (RETCODE_OK != ret)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER,
-                "CBPublisher::publish_data: " << a_type.dyn_type_->get_name().to_string() << "." );
+                "CBPublisher::publish_data in Topic  " << topic_name << "." );
     }
 
     return ret;
@@ -73,48 +148,6 @@ bool CBPublisher::create_participant()
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER,
                 "Error creating CB publisher Publisher.");
-        return false;
-    }
-
-    return true;
-}
-
-bool CBPublisher::create_writer(
-        KnownType& a_type)
-{
-    try
-    {
-        if (RETCODE_OK != a_type.type_sup_.register_type(participant_))
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error register_type: " <<
-                    a_type.type_sup_.get_type_name());
-            return false;
-        }
-
-        std::ostringstream topic_name;
-        topic_name << "CBPublisher" << a_type.type_sup_.get_type_name() << "TopicName";
-        Topic* topic = participant_->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(),
-                        TOPIC_QOS_DEFAULT);
-        if (topic == nullptr)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_topic: " <<
-                    a_type.type_sup_.get_type_name());
-            return false;
-        }
-
-        DataWriterQos wqos = publisher_->get_default_datawriter_qos();
-        a_type.writer_ = publisher_->create_datawriter(topic, wqos);
-        if (a_type.writer_ == nullptr)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_datawriter: " <<
-                    a_type.type_sup_.get_type_name());
-            return false;
-        }
-
-        a_type.has_writer_ = true;
-    }
-    catch (const std::exception& e)
-    {
         return false;
     }
 

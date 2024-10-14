@@ -68,15 +68,15 @@ TEST_F(DDSEnablerTest, AAAAA)
     //     ASSERT_EQ(get_received_data(), num_samples_);
 
 
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicName", a_type.type_sup_.get_type_name(),
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json", a_type.type_sup_.get_type_name(),
             "thisisnotreallajson");
     std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
 
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicName", a_type.type_sup_.get_type_name(),
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json", a_type.type_sup_.get_type_name(),
             "thisisnotreallajson");
     std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
 
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicName", a_type.type_sup_.get_type_name(),
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json", a_type.type_sup_.get_type_name(),
             "thisisnotreallajson");
     std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
 }

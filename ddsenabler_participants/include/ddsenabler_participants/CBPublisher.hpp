@@ -59,9 +59,11 @@ public:
     ~CBPublisher();
 
     bool create_writer(
+            std::string topic_name,
             KnownType& a_type);
 
     ReturnCode_t publish_data(
+            std::string topic_name,
             KnownType& a_type,
             const std::string data_json);
 
@@ -72,8 +74,13 @@ protected:
     DomainParticipant* participant_ = nullptr;
     Publisher* publisher_ = nullptr;
 
-    // std::mutex known_types_mutex_;
-    // std::map<std::string, KnownType> known_types_;
+
+    //! Mutex to protect acces to writers_
+    std::mutex writers_mutex_;
+
+    //! Writers map
+    std::unordered_map<std::string, DataWriter*> writers_;
+
 
 };
 

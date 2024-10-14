@@ -70,11 +70,7 @@ int init_dds_enabler(
         participants::DdsTypeNotification type_callback,
         participants::DdsLogFunc log_callback)
 
-{
-
-            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION, "init_dds_enabler(ddsEnablerConfigFile):  " << ddsEnablerConfigFile);
-
-            
+{            
     std::string dds_enabler_config_file = "";
     if (ddsEnablerConfigFile != NULL)
     {

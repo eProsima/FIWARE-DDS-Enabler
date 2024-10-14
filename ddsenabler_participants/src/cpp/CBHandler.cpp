@@ -174,32 +174,39 @@ ReturnCode_t CBHandler::publish_sample(
 
     if (known_type.has_value())
     {
-        if (!known_type.value().has_writer_)
+        if (!cb_publisher_->create_writer(topic_name, known_type.value()))
         {
-            if (cb_publisher_->create_writer(known_type.value()))
-            {
-                if (add_topic_to_blocklist_callback_)
-                {
-                    // Call the callback function with the topic to ignore it
-                    add_topic_to_blocklist_callback_(topic_name);
-                }
-            }
-            else
-            {
-                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                        "CBHandler::publish_sample, can not create writer" << type_name);
-                return RETCODE_ERROR;
-            }
-        }
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
+            return RETCODE_ERROR;
+        }      
+
+        // if (!known_type.value().has_writer_)
+        // {
+        //     if (cb_publisher_->create_writer(known_type.value(), topic_name))
+        //     {
+        //         if (add_topic_to_blocklist_callback_)
+        //         {
+        //             // Call the callback function with the topic to ignore it
+        //             add_topic_to_blocklist_callback_(topic_name);
+        //         }
+        //     }
+        //     else
+        //     {
+        //         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+        //                 "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
+        //         return RETCODE_ERROR;
+        //     }
+        // }
     }
     else
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                "CBHandler::publish_sample, uknown type" << type_name);
-        return RETCODE_BAD_PARAMETER;
+                "CBHandler::publish_sample, uknown type: " << type_name << ".");
+        return RETCODE_PRECONDITION_NOT_MET;
     }
 
-    auto ret = cb_publisher_->publish_data(known_type.value(), data_json);
+    auto ret = cb_publisher_->publish_data(topic_name, known_type.value(), data_json);
     return ret;
 }
 
@@ -209,7 +216,7 @@ void CBHandler::write_schema(
 {
     const std::string topic_name = msg.topic.topic_name();
     const std::string type_name = msg.topic.type_name;
-    const xtypes::TypeIdentifier type_id = msg.topic.type_identifiers.type_identifier1();
+    // const xtypes::TypeIdentifier type_id = msg.topic.type_identifiers.type_identifier1();
 
     auto it = known_types_.find(type_name);
     if (it == known_types_.end())
@@ -218,18 +225,14 @@ void CBHandler::write_schema(
         EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
                 "Writing schema: " << type_name << " from topic: " << topic_name << ".");
 
-        //Add the schema and topic to schemas_typeidentifiers_
-        known_types_[type_name].type_id_ = type_id;
-
         //STORE SCHEMA
         cb_writer_->write_schema(msg, dyn_type);
-
     }
     else
     {
         //Schema has been registered
         EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-                "Schema: " + type_name + " already registered for type: " + type_name + ".");
+                "Schema: " + type_name + " already registered.");
     }
 }
 
@@ -259,7 +262,7 @@ utils::ReturnCode CBHandler::add_known_type(
         }
         else
         {
-            return utils::ReturnCode::RETCODE_NO_DATA;
+            return utils::ReturnCode::RETCODE_PRECONDITION_NOT_MET;
 
         }
     }
