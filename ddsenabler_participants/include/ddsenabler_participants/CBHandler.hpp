@@ -115,12 +115,14 @@ public:
             ddspipe::core::types::RtpsPayloadData& data) override;
 
 
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_callback(
             participants::DdsNotification callback)
     {
         cb_writer_.get()->set_data_callback(callback);
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
