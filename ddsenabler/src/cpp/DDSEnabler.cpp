@@ -13,12 +13,14 @@
 // limitations under the License.
 
 #include <filesystem>
+#include <functional>
 #include <math.h>
 
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/types/dynamic_types/types.hpp>
+#include <ddspipe_core/types/topic/filter/WildcardDdsFilterTopic.hpp>
 
 #include "ddsenabler/DDSEnabler.hpp"
 
@@ -61,9 +63,14 @@ DDSEnabler::DDSEnabler(
     dyn_participant_->init();
 
     // Create CB Handler
+    // cb_handler_ = std::make_shared<participants::CBHandler>(
+    //     handler_config,
+    //     payload_pool_);
+
     cb_handler_ = std::make_shared<participants::CBHandler>(
         handler_config,
-        payload_pool_);
+        payload_pool_,
+        std::bind(&DDSEnabler::add_topic_to_blocklist, this, std::placeholders::_1));
 
     // Create Enabler Participant
     enabler_participant_ = std::make_shared<SchemaParticipant>(
@@ -103,6 +110,21 @@ utils::ReturnCode DDSEnabler::reload_configuration(
     configuration_ = new_configuration;
 
     return pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+}
+
+void DDSEnabler::add_topic_to_blocklist(
+        std::string topic)
+{
+    // Create a wildcard topic
+    ddspipe::core::types::WildcardDdsFilterTopic topic_wc;
+    topic_wc.topic_name.set_value("CBPublisher" + topic);
+
+    utils::Heritable<ddspipe::core::types::IFilterTopic> htopic =
+            utils::Heritable<ddspipe::core::types::WildcardDdsFilterTopic>::make_heritable(topic_wc);
+
+    configuration_.ddspipe_configuration.blocklist.insert(htopic);
+
+    pipe_->reload_configuration(configuration_.ddspipe_configuration);
 }
 
 void DDSEnabler::load_internal_topics_(

@@ -63,8 +63,6 @@ public:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
-protected:
-
     /**
      * @brief Writes the type information used in this topic the first time it is received.
      *
@@ -84,9 +82,6 @@ protected:
     fastdds::dds::DynamicData::_ref_type get_dynamic_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
-
-    //! Schemas map
-    std::unordered_map<std::string, fastdds::dds::xtypes::TypeIdentifier> stored_schemas_;
 
     // The mutex to protect the calls to write
     std::mutex mutex_;

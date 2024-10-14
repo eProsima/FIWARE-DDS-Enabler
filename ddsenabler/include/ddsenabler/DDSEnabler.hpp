@@ -87,6 +87,73 @@ public:
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
 
+    void add_topic_to_blocklist(
+            std::string topic);
+
+    void publish_json(
+            std::string topic_name,
+            std::string type_name,
+            std::string data_json)
+    {
+        cb_handler_.get()->publish_sample(topic_name, type_name, data_json);
+    }
+
+    //     bool create_writer(
+    //             std::string topic_name,
+    //             std::string type_name,
+    //             participants::KnownType& a_type)
+    //     {
+    //         if (RETCODE_OK != a_type.type_sup_.register_type(enabler_participant_))
+    //         {
+    //             EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error register_type: " <<
+    //                     a_type.type_sup_.get_type_name());
+    //             return false;
+    //         }
+
+    //         std::ostringstream topic_name;
+    //         topic_name << "CBPublisher" << a_type.type_sup_.get_type_name() << "TopicName";
+    //         Topic* topic = enabler_participant_->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(),
+    //                         TOPIC_QOS_DEFAULT);
+    //         if (topic == nullptr)
+    //         {
+    //             EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_topic: " <<
+    //                     a_type.type_sup_.get_type_name());
+    //             return false;
+    //         }
+
+    //         DataWriterQos wqos = publisher_->get_default_datawriter_qos();
+    //         a_type.writer_ = publisher_->create_datawriter(topic, wqos);
+    //         if (a_type.writer_ == nullptr)
+    //         {
+    //             EPROSIMA_LOG_ERROR(DDSENABLER_CB_PUBLISHER, "Error create_datawriter: " <<
+    //                     a_type.type_sup_.get_type_name());
+    //             return false;
+    //         }
+
+    //         return true;
+    //     }
+
+    //     void pipe_publish_json(
+    //             std::string topic_name,
+    //             std::string type_name,
+    //             std::string data_json)
+    //     {
+    //         auto known_type = cb_handler_.get()->get_known_type(topic_name);
+
+
+    //         if (known_type.has_value())
+    //         {
+    //             if (known_type.value().writer_ == nullptr)
+    //             {
+    //                 create_writer(topic_name, type_name, known_type.value());
+    //             }
+    //         }
+
+    //         // enabler_participant_->create_writer();
+
+    //         cb_handler_.get()->publish_sample(topic_name, type_name, data_json);
+    //     }
+
 protected:
 
     /**

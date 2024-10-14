@@ -18,13 +18,24 @@
 
 #pragma once
 
-#include <condition_variable>
 #include <cstdint>
-#include <functional>
-#include <list>
 #include <map>
-#include <stdexcept>
-#include <thread>
+#include <optional>
+
+#include <cpp_utils/ReturnCode.hpp>
+
+#include <fastdds/dds/domain/DomainParticipant.hpp>
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/dds/publisher/DataWriter.hpp>
+#include <fastdds/dds/publisher/Publisher.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
+
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
 #include <ddspipe_core/types/data/RtpsPayloadData.hpp>
@@ -35,15 +46,18 @@
 
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
+#include <ddsenabler_participants/CBPublisher.hpp>
 #include <ddsenabler_participants/CBWriter.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
 
+using namespace eprosima::fastdds::dds;
+
 namespace std {
 template<>
-struct hash<eprosima::fastdds::dds::xtypes::TypeIdentifier>
+struct hash<xtypes::TypeIdentifier>
 {
     std::size_t operator ()(
-            const eprosima::fastdds::dds::xtypes::TypeIdentifier& k) const
+            const xtypes::TypeIdentifier& k) const
     {
         // The collection only has direct hash TypeIdentifiers so the EquivalenceHash can be used.
         return (static_cast<size_t>(k.equivalence_hash()[0]) << 16) |
@@ -82,7 +96,10 @@ public:
     CBHandler(
             const CBHandlerConfiguration& config,
             const std::shared_ptr<ddspipe::core::PayloadPool>& payload_pool);
-
+    CBHandler(
+            const CBHandlerConfiguration& config,
+            const std::shared_ptr<ddspipe::core::PayloadPool>& payload_pool,
+            std::function<void(const std::string&)> add_topic_to_blocklist_callback);
     /**
      * @brief Destructor
      */
@@ -90,21 +107,18 @@ public:
     ~CBHandler();
 
     /**
-     * @brief Create and store in \c schemas_ an OMG IDL (.idl format) schema.
-     * Any samples following this schema that were received before the schema itself are moved to the memory buffer.
+     * @brief Create and store in \c schemas_dynamictypes_ an OMG IDL (.idl format) schema.
      *
      * @param [in] dyn_type DynamicType containing the type information required to generate the schema.
      * @param [in] type_id TypeIdentifier of the type.
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void add_schema(
-            const fastdds::dds::DynamicType::_ref_type& dyn_type,
-            const fastdds::dds::xtypes::TypeIdentifier& type_id) override;
+            const DynamicType::_ref_type& dyn_type,
+            const xtypes::TypeIdentifier& type_id) override;
 
     /**
      * @brief Add a data sample, associated to the given \c topic.
-     *
-     * The sample is added to buffer without schema.
      *
      * @param [in] topic DDS topic associated to this sample.
      * @param [in] data payload data to be added.
@@ -114,7 +128,24 @@ public:
             const ddspipe::core::types::DdsTopic& topic,
             ddspipe::core::types::RtpsPayloadData& data) override;
 
+    /**
+     * @brief Publishes a data sample.
+     *
+     * @param [in] topic_name The name of the topic.
+     * @param [in] type_name The name of the type.
+     * @param [in] data_json JSON representation of the content.
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
+    ReturnCode_t publish_sample(
+            std::string topic_name,
+            std::string type_name,
+            std::string data_json);
 
+    /**
+     * @brief Sets the callback to notify the context broker of data reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_callback(
             participants::DdsNotification callback)
@@ -122,6 +153,11 @@ public:
         cb_writer_.get()->set_data_callback(callback);
     }
 
+    /**
+     * @brief Sets the callback to notify the context broker of type reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_callback(
             participants::DdsTypeNotification callback)
@@ -137,9 +173,40 @@ protected:
      * @param [in] msg CBMessage to be added
      * @param [in] dyn_type DynamicType containing the type information required.
      */
+    void write_schema(
+            const CBMessage& msg,
+            const DynamicType::_ref_type& dyn_type);
+
+    /**
+     * @brief Write to CB.
+     *
+     * @param [in] msg CBMessage to be added
+     * @param [in] dyn_type DynamicType containing the type information required.
+     */
     void write_sample(
             const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+            const DynamicType::_ref_type& dyn_type);
+
+    /**
+     * @brief Adds a type to known_types_ .
+     *
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] type_id TypeIdentifier of the type.
+     */
+    utils::ReturnCode add_known_type(
+            const DynamicType::_ref_type& dyn_type,
+            const xtypes::TypeIdentifier& type_id);
+
+    /**
+     * @brief Gets a known type from known_types_.
+     *
+     * @param [in] type_name Name of the type to get.
+     */
+    std::optional<KnownType> get_known_type(
+            const std::string type_name);
+
+    //! Callback function to add a topic to the blocklist
+    std::function<void(const std::string&)> add_topic_to_blocklist_callback_;
 
     //! Handler configuration
     CBHandlerConfiguration configuration_;
@@ -150,8 +217,14 @@ protected:
     //! CB writer
     std::unique_ptr<CBWriter> cb_writer_;
 
-    //! Schemas map
-    std::unordered_map<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type> schemas_;
+    //! CB Publisher
+    std::unique_ptr<CBPublisher> cb_publisher_;
+
+    //! Mutex to protect acces to known_types_
+    std::mutex known_types_mutex_;
+
+    //! KnownTypes map
+    std::unordered_map<std::string, KnownType> known_types_;
 
     //! Unique sequence number assigned to received messages. It is incremented with every sample added
     unsigned int unique_sequence_number_{0};

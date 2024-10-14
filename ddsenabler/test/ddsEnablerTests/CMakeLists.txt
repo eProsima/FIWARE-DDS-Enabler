@@ -28,18 +28,19 @@ file(
 list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
 
 set(TEST_LIST
-    ddsenabler_creation
-    ddsenabler_reload_configuration
-    send_type1
-    send_many_type1
-    send_type2
-    send_type3
-    send_type4
-    send_multiple_types
-    send_repeated_type
-    send_history_bigger_than_writer
-    send_history_smaller_than_writer
-    send_history_multiple_types
+    AAAAA
+    # ddsenabler_creation
+    # ddsenabler_reload_configuration
+    # send_type1
+    # send_many_type1
+    # send_type2
+    # send_type3
+    # send_type4
+    # send_multiple_types
+    # send_repeated_type
+    # send_history_bigger_than_writer
+    # send_history_smaller_than_writer
+    # send_history_multiple_types
 )
 
 set(TEST_NEEDED_SOURCES

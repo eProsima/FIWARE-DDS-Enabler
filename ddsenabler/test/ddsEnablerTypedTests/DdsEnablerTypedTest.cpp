@@ -34,7 +34,7 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
             auto enabler = create_ddsenabler(); \
             ASSERT_TRUE(enabler != nullptr); \
 \
-            KnownType a_type; \
+            TestKnownType a_type; \
             a_type.type_sup_.reset(new Type()); \
 \
             ASSERT_TRUE(create_publisher(a_type)); \

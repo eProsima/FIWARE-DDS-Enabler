@@ -37,7 +37,7 @@ void CBWriter::write_data(
 {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    write_schema(msg, dyn_type);
+    //write_schema(msg, dyn_type);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writing message from topic: " << msg.topic.topic_name() << ".");
@@ -82,6 +82,11 @@ void CBWriter::write_data(
             msg.publish_time.to_ns()
             );
     }
+    else
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Missing DdsNotification callback.");
+    }
 }
 
 void CBWriter::write_schema(
@@ -90,43 +95,71 @@ void CBWriter::write_schema(
 {
     const std::string topic_name = msg.topic.topic_name();
     const std::string type_name = msg.topic.type_name;
-    const fastdds::dds::xtypes::TypeIdentifier type_id = msg.topic.type_identifiers.type_identifier1();
 
-    auto it = stored_schemas_.find(topic_name);
-    if (it == stored_schemas_.end())
+    std::stringstream ss_idl;
+    auto ret = fastdds::dds::idl_serialize(dyn_type, ss_idl);
+    if (ret != fastdds::dds::RETCODE_OK)
     {
-        //Schema has not been registered
-        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-                "Writing schema: " << type_name << " on topic: " << topic_name << ".");
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Failed to serialize DynamicType to idl for type with name: " << type_name);
+        return;
+    }
 
-        std::stringstream ss_idl;
-        auto ret = fastdds::dds::idl_serialize(dyn_type, ss_idl);
-        if (ret != fastdds::dds::RETCODE_OK)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                    "Failed to serialize DynamicType to idl for type with name: " << type_name);
-            return;
-        }
-
-        //Add the schema and topic to stored_schemas_
-        stored_schemas_[topic_name] = type_id;
-
-        //STORE SCHEMA
-        if (type_callback_)
-        {
-            type_callback_(
-                type_name.c_str(),
-                topic_name.c_str(),
-                ss_idl.str().c_str()
-                );
-        }
+    //STORE SCHEMA
+    if (type_callback_)
+    {
+        type_callback_(
+            type_name.c_str(),
+            topic_name.c_str(),
+            ss_idl.str().c_str()
+            );
     }
     else
     {
-        //Schema has been registered
-        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-                "Schema: " + type_name + " already registered for topic: " + topic_name + ".");
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Missing DdsTypeNotification callback.");
     }
+
+
+    // const std::string topic_name = msg.topic.topic_name();
+    // const std::string type_name = msg.topic.type_name;
+    // const fastdds::dds::xtypes::TypeIdentifier type_id = msg.topic.type_identifiers.type_identifier1();
+
+    // auto it = schemas_typeidentifiers_.find(type_name);
+    // if (it == schemas_typeidentifiers_.end())
+    // {
+    //     //Schema has not been registered
+    //     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+    //             "Writing schema: " << type_name << " from topic: " << topic_name << ".");
+
+    //     std::stringstream ss_idl;
+    //     auto ret = fastdds::dds::idl_serialize(dyn_type, ss_idl);
+    //     if (ret != fastdds::dds::RETCODE_OK)
+    //     {
+    //         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+    //                 "Failed to serialize DynamicType to idl for type with name: " << type_name);
+    //         return;
+    //     }
+
+    //     //Add the schema and topic to schemas_typeidentifiers_
+    //     schemas_typeidentifiers_[type_name] = type_id;
+
+    //     //STORE SCHEMA
+    //     if (type_callback_)
+    //     {
+    //         type_callback_(
+    //             type_name.c_str(),
+    //             topic_name.c_str(),
+    //             ss_idl.str().c_str()
+    //             );
+    //     }
+    // }
+    // else
+    // {
+    //     //Schema has been registered
+    //     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+    //             "Schema: " + type_name + " already registered for type: " + type_name + ".");
+    // }
 }
 
 fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data(

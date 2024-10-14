@@ -1,0 +1,82 @@
+// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+/**
+ * @file CBPublisher.hpp
+ */
+#pragma once
+
+#include <mutex>
+
+#include <fastdds/dds/domain/DomainParticipant.hpp>
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include <fastdds/dds/log/Log.hpp>
+#include <fastdds/dds/publisher/DataWriter.hpp>
+#include <fastdds/dds/publisher/Publisher.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
+
+#include <ddsenabler_participants/KnownType.hpp>
+
+using namespace eprosima::fastdds::dds;
+
+namespace eprosima {
+namespace ddsenabler {
+namespace participants {
+
+/**
+ * Class that manages publishing data to the DDS environment from the context broker.
+ *
+ */
+class CBPublisher
+{
+
+public:
+
+    /**
+     * @brief Constructor
+     */
+    CBPublisher();
+
+    /**
+     * @brief Destructor
+     */
+    ~CBPublisher();
+
+    bool create_writer(
+            KnownType& a_type);
+
+    ReturnCode_t publish_data(
+            KnownType& a_type,
+            const std::string data_json);
+
+protected:
+
+    bool create_participant();
+
+    DomainParticipant* participant_ = nullptr;
+    Publisher* publisher_ = nullptr;
+
+    // std::mutex known_types_mutex_;
+    // std::map<std::string, KnownType> known_types_;
+
+};
+
+} /* namespace participants */
+} /* namespace ddsenabler */
+} /* namespace eprosima */
