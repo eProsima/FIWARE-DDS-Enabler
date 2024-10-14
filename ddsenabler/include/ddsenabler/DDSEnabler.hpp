@@ -73,7 +73,7 @@ public:
     {
         cb_handler_.get()->set_data_callback(callback);
     }
-    
+
     /**
      * @brief Sets the callback to notify the context broker of type reception.
      *

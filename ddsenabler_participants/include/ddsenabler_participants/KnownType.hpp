@@ -18,20 +18,13 @@
 
 #pragma once
 
-//#include <mutex>
-
 #include <fastdds/dds/domain/DomainParticipant.hpp>
-// #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
-// #include <fastdds/dds/log/Log.hpp>
-// #include <fastdds/dds/publisher/DataWriter.hpp>
-// #include <fastdds/dds/publisher/Publisher.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilder.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
-
 
 using namespace eprosima::fastdds::dds;
 
@@ -44,8 +37,6 @@ struct KnownType
     xtypes::TypeIdentifier type_id_;
     DynamicType::_ref_type dyn_type_;
     TypeSupport type_sup_;
-    // DataWriter* writer_ = nullptr;
-    // bool has_writer_ = false;
 };
 
 

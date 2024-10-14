@@ -105,10 +105,11 @@ EnablerConfiguration::EnablerConfiguration(
         const std::string& file_path,
         bool is_json)
 {
-    if(is_json)
+    if (is_json)
     {
         load_ddsenabler_configuration_from_json_file(file_path);
-    }else
+    }
+    else
     {
         load_ddsenabler_configuration_from_yaml_file(file_path);
     }
@@ -347,7 +348,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
             if (!file.is_open())
             {
                 throw eprosima::utils::ConfigurationException(
-                        utils::Formatter() << "Could not open JSON file");
+                          utils::Formatter() << "Could not open JSON file");
             }
 
             // Parse the JSON file
@@ -368,22 +369,22 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
                 else
                 {
                     throw eprosima::utils::ConfigurationException(
-                            utils::Formatter() <<
-                                "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
+                              utils::Formatter() <<
+                                  "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
                 }
             }
             else
             {
                 throw eprosima::utils::ConfigurationException(
-                        utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
+                          utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
             }
 
         }
         catch (const std::exception& e)
         {
             throw eprosima::utils::ConfigurationException(
-                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
-                        "> :\n " << e.what());
+                      utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                          "> :\n " << e.what());
         }
     }
     else

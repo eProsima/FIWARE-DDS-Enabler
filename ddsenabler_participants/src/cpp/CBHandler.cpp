@@ -179,7 +179,7 @@ ReturnCode_t CBHandler::publish_sample(
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                     "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
             return RETCODE_ERROR;
-        }      
+        }
 
         // if (!known_type.value().has_writer_)
         // {

@@ -114,7 +114,6 @@ ReturnCode_t CBPublisher::publish_data(
         DynamicData::_ref_type sample = DynamicDataFactory::get_instance()->create_data(a_type.dyn_type_);
 
         ret = it->second->write(&sample);
-        // ret = a_type.writer_->write(&sample);
     }
     else
     {
