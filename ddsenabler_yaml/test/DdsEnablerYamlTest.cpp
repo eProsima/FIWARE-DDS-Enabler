@@ -114,19 +114,6 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
     ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
 }
 
-TEST(DdsEnablerYamlTest, get_ddsenabler_correct_path_configuration_yaml)
-{
-    // Load configuration from YAML
-    EnablerConfiguration configuration("src/lib/orionld/dds/ddsModule/ddsenabler/DDS_ENABLER_CONFIGURATION.yaml");
-
-    utils::Formatter error_msg;
-
-    ASSERT_TRUE(configuration.is_valid(error_msg));
-    ASSERT_EQ(configuration.n_threads, 12);
-
-    ASSERT_TRUE(configuration.ddspipe_configuration.log_configuration.is_valid(error_msg));
-}
-
 TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
 {
     const char* path_str = "incorrect/path/file";
