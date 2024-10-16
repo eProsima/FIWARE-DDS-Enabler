@@ -46,45 +46,6 @@ class DDSEnablerTest : public ddsenablertester::DDSEnablerTester
 //     ASSERT_NO_THROW(enabler.get()->reload_configuration(configuration));
 // }
 
-TEST_F(DDSEnablerTest, AAAAA)
-{
-    ddsenablertester::num_samples_ = 3;
-
-    auto enabler = create_ddsenabler();
-    ASSERT_TRUE(enabler != nullptr);
-
-    TestKnownType a_type;
-    a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
-
-    ASSERT_TRUE(create_publisher(a_type));
-
-    ASSERT_EQ(get_received_types(), 0);
-    ASSERT_EQ(get_received_data(), 0);
-
-    // Send data
-    ASSERT_TRUE(send_samples(a_type));
-
-    //     ASSERT_EQ(get_received_types(), 1);
-    //     ASSERT_EQ(get_received_data(), num_samples_);
-
-
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
-            a_type.type_sup_.get_type_name(),
-            "thisisnotreallajson");
-    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
-
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
-            a_type.type_sup_.get_type_name(),
-            "thisisnotreallajson");
-    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
-
-    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
-            a_type.type_sup_.get_type_name(),
-            "thisisnotreallajson");
-    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
-}
-
-
 // TEST_F(DDSEnablerTest, send_type1)
 // {
 //     ddsenablertester::num_samples_ = 3;
@@ -397,6 +358,49 @@ TEST_F(DDSEnablerTest, AAAAA)
 //     ASSERT_EQ(get_received_types(), types);
 //     ASSERT_EQ(get_received_data(), types * history_depth);
 // }
+
+
+
+
+TEST_F(DDSEnablerTest, AAAAA)
+{
+    ddsenablertester::num_samples_ = 3;
+
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    TestKnownType a_type;
+    a_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
+
+    ASSERT_TRUE(create_publisher(a_type));
+
+    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_data(), 0);
+
+    // Send data
+    ASSERT_TRUE(send_samples(a_type));
+
+    //     ASSERT_EQ(get_received_types(), 1);
+    //     ASSERT_EQ(get_received_data(), num_samples_);
+
+
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
+            a_type.type_sup_.get_type_name(),
+            "thisisnotreallajson");
+    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
+
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
+            a_type.type_sup_.get_type_name(),
+            "thisisnotreallajson");
+    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
+
+    enabler.get()->publish_json(a_type.type_sup_.get_type_name() + "TopicNamepublish_json",
+            a_type.type_sup_.get_type_name(),
+            "thisisnotreallajson");
+    std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
+}
+
+
 
 int main(
         int argc,

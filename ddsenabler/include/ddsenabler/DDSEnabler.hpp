@@ -52,7 +52,7 @@ class DDSEnabler
 public:
 
     /**
-     * DDSEnabler constructor by required values and event handler reference.
+     * @brief DDSEnabler constructor by required values and event handler reference.
      *
      * Creates DDSEnabler instance with given configuration.
      *
@@ -69,10 +69,7 @@ public:
      * @param [in] callback Callback to the contest broker.
      */
     void set_data_callback(
-            participants::DdsNotification callback)
-    {
-        cb_handler_.get()->set_data_callback(callback);
-    }
+            participants::DdsNotification callback);
 
     /**
      * @brief Sets the callback to notify the context broker of type reception.
@@ -80,15 +77,12 @@ public:
      * @param [in] callback Callback to the contest broker.
      */
     void set_type_callback(
-            participants::DdsTypeNotification callback)
-    {
-        cb_handler_.get()->set_type_callback(callback);
-    }
+            participants::DdsTypeNotification callback);
 
     /**
-     * Reconfigure the Enabler with the new configuration.
+     * @brief Reconfigure the Enabler with the new configuration.
      *
-     * @param new_configuration: The configuration to replace the previous configuration with.
+     * @param [in] new_configuration: The configuration to replace the previous configuration with.
      *
      * @return \c RETCODE_OK if allowed topics list has been updated correctly
      * @return \c RETCODE_NO_DATA if new allowed topics list is the same as the previous one
@@ -96,23 +90,28 @@ public:
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
 
-    void add_topic_to_blocklist(
-            std::string topic);
-
-    void publish_json(
+    /**
+     * @brief Publish data.
+     *
+     * @param [in] topic_name: The name of the topic.
+     * @param [in] type_name: The name of the type.
+     * @param [in] data_json: The data to publis in JSON format.
+     *
+     * @return \c RETCODE_OK if data is published correctly
+     * @return \c RETCODE_PRECONDITION_NOT_MET if type is not known
+     * @return \c RETCODE_ERROR if unable to create writer
+     */
+    ReturnCode_t publish_json(
             std::string topic_name,
             std::string type_name,
-            std::string data_json)
-    {
-        cb_handler_.get()->publish_sample(topic_name, type_name, data_json);
-    }
+            std::string data_json);
 
 protected:
 
     /**
-     * Load the Enabler's internal topics into a configuration object.
+     * @brief Load the Enabler's internal topics into a configuration object.
      *
-     * @param configuration: The configuration to load the internal topics into.
+     * @param [in] configuration: The configuration to load the internal topics into.
      */
     void load_internal_topics_(
             yaml::EnablerConfiguration& configuration);

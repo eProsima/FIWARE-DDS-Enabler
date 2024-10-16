@@ -37,21 +37,28 @@ class DDSEnablerLogConsumer : public utils::BaseLogConsumer
 {
 public:
 
-    //! Create a new \c DDSEnablerLogConsumer from a \c DdsPipeLogConfiguration .
+    /**
+     * @brief Create a new \c DDSEnablerLogConsumer from a \c DdsPipeLogConfiguration .
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     DDSEnablerLogConsumer(
             const ddspipe::core::DdsPipeLogConfiguration* configuration);
 
-    DDSPIPE_CORE_DllAPI
+    /**
+     * @brief Destructor
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
     ~DDSEnablerLogConsumer()
     {
     }
 
+    /**
+     * @brief Set the callback to notify the context broker of log event.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
     void set_log_callback(
-            DdsLogFunc callback)
-    {
-        log_callback_ = callback;
-    }
+            DdsLogFunc callback);
 
     /**
      * @brief Implements \c LogConsumer \c Consume method.
@@ -59,11 +66,11 @@ public:
      * The entry's kind must be higher or equal to the verbosity level \c verbosity_ .
      * The entry's content or category must match the \c filter_ regex.
      *
-     * This method will publish the \c entry with DDS.
+     * This method will use the context broker callback with the \c entry data.
      *
      * @param entry entry to consume
      */
-    DDSPIPE_CORE_DllAPI
+    DDSENABLER_PARTICIPANTS_DllAPI
     void Consume(
             const utils::Log::Entry& entry) override;
 

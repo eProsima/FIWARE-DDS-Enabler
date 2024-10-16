@@ -62,15 +62,18 @@ DDSEnabler::DDSEnabler(
         discovery_database_);
     dyn_participant_->init();
 
-    // Create CB Handler
-    // cb_handler_ = std::make_shared<participants::CBHandler>(
-    //     handler_config,
-    //     payload_pool_);
 
+    eprosima::ddspipe::core::types::DdsTopic topic;
+    topic.m_topic_name = "TOPICNAMESOBACO";
+    topic.type_name = "TYPENAMESOBACO";
+
+    dyn_participant_.get()->create_writer(topic);
+
+
+    // Create CB Handler
     cb_handler_ = std::make_shared<participants::CBHandler>(
         handler_config,
-        payload_pool_,
-        std::bind(&DDSEnabler::add_topic_to_blocklist, this, std::placeholders::_1));
+        payload_pool_);
 
     // Create Enabler Participant
     enabler_participant_ = std::make_shared<SchemaParticipant>(
@@ -100,6 +103,18 @@ DDSEnabler::DDSEnabler(
         thread_pool_);
 }
 
+void DDSEnabler::set_data_callback(
+        participants::DdsNotification callback)
+{
+    cb_handler_.get()->set_data_callback(callback);
+}
+
+void DDSEnabler::set_type_callback(
+        participants::DdsTypeNotification callback)
+{
+    cb_handler_.get()->set_type_callback(callback);
+}
+
 utils::ReturnCode DDSEnabler::reload_configuration(
         yaml::EnablerConfiguration& new_configuration)
 {
@@ -112,19 +127,12 @@ utils::ReturnCode DDSEnabler::reload_configuration(
     return pipe_->reload_configuration(new_configuration.ddspipe_configuration);
 }
 
-void DDSEnabler::add_topic_to_blocklist(
-        std::string topic)
+ReturnCode_t DDSEnabler::publish_json(
+        std::string topic_name,
+        std::string type_name,
+        std::string data_json)
 {
-    // Create a wildcard topic
-    ddspipe::core::types::WildcardDdsFilterTopic topic_wc;
-    topic_wc.topic_name.set_value("CBPublisher" + topic);
-
-    utils::Heritable<ddspipe::core::types::IFilterTopic> htopic =
-            utils::Heritable<ddspipe::core::types::WildcardDdsFilterTopic>::make_heritable(topic_wc);
-
-    configuration_.ddspipe_configuration.blocklist.insert(htopic);
-
-    pipe_->reload_configuration(configuration_.ddspipe_configuration);
+    return cb_handler_.get()->publish_sample(topic_name, type_name, data_json);
 }
 
 void DDSEnabler::load_internal_topics_(

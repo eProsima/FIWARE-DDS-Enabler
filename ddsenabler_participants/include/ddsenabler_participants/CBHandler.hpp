@@ -85,7 +85,7 @@ class CBHandler : public ddspipe::participants::ISchemaHandler
 public:
 
     /**
-     * CBHandler constructor by required values.
+     * @brief CBHandler constructor by required values.
      *
      * Creates CBHandler instance with given configuration, payload pool.
      *
@@ -96,10 +96,7 @@ public:
     CBHandler(
             const CBHandlerConfiguration& config,
             const std::shared_ptr<ddspipe::core::PayloadPool>& payload_pool);
-    CBHandler(
-            const CBHandlerConfiguration& config,
-            const std::shared_ptr<ddspipe::core::PayloadPool>& payload_pool,
-            std::function<void(const std::string&)> add_topic_to_blocklist_callback);
+
     /**
      * @brief Destructor
      */
@@ -107,7 +104,25 @@ public:
     ~CBHandler();
 
     /**
-     * @brief Create and store in \c schemas_dynamictypes_ an OMG IDL (.idl format) schema.
+     * @brief Set the callback to notify the context broker of data reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_data_callback(
+            participants::DdsNotification callback);
+
+    /**
+     * @brief Set the callback to notify the context broker of type reception.
+     *
+     * @param [in] callback Callback to the contest broker.
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_type_callback(
+            participants::DdsTypeNotification callback);
+
+    /**
+     * @brief Create and store in a type in \c known_types_.
      *
      * @param [in] dyn_type DynamicType containing the type information required to generate the schema.
      * @param [in] type_id TypeIdentifier of the type.
@@ -129,41 +144,21 @@ public:
             ddspipe::core::types::RtpsPayloadData& data) override;
 
     /**
-     * @brief Publishes a data sample.
+     * @brief Publishe a data sample.
      *
      * @param [in] topic_name The name of the topic.
      * @param [in] type_name The name of the type.
      * @param [in] data_json JSON representation of the content.
+     *
+     * @return \c RETCODE_OK if data is published correctly
+     * @return \c RETCODE_PRECONDITION_NOT_MET if type is not known or unable to create writer
+     * @return \c ReturnCode_t if error when writing
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     ReturnCode_t publish_sample(
             std::string topic_name,
             std::string type_name,
             std::string data_json);
-
-    /**
-     * @brief Sets the callback to notify the context broker of data reception.
-     *
-     * @param [in] callback Callback to the contest broker.
-     */
-    DDSENABLER_PARTICIPANTS_DllAPI
-    void set_data_callback(
-            participants::DdsNotification callback)
-    {
-        cb_writer_.get()->set_data_callback(callback);
-    }
-
-    /**
-     * @brief Sets the callback to notify the context broker of type reception.
-     *
-     * @param [in] callback Callback to the contest broker.
-     */
-    DDSENABLER_PARTICIPANTS_DllAPI
-    void set_type_callback(
-            participants::DdsTypeNotification callback)
-    {
-        cb_writer_.get()->set_type_callback(callback);
-    }
 
 protected:
 
@@ -192,6 +187,10 @@ protected:
      *
      * @param [in] dyn_type DynamicType containing the type information required.
      * @param [in] type_id TypeIdentifier of the type.
+     *
+     * @return \c RETCODE_PRECONDITION_NOT_MET if type already existed
+     * @return \c RETCODE_ERROR if unable to add type
+     * @return \c RETCODE_OK if new type is added
      */
     utils::ReturnCode add_known_type(
             const DynamicType::_ref_type& dyn_type,
@@ -204,9 +203,6 @@ protected:
      */
     std::optional<KnownType> get_known_type(
             const std::string type_name);
-
-    //! Callback function to add a topic to the blocklist
-    std::function<void(const std::string&)> add_topic_to_blocklist_callback_;
 
     //! Handler configuration
     CBHandlerConfiguration configuration_;

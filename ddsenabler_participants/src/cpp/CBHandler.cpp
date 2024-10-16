@@ -54,25 +54,22 @@ CBHandler::CBHandler(
     cb_publisher_ = std::make_unique<CBPublisher>();
 }
 
-CBHandler::CBHandler(
-        const CBHandlerConfiguration& config,
-        const std::shared_ptr<ddspipe::core::PayloadPool>& payload_pool,
-        std::function<void(const std::string&)> add_topic_to_blocklist_callback)
-    : configuration_(config)
-    , payload_pool_(payload_pool)
-    , add_topic_to_blocklist_callback_(add_topic_to_blocklist_callback)
-{
-    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
-            "Creating CB handler instance.");
-
-    cb_writer_ = std::make_unique<CBWriter>();
-    cb_publisher_ = std::make_unique<CBPublisher>();
-}
-
 CBHandler::~CBHandler()
 {
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Destroying CB handler.");
+}
+
+void CBHandler::set_data_callback(
+        participants::DdsNotification callback)
+{
+    cb_writer_.get()->set_data_callback(callback);
+}
+
+void CBHandler::set_type_callback(
+        participants::DdsTypeNotification callback)
+{
+    cb_writer_.get()->set_type_callback(callback);
 }
 
 void CBHandler::add_schema(
@@ -178,26 +175,8 @@ ReturnCode_t CBHandler::publish_sample(
         {
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                     "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
-            return RETCODE_ERROR;
+            return RETCODE_PRECONDITION_NOT_MET;
         }
-
-        // if (!known_type.value().has_writer_)
-        // {
-        //     if (cb_publisher_->create_writer(known_type.value(), topic_name))
-        //     {
-        //         if (add_topic_to_blocklist_callback_)
-        //         {
-        //             // Call the callback function with the topic to ignore it
-        //             add_topic_to_blocklist_callback_(topic_name);
-        //         }
-        //     }
-        //     else
-        //     {
-        //         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-        //                 "CBHandler::publish_sample, can not create writer for type:" << type_name << ".");
-        //         return RETCODE_ERROR;
-        //     }
-        // }
     }
     else
     {
@@ -206,8 +185,7 @@ ReturnCode_t CBHandler::publish_sample(
         return RETCODE_PRECONDITION_NOT_MET;
     }
 
-    auto ret = cb_publisher_->publish_data(topic_name, known_type.value(), data_json);
-    return ret;
+    return cb_publisher_->publish_data(topic_name, known_type.value(), data_json);
 }
 
 void CBHandler::write_schema(
@@ -263,7 +241,6 @@ utils::ReturnCode CBHandler::add_known_type(
         else
         {
             return utils::ReturnCode::RETCODE_PRECONDITION_NOT_MET;
-
         }
     }
     catch (const std::exception& e)

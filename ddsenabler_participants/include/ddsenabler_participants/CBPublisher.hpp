@@ -58,10 +58,27 @@ public:
      */
     ~CBPublisher();
 
+    /**
+     * @brief Create a writer for a type in a given topic.
+     *
+     * @param [in] topic_name The name of the topic.
+     * @param [in] a_type Object containing the information of the type.
+     */
     bool create_writer(
             std::string topic_name,
             KnownType& a_type);
 
+    /**
+     * @brief Publish a data sample.
+     *
+     * @param [in] topic_name The name of the topic.
+     * @param [in] a_type Object containing the information of the type.
+     * @param [in] data_json JSON representation of the content.
+     *
+     * @return \c RETCODE_OK if data is published correctly
+     * @return \c RETCODE_PRECONDITION_NOT_MET if writer does not exist
+     * @return \c ReturnCode_t if error when writing
+     */
     ReturnCode_t publish_data(
             std::string topic_name,
             KnownType& a_type,
@@ -69,16 +86,22 @@ public:
 
 protected:
 
+    /**
+     * @brief Create the participant and publisher for the DDSEnabler
+     */
     bool create_participant();
 
-    DomainParticipant* participant_ = nullptr;
-    Publisher* publisher_ = nullptr;
 
+    //! Participant to be used by the DDSEnabler
+    DomainParticipant* participant_ = nullptr;
+
+    //! Publisher to be used by the DDSEnabler
+    Publisher* publisher_ = nullptr;
 
     //! Mutex to protect acces to writers_
     std::mutex writers_mutex_;
 
-    //! Writers map
+    //! Map of the writers that have been created
     std::unordered_map<std::string, DataWriter*> writers_;
 
 
