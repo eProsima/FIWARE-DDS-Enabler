@@ -94,7 +94,7 @@ YAML::Node convert_json_to_yaml(
             else
             {
                 // Fallback for any other types (like null)
-                yaml_node[element.key()] = "";
+                // Skip element to avoid exception when parsing YAML (YamlReader::is_tag_present expects non-null value)
             }
         }
     }
