@@ -17,14 +17,15 @@
  *
  */
 
-#include <fstream>
 #include <string>
 
-#include "fastdds/dds/log/FileConsumer.hpp"
+#include <cpp_utils/Log.hpp>
+#include <cpp_utils/logging/StdLogConsumer.hpp>
+
+#include <ddsenabler_participants/CBCallbacks.hpp>
+#include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
 #include "ddsenabler/dds_enabler_runner.hpp"
-
-#include <cpp_utils/Log.hpp>
 
 using namespace eprosima::ddspipe;
 
@@ -35,6 +36,9 @@ bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
         participants::DdsTypeNotification type_callback,
+        participants::DdsTopicNotification topic_callback,
+        participants::DdsTypeRequest type_req_callback,
+        participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
         std::unique_ptr<DDSEnabler>& enabler)
 {
@@ -95,6 +99,9 @@ bool create_dds_enabler(
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
         enabler->set_data_callback(data_callback);
         enabler->set_type_callback(type_callback);
+        enabler->set_topic_callback(topic_callback);
+        enabler->set_type_request_callback(type_req_callback);
+        enabler->set_topic_request_callback(topic_req_callback);
         enabler->set_file_watcher(dds_enabler_config_file);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
