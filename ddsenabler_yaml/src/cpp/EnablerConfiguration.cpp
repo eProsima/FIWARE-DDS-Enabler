@@ -35,6 +35,7 @@
 #include <ddspipe_yaml/YamlManager.hpp>
 
 #include <ddsenabler_yaml/yaml_configuration_tags.hpp>
+
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
 namespace eprosima {
@@ -147,7 +148,7 @@ void EnablerConfiguration::load_ddsenabler_configuration(
 
         /////
         // Create Enabler Participant Configuration
-        enabler_configuration = std::make_shared<ParticipantConfiguration>();
+        enabler_configuration = std::make_shared<participants::EnablerParticipantConfiguration>();
         enabler_configuration->id = "EnablerEnablerParticipant";
         enabler_configuration->app_id = "DDS_ENABLER";
         // TODO: fill metadata field once its content has been defined.
@@ -198,8 +199,7 @@ void EnablerConfiguration::load_ddsenabler_configuration(
 
         ddspipe_configuration.init_enabled = true;
 
-        // Only trigger the DdsPipe's callbacks when discovering or removing writers
-        ddspipe_configuration.discovery_trigger = DiscoveryTrigger::WRITER;
+        ddspipe_configuration.discovery_trigger = DiscoveryTrigger::ANY;
     }
     catch (const std::exception& e)
     {
@@ -213,7 +213,11 @@ void EnablerConfiguration::load_enabler_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
-    //Nothing to configure yet
+    // Get initial publish wait
+    if (YamlReader::is_tag_present(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG))
+    {
+        enabler_configuration->initial_publish_wait = YamlReader::get_nonnegative_int(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG);
+    }
 }
 
 void EnablerConfiguration::load_specs_configuration(

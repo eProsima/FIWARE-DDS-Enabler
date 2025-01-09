@@ -18,15 +18,11 @@
 
 #pragma once
 
-#include <mutex>
-
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
-#include <ddspipe_core/types/data/RtpsPayloadData.hpp>
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
-#include <ddsenabler_participants/library/library_dll.h>
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
 
@@ -53,6 +49,19 @@ public:
         type_callback_ = callback;
     }
 
+    void set_topic_callback(
+            DdsTopicNotification callback)
+    {
+        topic_callback_ = callback;
+    }
+
+    void write_schema(
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const fastdds::dds::xtypes::TypeIdentifier& type_id);
+
+    void write_topic(
+            const ddspipe::core::types::DdsTopic& topic);
+
     /**
      * @brief Writes data.
      *
@@ -66,34 +75,19 @@ public:
 protected:
 
     /**
-     * @brief Writes the type information used in this topic the first time it is received.
-     *
-     * @param [in] msg Pointer to the data.
-     * @param [in] dyn_type DynamicType containing the type information required.
-     */
-    void write_schema(
-            const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type);
-
-    /**
      * @brief Returns the dyn_data of a dyn_type.
      *
      * @param [in] msg Pointer to the data.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    fastdds::dds::DynamicData::_ref_type get_dynamic_data(
+    fastdds::dds::DynamicData::_ref_type get_dynamic_data_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
-
-    //! Schemas map
-    std::unordered_map<std::string, fastdds::dds::xtypes::TypeIdentifier> stored_schemas_;
-
-    // The mutex to protect the calls to write
-    std::mutex mutex_;
 
     // Callbacks to notify the CB
     DdsNotification data_callback_;
     DdsTypeNotification type_callback_;
+    DdsTopicNotification topic_callback_;
 };
 
 } /* namespace participants */

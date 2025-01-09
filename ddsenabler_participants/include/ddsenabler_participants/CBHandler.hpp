@@ -18,13 +18,11 @@
 
 #pragma once
 
-#include <condition_variable>
 #include <cstdint>
-#include <functional>
-#include <list>
-#include <map>
-#include <stdexcept>
-#include <thread>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+#include <utility>
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
 #include <ddspipe_core/types/data/RtpsPayloadData.hpp>
@@ -33,6 +31,7 @@
 
 #include <ddspipe_participants/participant/dynamic_types/ISchemaHandler.hpp>
 
+#include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
 #include <ddsenabler_participants/CBWriter.hpp>
@@ -60,7 +59,7 @@ namespace ddsenabler {
 namespace participants {
 
 /**
- * Class that manages the interaction between DDS Pipe \c (SchemaParticipant) and CB.
+ * Class that manages the interaction between \c EnablerParticipant and CB.
  * Payloads are efficiently passed from DDS Pipe to CB without copying data (only references).
  *
  * @implements ISchemaHandler
@@ -101,6 +100,11 @@ public:
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id) override;
 
+    // TODO
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void add_topic(
+            const ddspipe::core::types::DdsTopic& topic);
+
     /**
      * @brief Add a data sample, associated to the given \c topic.
      *
@@ -114,22 +118,53 @@ public:
             const ddspipe::core::types::DdsTopic& topic,
             ddspipe::core::types::RtpsPayloadData& data) override;
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool get_type_identifier(
+            const std::string& type_name,
+            fastdds::dds::xtypes::TypeIdentifier& type_identifier);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool get_serialized_data(
+            const std::string& type_name,
+            const std::string& json,
+            ddspipe::core::types::Payload& payload);
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_callback(
             participants::DdsNotification callback)
     {
-        cb_writer_.get()->set_data_callback(callback);
+        cb_writer_->set_data_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_topic_callback(
+            participants::DdsTopicNotification callback)
+    {
+        cb_writer_->set_topic_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
-        cb_writer_.get()->set_type_callback(callback);
+        cb_writer_->set_type_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_type_request_callback(
+            participants::DdsTypeRequest callback)
+    {
+        type_req_callback_ = callback;
     }
 
 protected:
+
+    void write_schema_(
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const fastdds::dds::xtypes::TypeIdentifier& type_id);
+
+    void write_topic_(
+            const ddspipe::core::types::DdsTopic& topic);
 
     /**
      * @brief Write to CB.
@@ -137,9 +172,15 @@ protected:
      * @param [in] msg CBMessage to be added
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    void write_sample(
+    void write_sample_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    bool register_type_nts_(
+            const std::string& type_name,
+            const unsigned char* serialized_type,
+            uint32_t serialized_type_size,
+            fastdds::dds::xtypes::TypeIdentifier& type_identifier);
 
     //! Handler configuration
     CBHandlerConfiguration configuration_;
@@ -151,13 +192,15 @@ protected:
     std::unique_ptr<CBWriter> cb_writer_;
 
     //! Schemas map
-    std::unordered_map<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type> schemas_;
+    std::unordered_map<std::string, std::pair<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type>> schemas_;
 
     //! Unique sequence number assigned to received messages. It is incremented with every sample added
     unsigned int unique_sequence_number_{0};
 
     //! Mutex synchronizing access to object's data structures
     std::mutex mtx_;
+
+    DdsTypeRequest type_req_callback_;
 };
 
 } /* namespace participants */

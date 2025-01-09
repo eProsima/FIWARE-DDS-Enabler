@@ -1,0 +1,19 @@
+module eprosima {
+module ddsenabler {
+module participants {
+
+struct DynamicType
+{
+    string type_name;
+    string type_identifier;
+    string type_object;
+};
+
+struct DynamicTypesCollection
+{
+    sequence<DynamicType> dynamic_types;
+};
+
+};
+};
+};
