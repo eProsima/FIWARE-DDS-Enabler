@@ -27,8 +27,9 @@
 #include <ddspipe_core/types/topic/dds/DistributedTopic.hpp>
 #include <ddspipe_core/types/topic/filter/IFilterTopic.hpp>
 
-#include <ddspipe_participants/configuration/ParticipantConfiguration.hpp>
 #include <ddspipe_participants/configuration/SimpleParticipantConfiguration.hpp>
+
+#include <ddsenabler_participants/EnablerParticipantConfiguration.hpp>
 
 #include <ddspipe_yaml/Yaml.hpp>
 #include <ddspipe_yaml/YamlReader.hpp>
@@ -67,7 +68,7 @@ public:
 
     // Participants configurations
     std::shared_ptr<ddspipe::participants::SimpleParticipantConfiguration> simple_configuration;
-    std::shared_ptr<ddspipe::participants::ParticipantConfiguration> enabler_configuration;
+    std::shared_ptr<ddsenabler::participants::EnablerParticipantConfiguration> enabler_configuration;
 
     unsigned int n_threads = DEFAULT_N_THREADS;
 
