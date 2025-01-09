@@ -44,7 +44,7 @@ TEST_F(DDSEnablerTest, ddsenabler_reload_configuration)
     eprosima::utils::Formatter error_msg;
     ASSERT_TRUE(configuration.is_valid(error_msg));
 
-    ASSERT_NO_THROW(enabler.get()->reload_configuration(configuration));
+    ASSERT_NO_THROW(enabler->reload_configuration(configuration));
 }
 
 TEST_F(DDSEnablerTest, send_type1)

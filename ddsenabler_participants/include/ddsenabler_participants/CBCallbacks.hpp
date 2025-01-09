@@ -39,18 +39,37 @@ typedef void (*DdsLogFunc)(
  */
 typedef void (*DdsTypeNotification)(
         const char* typeName,
+        const char* serializedType,
+        const unsigned char* serializedTypeInternal,
+        uint32_t serializedTypeInternalSize,
+        const char* dataPlaceholder);
+
+/**
+ * DdsTopicNotification - callback for reception of DDS topics
+ */
+typedef void (*DdsTopicNotification)(
         const char* topicName,
-        const char* serializedType);
+        const char* typeName,
+        const char* serializedQos);
 
 /**
  * DdsNotification - callback for reception of DDS data
  */
 typedef void (*DdsNotification)(
-        const char* typeName,
         const char* topicName,
         const char* json,
         int64_t publishTime);
 
+// TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
+typedef void (*DdsTopicRequest)(
+        const char* topicName,
+        char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        char*& serializedQos);
+
+typedef void (*DdsTypeRequest)(
+        const char* typeName,
+        unsigned char*& serializedTypeInternal,
+        uint32_t& serializedTypeInternalSize);
 
 } /* namespace participants */
 } /* namespace ddsenabler */

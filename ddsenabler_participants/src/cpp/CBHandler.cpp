@@ -16,19 +16,26 @@
  * @file CBHandler.cpp
  */
 
+<<<<<<< HEAD
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <vector>
 
 #include <fastdds/dds/topic/TypeSupport.hpp>
+=======
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
+>>>>>>> e025823 (DDS data publication implementation)
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
-#include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
+#include <fastdds/dds/xtypes/utils.hpp>
 
-#include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/exception/InconsistencyException.hpp>
-#include <cpp_utils/time/time_utils.hpp>
-#include <cpp_utils/utils.hpp>
+
+#include <ddsenabler_participants/serialization.hpp>
+#include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
 
 #include <ddsenabler_participants/CBHandler.hpp>
 
@@ -62,32 +69,49 @@ void CBHandler::add_schema(
 {
     std::lock_guard<std::mutex> lock(mtx_);
 
-    auto received_type = dyn_type->get_name().to_string();
-
     assert(nullptr != dyn_type);
 
+    const std::string& type_name = dyn_type->get_name().to_string();
+
     // Check if it exists already
-    auto it = schemas_.find(type_id);
+    auto it = schemas_.find(type_name);
     if (it != schemas_.end())
     {
         return;
     }
+    schemas_[type_name] = {type_id, dyn_type};
 
     // Add to schemas map
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
-            "Adding schema with name " << dyn_type->get_name().to_string() << ".");
+            "Adding schema with name " << type_name << ".");
 
-    schemas_[type_id] = dyn_type;
+    write_schema_(dyn_type, type_id);
+}
+
+void CBHandler::add_topic(
+        const DdsTopic& topic)
+{
+    cb_writer_->write_topic(topic);
 }
 
 void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)
 {
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::lock_guard<std::mutex> lock(mtx_);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding data in topic: " << topic << ".");
+
+    fastdds::dds::DynamicType::_ref_type dyn_type;
+    auto it = schemas_.find(topic.type_name);
+    if (it == schemas_.end())
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
+                "Schema for type " << topic.type_name << " not available.");
+        return;
+    }
+    dyn_type = it->second.second;
 
     CBMessage msg;
     msg.sequence_number = unique_sequence_number_++;
@@ -116,45 +140,169 @@ void CBHandler::add_data(
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
 
-    fastdds::dds::DynamicType::_ref_type dyn_type;
-    fastdds::dds::xtypes::TypeIdentifier type_id;
-
-    if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier1()._d())
-    {
-        type_id = topic.type_identifiers.type_identifier1();
-    }
-    else if (eprosima::fastdds::dds::xtypes::TK_NONE != topic.type_identifiers.type_identifier2()._d())
-    {
-        type_id = topic.type_identifiers.type_identifier2();
-    }
-    else
-    {
-        // NO TYPE_IDENTIFIERS
-        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
-                "Received Schema for type " << topic.type_name << " with no TypeIdentifier.");
-        return;
-    }
-
-    auto it = schemas_.find(type_id);
-    if (it != schemas_.end())
-    {
-        dyn_type = it->second;
-        // Schema available -> write
-        write_sample(msg, dyn_type);
-    }
-    else
-    {
-        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
-                "Schema for type " << topic.type_name << " not available.");
-    }
-
+    write_sample_(msg, dyn_type);
 }
 
-void CBHandler::write_sample(
+bool CBHandler::get_type_identifier(
+        const std::string& type_name,
+        fastdds::dds::xtypes::TypeIdentifier& type_identifier)
+{
+    std::lock_guard<std::mutex> lock(mtx_);
+
+    auto it = schemas_.find(type_name);
+    if (it != schemas_.end())
+    {
+        type_identifier = it->second.first;
+        return true;
+    }
+
+    if (!type_req_callback_)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Type request callback not set.");
+        return false;
+    }
+
+    unsigned char* serialized_type;
+    uint32_t serialized_type_size;
+    type_req_callback_(type_name.c_str(), serialized_type, serialized_type_size);
+    // TODO: handle fail case
+    // TODO: free resources allocated by user (serialized_type), or redesign interaction
+
+    return register_type_nts_(type_name, serialized_type, serialized_type_size, type_identifier);
+}
+
+bool CBHandler::get_serialized_data(
+        const std::string& type_name,
+        const std::string& json,
+        Payload& payload)
+{
+    std::lock_guard<std::mutex> lock(mtx_);
+
+    fastdds::dds::DynamicType::_ref_type dyn_type;
+    auto it = schemas_.find(type_name);
+    if (it == schemas_.end())
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to deserialize data for type " << type_name << " : schema not available.");
+        return false;
+    }
+    dyn_type = it->second.second;
+
+    fastdds::dds::DynamicData::_ref_type dyn_data;
+    if ((fastdds::dds::RETCODE_OK != fastdds::dds::json_deserialize(json, dyn_type, fastdds::dds::DynamicDataJsonFormat::EPROSIMA, dyn_data)) || !dyn_data)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to deserialize data for type " << type_name << " : json deserialization failed.");
+        return false;
+    }
+
+    // TODO: double chekc XCDR2 is the right choice -> only supposed to work against fastdds 3, and appendable only working with XCDR2
+    fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
+    uint32_t payload_size = pubsub_type.calculate_serialized_size(&dyn_data, fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
+
+    if (!payload_pool_->get_payload(payload_size, payload))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to deserialize data for type " << type_name << " : get_payload failed.");
+        return false;
+    }
+
+    if (!pubsub_type.serialize(&dyn_data, payload, fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to deserialize data for type " << type_name << " : payload serialization failed.");
+        return false;
+    }
+
+    return true;
+}
+
+void CBHandler::write_schema_(
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        const fastdds::dds::xtypes::TypeIdentifier& type_id)
+{
+    cb_writer_->write_schema(dyn_type, type_id);
+}
+
+void CBHandler::write_topic_(
+        const DdsTopic& topic)
+{
+    cb_writer_->write_topic(topic);
+}
+
+void CBHandler::write_sample_(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
     cb_writer_->write_data(msg, dyn_type);
+}
+
+bool CBHandler::register_type_nts_(
+        const std::string& type_name,
+        const unsigned char* serialized_type,
+        uint32_t serialized_type_size,
+        fastdds::dds::xtypes::TypeIdentifier& type_identifier)
+{
+    DynamicTypesCollection dynamic_types;
+    serialization::deserialize_dynamic_types(serialized_type, serialized_type_size, dynamic_types); // TODO: handle fail case
+
+    std::string _type_name;
+    fastdds::dds::xtypes::TypeIdentifier _type_identifier;
+    fastdds::dds::xtypes::TypeObject _type_object;
+
+    // Deserialize and register all dependencies and main type (last one in collection)
+    for (DynamicType& dynamic_type : dynamic_types.dynamic_types())
+    {
+        if (!serialization::deserialize_dynamic_type(dynamic_type, _type_name, _type_identifier, _type_object))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "Failed to deserialize " << dynamic_type.type_name() << " DynamicType.");
+            return false;
+        }
+
+        // Create a TypeIdentifierPair to use in register_type_identifier
+        fastdds::dds::xtypes::TypeIdentifierPair type_identifiers;
+        type_identifiers.type_identifier1(_type_identifier);
+
+        // Register in factory
+        if (fastdds::dds::RETCODE_OK !=
+                fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().register_type_object(
+                    _type_object, type_identifiers))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "Failed to register " << dynamic_type.type_name() << " DynamicType.");
+            // TODO: check if trying to register a type for the second time would return OK or not
+            return false;
+        }
+    }
+
+    if (_type_name != type_name)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Unexpected dynamic types collection format: " << type_name << " expected to be last item, found " << _type_name << " instead.");
+        return false;
+    }
+
+    fastdds::dds::DynamicType::_ref_type dyn_type = fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(_type_object)->build();
+    if (!dyn_type)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to create Dynamic Type " << type_name);
+        return false;
+    }
+
+    // Add to schemas map
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+            "Adding schema with name " << type_name << ".");
+    schemas_[_type_name] = {_type_identifier, dyn_type};
+
+    type_identifier = _type_identifier;
+    return true;
+
+    // TODO: analyze case where dependencies are not added to schemas map, so if afterwards the user tries to publish
+    // in one of the dependencies type, we will try to register the same type again -> will it fail? if not, will it
+    // skip registration but still return internal TypeIdentifier?
 }
 
 } /* namespace participants */
