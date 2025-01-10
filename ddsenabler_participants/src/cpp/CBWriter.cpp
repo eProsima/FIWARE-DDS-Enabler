@@ -37,7 +37,7 @@ void CBWriter::write_data(
 
     write_schema(msg, dyn_type);
 
-    logInfo(DDSENABLER_CB_WRITER,
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writing message from topic: " << msg.topic.topic_name() << ".");
 
     // Get the data as JSON
@@ -48,7 +48,7 @@ void CBWriter::write_data(
     if (fastdds::dds::RETCODE_OK !=
             fastdds::dds::json_serialize(dyn_data, fastdds::dds::DynamicDataJsonFormat::EPROSIMA, ss_dyn_data))
     {
-        logError(DDSENABLER_CB_WRITER,
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to serialize data of topic " << msg.topic.topic_name() << " into JSON format.");
         return;
     }
@@ -56,9 +56,9 @@ void CBWriter::write_data(
     // Create the base JSON structure
     nlohmann::ordered_json json_output;
 
-    std::stringstream ss_source_guid;
-    ss_source_guid << msg.source_guid;
-    json_output["id"] = ss_source_guid.str();
+    std::stringstream ss_source_guid_prefix;
+    ss_source_guid_prefix << msg.source_guid.guid_prefix();
+    json_output["id"] = ss_source_guid_prefix.str();
     json_output["type"] = "fastdds";
     json_output[msg.topic.topic_name()] = {
         {"type", msg.topic.type_name},
@@ -71,12 +71,15 @@ void CBWriter::write_data(
     json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = parsed_dyn_data;
 
     //STORE DATA
-    data_callback_(
-        msg.topic.type_name.c_str(),
-        msg.topic.topic_name().c_str(),
-        json_output.dump(4).c_str(),
-        msg.publish_time.to_ns()
-        );
+    if (data_callback_)
+    {
+        data_callback_(
+            msg.topic.type_name.c_str(),
+            msg.topic.topic_name().c_str(),
+            json_output.dump(4).c_str(),
+            msg.publish_time.to_ns()
+            );
+    }
 }
 
 void CBWriter::write_schema(
@@ -91,14 +94,14 @@ void CBWriter::write_schema(
     if (it == stored_schemas_.end())
     {
         //Schema has not been registered
-        logInfo(DDSENABLER_CB_WRITER,
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
                 "Writing schema: " << type_name << " on topic: " << topic_name << ".");
 
         std::stringstream ss_idl;
         auto ret = fastdds::dds::idl_serialize(dyn_type, ss_idl);
         if (ret != fastdds::dds::RETCODE_OK)
         {
-            logError(DDSENABLER_CB_WRITER,
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                     "Failed to serialize DynamicType to idl for type with name: " << type_name);
             return;
         }
@@ -107,16 +110,19 @@ void CBWriter::write_schema(
         stored_schemas_[topic_name] = type_id;
 
         //STORE SCHEMA
-        type_callback_(
-            type_name.c_str(),
-            topic_name.c_str(),
-            ss_idl.str().c_str()
-            );
+        if (type_callback_)
+        {
+            type_callback_(
+                type_name.c_str(),
+                topic_name.c_str(),
+                ss_idl.str().c_str()
+                );
+        }
     }
     else
     {
         //Schema has been registered
-        logInfo(DDSENABLER_CB_WRITER,
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
                 "Schema: " + type_name + " already registered for topic: " + topic_name + ".");
     }
 }

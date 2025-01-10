@@ -17,6 +17,8 @@
  *
  */
 
+#pragma once
+
 #include <cpp_utils/event/FileWatcherHandler.hpp>
 #include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/event/PeriodicEventHandler.hpp>

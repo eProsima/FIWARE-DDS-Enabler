@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
@@ -47,7 +49,7 @@ typedef void (*DdsNotification)(
         const char* typeName,
         const char* topicName,
         const char* json,
-        double publishTime);
+        int64_t publishTime);
 
 
 } /* namespace participants */
