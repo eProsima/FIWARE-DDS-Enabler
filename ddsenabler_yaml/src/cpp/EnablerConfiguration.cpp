@@ -17,6 +17,10 @@
  *
  */
 
+#include <fstream>
+
+#include <nlohmann/json.hpp>
+
 #include <cpp_utils/Log.hpp>
 #include <cpp_utils/utils.hpp>
 
@@ -31,6 +35,7 @@
 #include <ddspipe_yaml/YamlManager.hpp>
 
 #include <ddsenabler_yaml/yaml_configuration_tags.hpp>
+
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
 namespace eprosima {
@@ -43,16 +48,77 @@ using namespace eprosima::ddspipe::participants;
 using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
-EnablerConfiguration::EnablerConfiguration(
-        const Yaml& yml)
+
+// Helper method to handle nlohmann::json to YAML conversion
+YAML::Node convert_json_to_yaml(
+        const nlohmann::json& json)
 {
-    load_ddsenabler_configuration_(yml);
+    YAML::Node yaml_node;
+
+    for (auto& element : json.items())
+    {
+        if (element.value().is_object())
+        {
+            // Recursively convert nested objects
+            yaml_node[element.key()] = convert_json_to_yaml(element.value());
+        }
+        else if (element.value().is_array())
+        {
+            // Handle arrays
+            YAML::Node arrayNode;
+            for (const auto& item : element.value())
+            {
+                arrayNode.push_back(convert_json_to_yaml(item));
+            }
+            yaml_node[element.key()] = arrayNode;
+        }
+        else
+        {
+            // Handle basic data types explicitly
+            if (element.value().is_string())
+            {
+                yaml_node[element.key()] = element.value().get<std::string>();
+            }
+            else if (element.value().is_number_integer())
+            {
+                yaml_node[element.key()] = element.value().get<int>();
+            }
+            else if (element.value().is_number_float())
+            {
+                yaml_node[element.key()] = element.value().get<double>();
+            }
+            else if (element.value().is_boolean())
+            {
+                yaml_node[element.key()] = element.value().get<bool>();
+            }
+            else
+            {
+                // Fallback for any other types (like null)
+                // Skip element to avoid exception when parsing YAML (YamlReader::is_tag_present expects non-null value)
+            }
+        }
+    }
+
+    return yaml_node;
 }
 
 EnablerConfiguration::EnablerConfiguration(
-        const std::string& file_path)
+        const std::string& file_path,
+        bool is_json)
 {
-    load_ddsenabler_configuration_from_file_(file_path);
+    if(is_json)
+    {
+        load_ddsenabler_configuration_from_json_file(file_path);
+    }else
+    {
+        load_ddsenabler_configuration_from_yaml_file(file_path);
+    }
+}
+
+EnablerConfiguration::EnablerConfiguration(
+        const Yaml& yml)
+{
+    load_ddsenabler_configuration(yml);
 }
 
 bool EnablerConfiguration::is_valid(
@@ -61,7 +127,7 @@ bool EnablerConfiguration::is_valid(
     return true;
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_(
+void EnablerConfiguration::load_ddsenabler_configuration(
         const Yaml& yml)
 {
     try
@@ -82,7 +148,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
 
         /////
         // Create Enabler Participant Configuration
-        enabler_configuration = std::make_shared<ParticipantConfiguration>();
+        enabler_configuration = std::make_shared<participants::EnablerParticipantConfiguration>();
         enabler_configuration->id = "EnablerEnablerParticipant";
         enabler_configuration->app_id = "DDS_ENABLER";
         // TODO: fill metadata field once its content has been defined.
@@ -94,7 +160,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, ENABLER_ENABLER_TAG))
         {
             auto enabler_yml = YamlReader::get_value_in_tag(yml, ENABLER_ENABLER_TAG);
-            load_enabler_configuration_(enabler_yml, version);
+            load_enabler_configuration(enabler_yml, version);
         }
 
         /////
@@ -103,7 +169,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, SPECS_TAG))
         {
             auto specs_yml = YamlReader::get_value_in_tag(yml, SPECS_TAG);
-            load_specs_configuration_(specs_yml, version);
+            load_specs_configuration(specs_yml, version);
         }
 
         /////
@@ -111,7 +177,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, ENABLER_DDS_TAG))
         {
             auto dds_yml = YamlReader::get_value_in_tag(yml, ENABLER_DDS_TAG);
-            load_dds_configuration_(dds_yml, version);
+            load_dds_configuration(dds_yml, version);
         }
 
         // Block ROS 2 services (RPC) topics
@@ -133,8 +199,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
 
         ddspipe_configuration.init_enabled = true;
 
-        // Only trigger the DdsPipe's callbacks when discovering or removing writers
-        ddspipe_configuration.discovery_trigger = DiscoveryTrigger::WRITER;
+        ddspipe_configuration.discovery_trigger = DiscoveryTrigger::ANY;
     }
     catch (const std::exception& e)
     {
@@ -144,13 +209,18 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
 
 }
 
-void EnablerConfiguration::load_enabler_configuration_(
+void EnablerConfiguration::load_enabler_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
+    // Get initial publish wait
+    if (YamlReader::is_tag_present(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG))
+    {
+        enabler_configuration->initial_publish_wait = YamlReader::get_nonnegative_int(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG);
+    }
 }
 
-void EnablerConfiguration::load_specs_configuration_(
+void EnablerConfiguration::load_specs_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -169,7 +239,7 @@ void EnablerConfiguration::load_specs_configuration_(
     }
 }
 
-void EnablerConfiguration::load_dds_configuration_(
+void EnablerConfiguration::load_dds_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -242,7 +312,7 @@ void EnablerConfiguration::load_dds_configuration_(
     }
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
+void EnablerConfiguration::load_ddsenabler_configuration_from_yaml_file(
         const std::string& file_path)
 {
     Yaml yml;
@@ -265,7 +335,67 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
         EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                 "No configuration file specified, using default values.");
     }
-    EnablerConfiguration::load_ddsenabler_configuration_(yml);
+    EnablerConfiguration::load_ddsenabler_configuration(yml);
+}
+
+void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
+        const std::string& file_path)
+{
+    Yaml yml;
+    if (!file_path.empty())
+    {
+        try
+        {
+            // Load the JSON file
+            std::ifstream file(file_path);
+            if (!file.is_open())
+            {
+                throw eprosima::utils::ConfigurationException(
+                        utils::Formatter() << "Could not open JSON file");
+            }
+
+            // Parse the JSON file
+            nlohmann::json json;
+            file >> json;
+
+            // Close the file
+            file.close();
+
+            // Extract the "dds" part which contains "ddsmodule"
+            if (json.contains("dds") && json["dds"].is_object())
+            {
+                if (json["dds"].contains("ddsmodule") && json["dds"]["ddsmodule"].is_object())
+                {
+                    // Convert the "ddsmodule" content to YAML
+                    yml = convert_json_to_yaml(json["dds"]["ddsmodule"]);
+                }
+                else
+                {
+                    throw eprosima::utils::ConfigurationException(
+                            utils::Formatter() <<
+                                "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
+                }
+            }
+            else
+            {
+                throw eprosima::utils::ConfigurationException(
+                        utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
+            }
+
+        }
+        catch (const std::exception& e)
+        {
+            throw eprosima::utils::ConfigurationException(
+                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                        "> :\n " << e.what());
+        }
+    }
+    else
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
+                "No configuration file specified, using default values.");
+    }
+    EnablerConfiguration::load_ddsenabler_configuration(yml);
 }
 
 } /* namespace yaml */

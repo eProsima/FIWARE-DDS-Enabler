@@ -13,22 +13,21 @@
 // limitations under the License.
 
 /**
- * @file yaml_configuration_tags.hpp
+ * @file constants.hpp
  */
 
 #pragma once
 
-#include <set>
-#include <string>
-
 namespace eprosima {
 namespace ddsenabler {
-namespace yaml {
+namespace participants {
 
-constexpr const char* ENABLER_DDS_TAG("dds");
-constexpr const char* ENABLER_ENABLER_TAG("ddsenabler");
-constexpr const char* ENABLER_INITIAL_PUBLISH_WAIT_TAG("initial-publish-wait");
+// QoS serialization
+constexpr const char* QOS_SERIALIZATION_RELIABILITY("reliability");
+constexpr const char* QOS_SERIALIZATION_DURABILITY("durability");
+constexpr const char* QOS_SERIALIZATION_OWNERSHIP("ownership");
+constexpr const char* QOS_SERIALIZATION_KEYED("keyed");
 
-} /* namespace yaml */
+} /* namespace participants */
 } /* namespace ddsenabler */
 } /* namespace eprosima */

@@ -19,7 +19,6 @@
 #pragma once
 
 #include <memory>
-#include <set>
 
 #include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/ReturnCode.hpp>
@@ -32,11 +31,11 @@
 #include <ddspipe_core/efficiency/payload/FastPayloadPool.hpp>
 #include <ddspipe_core/types/topic/dds/DistributedTopic.hpp>
 
-#include <ddspipe_participants/participant/dynamic_types/DynTypesParticipant.hpp>
-#include <ddspipe_participants/participant/dynamic_types/SchemaParticipant.hpp>
-
+#include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
+#include <ddsenabler_participants/DdsParticipant.hpp>
+#include <ddsenabler_participants/EnablerParticipant.hpp>
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
@@ -67,13 +66,31 @@ public:
     void set_data_callback(
             participants::DdsNotification callback)
     {
-        cb_handler_.get()->set_data_callback(callback);
+        cb_handler_->set_data_callback(callback);
     }
 
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
-        cb_handler_.get()->set_type_callback(callback);
+        cb_handler_->set_type_callback(callback);
+    }
+
+    void set_topic_callback(
+            participants::DdsTopicNotification callback)
+    {
+        cb_handler_->set_topic_callback(callback);
+    }
+
+    void set_topic_request_callback(
+            participants::DdsTopicRequest callback)
+    {
+        enabler_participant_->set_topic_request_callback(callback);
+    }
+
+    void set_type_request_callback(
+            participants::DdsTypeRequest callback)
+    {
+        cb_handler_->set_type_request_callback(callback);
     }
 
     /**
@@ -86,6 +103,11 @@ public:
      */
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
+
+    // TODO
+    bool publish(
+            const std::string& topic_name,
+            const std::string& json);
 
 protected:
 
@@ -115,11 +137,11 @@ protected:
     //! CB Handler
     std::shared_ptr<eprosima::ddsenabler::participants::CBHandler> cb_handler_;
 
-    //! Dynamic Types Participant
-    std::shared_ptr<eprosima::ddspipe::participants::DynTypesParticipant> dyn_participant_;
+    //! DDS Participant
+    std::shared_ptr<eprosima::ddsenabler::participants::DdsParticipant> dds_participant_;
 
-    //! Schema Participant
-    std::shared_ptr<eprosima::ddspipe::participants::SchemaParticipant> enabler_participant_;
+    //! Enabler Participant
+    std::shared_ptr<eprosima::ddsenabler::participants::EnablerParticipant> enabler_participant_;
 
     //! DDS Pipe
     std::unique_ptr<ddspipe::core::DdsPipe> pipe_;

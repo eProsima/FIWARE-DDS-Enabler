@@ -15,6 +15,8 @@
 #include <cpp_utils/testing/gtest_aux.hpp>
 #include <gtest/gtest.h>
 
+#include <nlohmann/json.hpp>
+
 #include <ddspipe_yaml/YamlReader.hpp>
 
 #include <EnablerConfiguration.hpp>
@@ -96,7 +98,6 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_n_threads_configuration_yaml)
     EXPECT_THROW({EnablerConfiguration configuration(yml);}, std::exception);
 }
 
-
 TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
 {
     const char* yml_str =
@@ -114,11 +115,18 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
     ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
 }
 
+TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_json)
+{
+    const char* path_str = "incorrect/path/file";
+
+    EXPECT_THROW({EnablerConfiguration configuration(path_str, true);}, eprosima::utils::ConfigurationException);
+}
+
 TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
 {
     const char* path_str = "incorrect/path/file";
 
-    EXPECT_THROW({EnablerConfiguration configuration(path_str);}, eprosima::utils::ConfigurationException);
+    EXPECT_THROW({EnablerConfiguration configuration(path_str, false);}, eprosima::utils::ConfigurationException);
 }
 
 int main(

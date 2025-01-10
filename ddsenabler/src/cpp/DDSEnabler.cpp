@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
-#include <math.h>
-
-#include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/types/dynamic_types/types.hpp>
@@ -53,12 +49,12 @@ DDSEnabler::DDSEnabler(
     // Create CB Handler configuration
     participants::CBHandlerConfiguration handler_config;
 
-    // Create DynTypes Participant
-    dyn_participant_ = std::make_shared<DynTypesParticipant>(
+    // Create DDS Participant
+    dds_participant_ = std::make_shared<DdsParticipant>(
         configuration_.simple_configuration,
         payload_pool_,
         discovery_database_);
-    dyn_participant_->init();
+    dds_participant_->init();
 
     // Create CB Handler
     cb_handler_ = std::make_shared<participants::CBHandler>(
@@ -66,7 +62,7 @@ DDSEnabler::DDSEnabler(
         payload_pool_);
 
     // Create Enabler Participant
-    enabler_participant_ = std::make_shared<SchemaParticipant>(
+    enabler_participant_ = std::make_shared<EnablerParticipant>(
         configuration_.enabler_configuration,
         payload_pool_,
         discovery_database_,
@@ -77,8 +73,8 @@ DDSEnabler::DDSEnabler(
 
     // Populate Participant Database
     participants_database_->add_participant(
-        dyn_participant_->id(),
-        dyn_participant_);
+        dds_participant_->id(),
+        dds_participant_);
 
     participants_database_->add_participant(
         enabler_participant_->id(),
@@ -121,6 +117,13 @@ void DDSEnabler::load_internal_topics_(
         configuration.ddspipe_configuration.allowlist.insert(
             utils::Heritable<WildcardDdsFilterTopic>::make_heritable(internal_topic));
     }
+}
+
+bool DDSEnabler::publish(
+        const std::string& topic_name,
+        const std::string& json)
+{
+    return enabler_participant_->publish(topic_name, json);
 }
 
 } /* namespace ddsenabler */
