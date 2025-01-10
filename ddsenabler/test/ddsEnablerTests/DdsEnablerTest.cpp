@@ -71,7 +71,6 @@ TEST_F(DDSEnablerTest, send_type1)
 TEST_F(DDSEnablerTest, send_many_type1)
 {
     ddsenablertester::num_samples_ = 1000;
-    // ddsenablertester::write_delay_ = 10;
 
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
