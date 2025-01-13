@@ -29,7 +29,8 @@ set(MODULE_FIND_PACKAGES
     cpp_utils
     ddspipe_core
     ddspipe_participants
-    ddspipe_yaml)
+    ddspipe_yaml
+    ddsenabler_participants)
 
 if(WIN32)
     set(MODULE_FIND_PACKAGES
@@ -47,6 +48,7 @@ set(MODULE_DEPENDENCIES
     ddspipe_core
     ddspipe_participants
     ddspipe_yaml
+    ddsenabler_participants
     $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
     $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
 
