@@ -26,8 +26,12 @@ set(TEST_LIST
         get_ddsenabler_correct_configuration_yaml
         get_ddsenabler_incorrect_n_threads_configuration_yaml
         get_ddsenabler_default_values_configuration_yaml
-        get_ddsenabler_incorrect_path_configuration_json
         get_ddsenabler_incorrect_path_configuration_yaml
+        get_ddsenabler_correct_configuration_json
+        get_ddsenabler_incorrect_n_threads_configuration_json
+        get_ddsenabler_default_values_configuration_json
+        get_ddsenabler_incorrect_path_configuration_json
+        get_ddsenabler_full_configuration_json
     )
 
 set(TEST_EXTRA_LIBRARIES
@@ -37,8 +41,17 @@ set(TEST_EXTRA_LIBRARIES
         ddsenabler_yaml
     )
 
+# Specify the JSON resource file
+set(TEST_NEEDED_SOURCES 
+        ../test/resources/correct_config.json
+        ../test/resources/incorrect_threads_config.json
+        ../test/resources/default_config.json
+        ../test/resources/full_config.json
+    )
+
 add_unittest_executable(
     "${TEST_NAME}"
     "${TEST_SOURCES}"
     "${TEST_LIST}"
-    "${TEST_EXTRA_LIBRARIES}")
+    "${TEST_EXTRA_LIBRARIES}"
+    "${TEST_NEEDED_SOURCES}")
