@@ -60,7 +60,7 @@ public:
      * @param [in] msg Pointer to the data to be written.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    virtual void write_data(
+    void write_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
@@ -72,7 +72,7 @@ protected:
      * @param [in] msg Pointer to the data.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    virtual void write_schema(
+    void write_schema(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 

@@ -12,45 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(TEST_NAME DdsEnablerTest)
-
-file(
-    GLOB_RECURSE TEST_SOURCES
-    DdsEnablerTest.cpp
-    "${PROJECT_SOURCE_DIR}/test/resources/types/*.c*"
-    )
-
-file(
-    GLOB_RECURSE TEST_LIBRARY_SOURCES
-    "${PROJECT_SOURCE_DIR}/src/cpp/*.c*"
-    )
-
-list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
-
-set(TEST_LIST
-        ddsenabler_creation
-        ddsenabler_reload_configuration
-        ddsenabler_send_samples_type1
-        ddsenabler_send_samples_type2
-        ddsenabler_send_samples_type3
-        ddsenabler_send_samples_type4
-        ddsenabler_send_samples_multiple_types
-        ddsenabler_send_samples_repeated_type
-    )
-
-set(TEST_NEEDED_SOURCES
-    )
-
-set(TEST_EXTRA_HEADERS
-    ${PROJECT_SOURCE_DIR}/test/resources/types/
-    )
-
-add_blackbox_executable(
-    "${TEST_NAME}"
-    "${TEST_SOURCES}"
-    "${TEST_LIST}"
-    "${TEST_NEEDED_SOURCES}"
-    "${TEST_EXTRA_HEADERS}"
-    "${TEST_LIBRARY_SOURCES}"
-)
-
+add_subdirectory(ddsEnablerTests)
+add_subdirectory(ddsEnablerTypedTests)

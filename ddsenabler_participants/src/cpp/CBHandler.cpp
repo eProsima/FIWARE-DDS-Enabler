@@ -32,7 +32,6 @@
 #include <cpp_utils/time/time_utils.hpp>
 #include <cpp_utils/utils.hpp>
 
-#include <ddsenabler_participants/constants.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {
@@ -47,7 +46,7 @@ CBHandler::CBHandler(
     : configuration_(config)
     , payload_pool_(payload_pool)
 {
-    logInfo(DDSENABLER_CB_HANDLER,
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Creating CB handler instance.");
 
     cb_writer_ = std::make_unique<CBWriter>();
@@ -55,7 +54,7 @@ CBHandler::CBHandler(
 
 CBHandler::~CBHandler()
 {
-    logInfo(DDSENABLER_CB_HANDLER,
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Destroying CB handler.");
 }
 
@@ -77,7 +76,7 @@ void CBHandler::add_schema(
     }
 
     // Add to schemas map
-    logInfo(DDSENABLER_CB_HANDLER,
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding schema with name " << dyn_type->get_name().to_string() << ".");
 
     schemas_[type_id] = dyn_type;
@@ -89,7 +88,7 @@ void CBHandler::add_data(
 {
     std::unique_lock<std::mutex> lock(mtx_);
 
-    logInfo(DDSENABLER_CB_HANDLER,
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding data in topic: " << topic << ".");
 
     CBMessage msg;
@@ -133,7 +132,7 @@ void CBHandler::add_data(
     else
     {
         // NO TYPE_IDENTIFIERS
-        logWarning(DDSENABLER_CB_HANDLER,
+        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
                 "Received Schema for type " << topic.type_name << " with no TypeIdentifier.");
         return;
     }
@@ -147,7 +146,7 @@ void CBHandler::add_data(
     }
     else
     {
-        logWarning(DDSENABLER_CB_HANDLER,
+        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
                 "Schema for type " << topic.type_name << " not available.");
     }
 
