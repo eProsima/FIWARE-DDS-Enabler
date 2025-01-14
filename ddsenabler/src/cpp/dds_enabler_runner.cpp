@@ -45,7 +45,7 @@ std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
     // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
     std::function<void(std::string)> filewatcher_callback =
             [&enabler, &file_path]
-            (std::string file_name)
+                (std::string file_name)
             {
                 EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                         "FileWatcher notified changes in file " << file_path << ". Reloading configuration");
