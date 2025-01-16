@@ -31,39 +31,6 @@ using namespace eprosima::ddspipe;
 namespace eprosima {
 namespace ddsenabler {
 
-std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path)
-{
-    if (file_path.empty())
-    {
-        return nullptr;
-    }
-
-    // Callback will reload configuration and pass it to DdsPipe
-    // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
-    std::function<void(std::string)> filewatcher_callback =
-            [&enabler, &file_path]
-                (std::string file_name)
-            {
-                EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
-                        "FileWatcher notified changes in file " << file_path << ". Reloading configuration");
-                try
-                {
-                    eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
-                    enabler->reload_configuration(new_configuration);
-                }
-                catch (const std::exception& e)
-                {
-                    EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
-                            "Error reloading configuration file " << file_path << " with error: " << e.what());
-                }
-            };
-
-    // Creating FileWatcher event handler
-    return std::make_unique<eprosima::utils::event::FileWatcherHandler>(filewatcher_callback, file_path);
-}
-
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
@@ -128,12 +95,10 @@ bool create_dds_enabler(
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
         enabler->set_data_callback(data_callback);
         enabler->set_type_callback(type_callback);
+        enabler->set_file_watcher(dds_enabler_config_file);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
-
-        // TODO: The creation of the File Watcher Handler must be done after the creation of the DDSEnabler or
-        //       the DDSEnabler must be created with the file watcher handler as a parameter
     }
     catch (const eprosima::utils::ConfigurationException& e)
     {

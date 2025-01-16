@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include <cpp_utils/event/FileWatcherHandler.hpp>
-#include <cpp_utils/event/MultipleEventHandler.hpp>
-#include <cpp_utils/event/PeriodicEventHandler.hpp>
 #include <cpp_utils/exception/ConfigurationException.hpp>
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/logging/BaseLogConfiguration.hpp>
@@ -41,16 +38,7 @@ using namespace eprosima::ddsenabler;
 
 namespace eprosima {
 namespace ddsenabler {
-
-std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path);
-
-std::unique_ptr<eprosima::utils::event::PeriodicEventHandler> create_periodic_handler(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path,
-        const eprosima::utils::Duration_ms& reload_time);
-
+        
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
