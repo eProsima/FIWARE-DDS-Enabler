@@ -132,11 +132,6 @@ TEST(ReloadConfig, json)
     bool result = create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler);
     ASSERT_TRUE(result);
 
-    // Create File Watcher Handler
-    std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler;
-    std::string dds_enabler_config_file = configfile;
-    file_watcher_handler = create_filewatcher(enabler, dds_enabler_config_file);
-
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
 
@@ -168,11 +163,6 @@ TEST(ReloadConfig, yaml)
     std::unique_ptr<DDSEnabler> enabler;
     bool result = create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler);
     ASSERT_TRUE(result);
-
-    // Create File Watcher Handler
-    std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler;
-    std::string dds_enabler_config_file = configfile;
-    file_watcher_handler = create_filewatcher(enabler, dds_enabler_config_file);
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
