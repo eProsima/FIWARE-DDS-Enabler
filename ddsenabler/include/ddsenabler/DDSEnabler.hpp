@@ -21,6 +21,7 @@
 #include <memory>
 #include <set>
 
+#include <cpp_utils/event/FileWatcherHandler.hpp>
 #include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/ReturnCode.hpp>
 #include <cpp_utils/thread_pool/pool/SlotThreadPool.hpp>
@@ -77,6 +78,14 @@ public:
     }
 
     /**
+     * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
+     * 
+     * @param file_path: The path to the configuration file.
+     */
+    void set_file_watcher(
+            const std::string& file_path);
+
+    /**
      * Reconfigure the Enabler with the new configuration.
      *
      * @param new_configuration: The configuration to replace the previous configuration with.
@@ -126,6 +135,9 @@ protected:
 
     //! Reference to event handler used for thread synchronization in main application
     std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler_;
+
+    //! Config File watcher handler
+    std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler_;
 };
 
 } /* namespace ddsenabler */

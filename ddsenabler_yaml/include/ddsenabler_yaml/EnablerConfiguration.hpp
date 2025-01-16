@@ -42,20 +42,23 @@ namespace yaml {
 constexpr const int DEFAULT_N_THREADS = 8;
 
 /**
- * @brief Class that encapsulates specific methods to get a full DDS Enabler Configuration from a yaml node.
+ * @brief Class that encapsulates specific methods to get a full DDS Enabler Configuration.
  *
  * TODO: Add version configuration so it could load different versions
  */
-class DDSENABLER_YAML_DllAPI EnablerConfiguration
+class EnablerConfiguration
 {
 public:
 
-    EnablerConfiguration(
-            const Yaml& yml);
-
+    DDSENABLER_YAML_DllAPI
     EnablerConfiguration(
             const std::string& file_path);
 
+    DDSENABLER_YAML_DllAPI
+    EnablerConfiguration(
+            const Yaml& yml);
+
+    DDSENABLER_YAML_DllAPI
     virtual bool is_valid(
             utils::Formatter& error_msg) const noexcept;
 
@@ -72,22 +75,25 @@ public:
 
 protected:
 
-    void load_ddsenabler_configuration_(
+    void load_ddsenabler_configuration(
             const Yaml& yml);
 
-    void load_enabler_configuration_(
+    void load_enabler_configuration(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_specs_configuration_(
+    void load_specs_configuration(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_dds_configuration_(
+    void load_dds_configuration(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_ddsenabler_configuration_from_file_(
+    void load_ddsenabler_configuration_from_yaml_file(
+            const std::string& file_path);
+
+    void load_ddsenabler_configuration_from_json_file(
             const std::string& file_path);
 };
 

@@ -31,52 +31,18 @@ using namespace eprosima::ddspipe;
 namespace eprosima {
 namespace ddsenabler {
 
-std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path)
-{
-    if (file_path.empty())
-    {
-        return nullptr;
-    }
-
-    // Callback will reload configuration and pass it to DdsPipe
-    // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
-    std::function<void(std::string)> filewatcher_callback =
-            [&enabler, &file_path]
-            (std::string file_name)
-            {
-                EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
-                        "FileWatcher notified changes in file " << file_path << ". Reloading configuration");
-                try
-                {
-                    eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
-                    enabler->reload_configuration(new_configuration);
-                }
-                catch (const std::exception& e)
-                {
-                    EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
-                            "Error reloading configuration file " << file_path << " with error: " << e.what());
-                }
-            };
-
-    // Creating FileWatcher event handler
-    return std::make_unique<eprosima::utils::event::FileWatcherHandler>(filewatcher_callback, file_path);
-}
-
-int init_dds_enabler(
+bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
         participants::DdsTypeNotification type_callback,
-        participants::DdsLogFunc log_callback)
-
+        participants::DdsLogFunc log_callback,
+        std::unique_ptr<DDSEnabler>& enabler)
 {
     std::string dds_enabler_config_file = "";
     if (ddsEnablerConfigFile != NULL)
     {
         dds_enabler_config_file = ddsEnablerConfigFile;
     }
-
 
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
@@ -93,7 +59,7 @@ int init_dds_enabler(
         }
 
         // Logging
-        {
+        if(log_callback != nullptr){
             // Disable stdout always
             configuration.ddspipe_configuration.log_configuration.stdout_enable = false;
             const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
@@ -124,60 +90,31 @@ int init_dds_enabler(
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
         // Create DDSEnabler and set the context broker callbacks
-        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
-        enabler.get()->set_data_callback(data_callback);
-        enabler.get()->set_type_callback(type_callback);
+        enabler.reset(new DDSEnabler(configuration, close_handler));
+
+        // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
+        enabler->set_data_callback(data_callback);
+        enabler->set_type_callback(type_callback);
+        enabler->set_file_watcher(dds_enabler_config_file);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
-
-        // Create File Watcher Handler
-        std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler;
-        file_watcher_handler = create_filewatcher(enabler, dds_enabler_config_file);
-
-        // Wait until signal arrives
-        close_handler->wait_for_event();
-
-        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
-                "Stopping DDS Enabler.");
-
-        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
-                "DDS Enabler stopped correctly.");
     }
     catch (const eprosima::utils::ConfigurationException& e)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Error Loading DDS Enabler Configuration from file " << dds_enabler_config_file <<
                 ". Error message:\n " << e.what());
-        // Force print every log before closing
-        eprosima::utils::Log::Flush();
-
-        // Delete the consumers before closing
-        eprosima::utils::Log::ClearConsumers();
-        return -1;
+        return false;
     }
     catch (const eprosima::utils::InitializationException& e)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Error Initializing DDS Enabler. Error message:\n " << e.what());
-        // Force print every log before closing
-        eprosima::utils::Log::Flush();
-
-        // Delete the consumers before closing
-        eprosima::utils::Log::ClearConsumers();
-        return -1;
+        return false;
     }
 
-    EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
-            "Finishing DDS Enabler execution correctly.");
-
-    // Force print every log before closing
-    eprosima::utils::Log::Flush();
-
-    // Delete the consumers before closing
-    eprosima::utils::Log::ClearConsumers();
-
-    return 0;
+    return true;
 }
 
 } /* namespace ddsenabler */

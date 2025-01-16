@@ -29,7 +29,6 @@
 #include <ddsenabler_participants/library/library_dll.h>
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
-#include <ddsenabler_participants/nlohmann/json.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
