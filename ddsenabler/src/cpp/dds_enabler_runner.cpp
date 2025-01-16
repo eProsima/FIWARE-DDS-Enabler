@@ -92,7 +92,7 @@ bool create_dds_enabler(
         }
 
         // Logging
-        {
+        if(log_callback != nullptr){
             // Disable stdout always
             configuration.ddspipe_configuration.log_configuration.stdout_enable = false;
             const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
@@ -132,7 +132,8 @@ bool create_dds_enabler(
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
 
-        // The creation of the File Watcher Handler must be done after the creation of the DDSEnabler
+        // TODO: The creation of the File Watcher Handler must be done after the creation of the DDSEnabler or
+        //       the DDSEnabler must be created with the file watcher handler as a parameter
     }
     catch (const eprosima::utils::ConfigurationException& e)
     {
