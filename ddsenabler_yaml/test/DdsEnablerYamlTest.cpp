@@ -172,7 +172,7 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
 {
     const char* path_str = "incorrect/path/file.yaml";
 
-    EXPECT_THROW({EnablerConfiguration configuration(path_str);}, eprosima::utils::ConfigurationException);
+    EXPECT_THROW({EnablerConfiguration configuration(path_str, false);}, eprosima::utils::ConfigurationException);
 }
 
 TEST(DdsEnablerYamlTest, get_ddsenabler_full_configuration_json)

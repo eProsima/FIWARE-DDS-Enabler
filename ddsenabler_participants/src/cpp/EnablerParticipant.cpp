@@ -40,7 +40,8 @@ EnablerParticipant::EnablerParticipant(
         std::shared_ptr<PayloadPool> payload_pool,
         std::shared_ptr<DiscoveryDatabase> discovery_database,
         std::shared_ptr<ISchemaHandler> schema_handler)
-    : ddspipe::participants::SchemaParticipant(participant_configuration, payload_pool, discovery_database, schema_handler)
+    : ddspipe::participants::SchemaParticipant(participant_configuration, payload_pool, discovery_database,
+            schema_handler)
 {
 }
 
@@ -78,7 +79,8 @@ bool EnablerParticipant::publish(
         if (!topic_req_callback_)
         {
             EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Failed to publish data in topic " << topic_name << " : topic is unknown and topic request callback not set.");
+                    "Failed to publish data in topic " << topic_name <<
+                                " : topic is unknown and topic request callback not set.");
             return false;
         }
 
@@ -106,11 +108,15 @@ bool EnablerParticipant::publish(
         this->discovery_database_->add_endpoint(rtps::CommonParticipant::simulate_endpoint(topic, this->id()));
 
         // Wait for reader to be created from discovery thread
-        cv_.wait(lck, [&] { return nullptr != (reader = lookup_reader_nts_(topic_name)); }); // TODO: handle case when stopped before processing queue item
+        cv_.wait(lck, [&]
+                {
+                    return nullptr != (reader = lookup_reader_nts_(topic_name));
+                });                                                                          // TODO: handle case when stopped before processing queue item
 
         // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
         // message when not using transient durability
-        std::this_thread::sleep_for(std::chrono::milliseconds(std::static_pointer_cast<EnablerParticipantConfiguration>(configuration_)->initial_publish_wait));
+        std::this_thread::sleep_for(std::chrono::milliseconds(std::static_pointer_cast<EnablerParticipantConfiguration>(
+                    configuration_)->initial_publish_wait));
     }
 
     auto data = std::make_unique<RtpsPayloadData>();

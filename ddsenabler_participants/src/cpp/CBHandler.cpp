@@ -190,7 +190,9 @@ bool CBHandler::get_serialized_data(
     dyn_type = it->second.second;
 
     fastdds::dds::DynamicData::_ref_type dyn_data;
-    if ((fastdds::dds::RETCODE_OK != fastdds::dds::json_deserialize(json, dyn_type, fastdds::dds::DynamicDataJsonFormat::EPROSIMA, dyn_data)) || !dyn_data)
+    if ((fastdds::dds::RETCODE_OK !=
+            fastdds::dds::json_deserialize(json, dyn_type, fastdds::dds::DynamicDataJsonFormat::EPROSIMA,
+            dyn_data)) || !dyn_data)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                 "Failed to deserialize data for type " << type_name << " : json deserialization failed.");
@@ -199,7 +201,8 @@ bool CBHandler::get_serialized_data(
 
     // TODO: double chekc XCDR2 is the right choice -> only supposed to work against fastdds 3, and appendable only working with XCDR2
     fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
-    uint32_t payload_size = pubsub_type.calculate_serialized_size(&dyn_data, fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
+    uint32_t payload_size = pubsub_type.calculate_serialized_size(&dyn_data,
+                    fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
 
     if (!payload_pool_->get_payload(payload_size, payload))
     {
@@ -280,11 +283,14 @@ bool CBHandler::register_type_nts_(
     if (_type_name != type_name)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                "Unexpected dynamic types collection format: " << type_name << " expected to be last item, found " << _type_name << " instead.");
+                "Unexpected dynamic types collection format: " << type_name << " expected to be last item, found " << _type_name <<
+                            " instead.");
         return false;
     }
 
-    fastdds::dds::DynamicType::_ref_type dyn_type = fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(_type_object)->build();
+    fastdds::dds::DynamicType::_ref_type dyn_type =
+            fastdds::dds::DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(_type_object)
+                    ->build();
     if (!dyn_type)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
