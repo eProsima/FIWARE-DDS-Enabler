@@ -65,7 +65,8 @@ void CBWriter::write_schema(
         return;
     }
 
-    std::unique_ptr<fastdds::rtps::SerializedPayload_t> types_collection_payload = serialize_dynamic_types(types_collection);
+    std::unique_ptr<fastdds::rtps::SerializedPayload_t> types_collection_payload = serialize_dynamic_types(
+        types_collection);
     if (nullptr == types_collection_payload)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
@@ -76,7 +77,8 @@ void CBWriter::write_schema(
     std::stringstream ss_data_holder;
     ss_data_holder << std::setw(4);
     if (fastdds::dds::RETCODE_OK !=
-            fastdds::dds::json_serialize(fastdds::dds::DynamicDataFactory::get_instance()->create_data(dyn_type), fastdds::dds::DynamicDataJsonFormat::EPROSIMA, ss_data_holder))
+            fastdds::dds::json_serialize(fastdds::dds::DynamicDataFactory::get_instance()->create_data(dyn_type),
+            fastdds::dds::DynamicDataJsonFormat::EPROSIMA, ss_data_holder))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to generate data placeholder for type " << type_name << ".");

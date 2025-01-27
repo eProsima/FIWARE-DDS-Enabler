@@ -48,6 +48,7 @@ using namespace eprosima::ddspipe::participants;
 using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
+
 // Helper method to recognize if the configuration file is in JSON format
 bool is_json(const std::string& file_path)
 {
