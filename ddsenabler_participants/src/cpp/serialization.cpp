@@ -163,13 +163,13 @@ std::string serialize_type_identifier(
         const TypeIdentifier& type_identifier);
 
 TypeIdentifier deserialize_type_identifier(
-            const std::string& typeid_str);
+        const std::string& typeid_str);
 
 std::string serialize_type_object(
         const TypeObject& type_object);
 
 TypeObject deserialize_type_object(
-            const std::string& typeobj_str);
+        const std::string& typeobj_str);
 
 bool serialize_dynamic_type(
         const std::string& type_name,
@@ -207,7 +207,8 @@ bool serialize_dynamic_type(
                     dependency_type_identifier,
                     dependency_type_object))
         {
-            EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION, "Error getting TypeObject of dependency " << "for type " << type_name);
+            EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION,
+                    "Error getting TypeObject of dependency " << "for type " << type_name);
             return false;
         }
 
@@ -511,7 +512,8 @@ bool deserialize_dynamic_types(
         DynamicTypesCollection& dynamic_types)
 {
     fastdds::dds::TypeSupport type_support(new DynamicTypesCollectionPubSubType());
-    fastdds::rtps::SerializedPayload_t serialized_payload = fastdds::rtps::SerializedPayload_t(dynamic_types_payload_size);
+    fastdds::rtps::SerializedPayload_t serialized_payload = fastdds::rtps::SerializedPayload_t(
+        dynamic_types_payload_size);
     serialized_payload.length = dynamic_types_payload_size;
     std::memcpy(
         serialized_payload.data,
