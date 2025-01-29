@@ -39,7 +39,7 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
 \
             ASSERT_TRUE(create_publisher(a_type)); \
 \
-            ASSERT_EQ(get_received_types(), 0); \
+            ASSERT_EQ(get_received_types(), 1); \
             ASSERT_EQ(get_received_data(), 0); \
 \
             /* Send data */ \
