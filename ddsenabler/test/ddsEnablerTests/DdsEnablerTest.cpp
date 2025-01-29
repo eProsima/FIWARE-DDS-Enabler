@@ -59,7 +59,7 @@ TEST_F(DDSEnablerTest, send_type1)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -72,7 +72,6 @@ TEST_F(DDSEnablerTest, send_type1)
 TEST_F(DDSEnablerTest, send_many_type1)
 {
     ddsenablertester::num_samples_ = 1000;
-    // ddsenablertester::write_delay_ = 10;
 
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
@@ -82,7 +81,7 @@ TEST_F(DDSEnablerTest, send_many_type1)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -104,7 +103,7 @@ TEST_F(DDSEnablerTest, send_type2)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -126,7 +125,7 @@ TEST_F(DDSEnablerTest, send_type3)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -154,7 +153,7 @@ TEST_F(DDSEnablerTest, send_type4)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -176,7 +175,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type1));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -190,7 +189,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type2));
 
-    ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_types(), 2);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     // Send data
@@ -204,7 +203,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type3));
 
-    ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_types(), 3);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     // Send data
@@ -218,7 +217,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type4));
 
-    ASSERT_EQ(get_received_types(), 3);
+    ASSERT_EQ(get_received_types(), 4);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 
     // Send data
@@ -240,7 +239,7 @@ TEST_F(DDSEnablerTest, send_repeated_type)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data

@@ -20,14 +20,16 @@ set(TEST_NAME DdsEnablerParticipantsTest)
 
 set(TEST_SOURCES
         ${PROJECT_SOURCE_DIR}/test/DdsEnablerParticipantsTest.cpp
+        ${PROJECT_SOURCE_DIR}/test/types/DDSEnablerTestTypesPubSubTypes.cxx
+        ${PROJECT_SOURCE_DIR}/test/types/DDSEnablerTestTypesTypeObjectSupport.cxx
     )
 
 set(TEST_LIST
     ddsenabler_participants_cb_handler_creation
     ddsenabler_participants_add_new_schemas
-    ddsenabler_participants_add_same_type_id_schema
-    ddsenabler_participants_add_same_type_name_schema
+    ddsenabler_participants_add_same_type_schema
     ddsenabler_participants_add_data_with_schema
+    ddsenabler_participants_add_data_without_schema
     ddsenabler_participants_write_schema_first_time
     ddsenabler_participants_write_schema_repeated
 )

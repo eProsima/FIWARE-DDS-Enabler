@@ -24,7 +24,7 @@
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
 
-#include "DDSEnabler.hpp"
+#include "ddsenabler/dds_enabler_runner.hpp"
 
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
@@ -79,13 +79,9 @@ public:
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
         configuration.simple_configuration->domain = DOMAIN_;
 
-        auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
-
-        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
-
-        // Bind the static callbacks (no captures allowed)
-        enabler->set_data_callback(test_data_callback);
-        enabler->set_type_callback(test_type_callback);
+        // Create DDS Enabler
+        std::unique_ptr<DDSEnabler> enabler;
+        bool result = create_dds_enabler(configuration, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
 
         return enabler;
     }
@@ -249,11 +245,29 @@ public:
         return true;
     }
 
-    // Static type callback
+    // eprosima::ddsenabler::participants::DdsNotification data_callback;
+    static void test_data_callback(
+            const char* topicName,
+            const char* json,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
+
+            current_test_instance_->received_data_++;
+            std::cout << "Data callback received: " << topicName << ", Total data: " <<
+                current_test_instance_->received_data_ << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
     static void test_type_callback(
             const char* typeName,
-            const char* topicName,
-            const char* serializedType)
+            const char* serializedType,
+            const unsigned char* serializedTypeInternal,
+            uint32_t serializedTypeInternalSize,
+            const char* dataPlaceholder)
     {
         if (current_test_instance_)
         {
@@ -265,21 +279,39 @@ public:
         }
     }
 
-    // Static data callback
-    static void test_data_callback(
-            const char* typeName,
+    // eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
+    static void test_topic_notification_callback(
             const char* topicName,
-            const char* json,
-            int64_t publishTime)
+            const char* typeName,
+            const char* serializedQos)
     {
-        if (current_test_instance_)
-        {
-            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
+    }
 
-            current_test_instance_->received_data_++;
-            std::cout << "Data callback received: " << typeName << ", Total data: " <<
-                current_test_instance_->received_data_ << std::endl;
-        }
+    // eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
+    static void test_topic_request_callback(
+            const char* topicName,
+            char*& typeName,
+            char*& serializedQos)
+    {
+    }
+
+    // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
+    static void test_type_request_callback(
+            const char* typeName,
+            unsigned char*& serializedTypeInternal,
+            uint32_t& serializedTypeInternalSize)
+    {
+    }
+
+
+    //eprosima::ddsenabler::participants::DdsLogFunc log_callback;
+    static void test_log_callback(
+        const char* fileName,
+        int lineNo,
+        const char* funcName,
+        int category,
+        const char* msg)
+    {
     }
 
     int get_received_types()
