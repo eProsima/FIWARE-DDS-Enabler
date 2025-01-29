@@ -47,13 +47,41 @@ bool create_dds_enabler(
     {
         dds_enabler_config_file = ddsEnablerConfigFile;
     }
+    // Load configuration from file
+    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
 
+    bool ret = create_dds_enabler(
+        configuration,
+        data_callback,
+        type_callback,
+        topic_callback,
+        type_req_callback,
+        topic_req_callback,
+        log_callback,
+        enabler);
+
+    
+    if(ret)
+    {
+        enabler->set_file_watcher(dds_enabler_config_file);
+    }
+
+    return ret;
+}
+
+bool create_dds_enabler(
+        yaml::EnablerConfiguration configuration,
+        participants::DdsNotification data_callback,
+        participants::DdsTypeNotification type_callback,
+        participants::DdsTopicNotification topic_callback,
+        participants::DdsTypeRequest type_req_callback,
+        participants::DdsTopicRequest topic_req_callback,
+        participants::DdsLogFunc log_callback,
+        std::unique_ptr<DDSEnabler>& enabler)
+{
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
-        // Load configuration from file
-        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
-
         // Verify that the configuration is correct
         eprosima::utils::Formatter error_msg;
         if (!configuration.is_valid(error_msg))
@@ -102,7 +130,6 @@ bool create_dds_enabler(
         enabler->set_topic_callback(topic_callback);
         enabler->set_type_request_callback(type_req_callback);
         enabler->set_topic_request_callback(topic_req_callback);
-        enabler->set_file_watcher(dds_enabler_config_file);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
@@ -110,8 +137,7 @@ bool create_dds_enabler(
     catch (const eprosima::utils::ConfigurationException& e)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Error Loading DDS Enabler Configuration from file " << dds_enabler_config_file <<
-                ". Error message:\n " << e.what());
+                "Error Loading DDS Enabler Configuration. Error message:\n " << e.what());
         return false;
     }
     catch (const eprosima::utils::InitializationException& e)
