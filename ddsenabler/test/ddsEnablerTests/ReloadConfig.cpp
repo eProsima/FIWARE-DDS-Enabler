@@ -22,22 +22,60 @@
 #include <sstream>
 #include <string>
 
-// Static type callback
-void type_callback(
-        const char* typeName,
-        const char* topicName,
-        const char* serializedType)
-{
-}
-
 static uint32_t data_callback_count = 0;
 
-// Static data callback
-void data_callback(
-        const char* typeName,
+// Empty callbacks just to create the enabler being tested
+
+// eprosima::ddsenabler::participants::DdsNotification data_callback;
+void test_data_callback(
         const char* topicName,
         const char* json,
         int64_t publishTime)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
+void test_type_callback(
+        const char* typeName,
+        const char* serializedType,
+        const unsigned char* serializedTypeInternal,
+        uint32_t serializedTypeInternalSize,
+        const char* dataPlaceholder)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
+void test_topic_notification_callback(
+        const char* topicName,
+        const char* typeName,
+        const char* serializedQos)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
+void test_topic_request_callback(
+        const char* topicName,
+        char*& typeName,
+        char*& serializedQos)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
+void test_type_request_callback(
+        const char* typeName,
+        unsigned char*& serializedTypeInternal,
+        uint32_t& serializedTypeInternalSize)
+{
+}
+
+
+//eprosima::ddsenabler::participants::DdsLogFunc log_callback;
+void test_log_callback(
+    const char* fileName,
+    int lineNo,
+    const char* funcName,
+    int category,
+    const char* msg)
 {
 }
 
@@ -137,7 +175,7 @@ TEST(ReloadConfig, json)
 
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    ASSERT_TRUE(create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler));
+    ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
@@ -168,7 +206,7 @@ TEST(ReloadConfig, yaml)
 
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler);
+    bool result = create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
     ASSERT_TRUE(result);
 
     // Create DDSEnablerAccessor to access protected configuration
