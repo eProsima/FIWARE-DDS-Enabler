@@ -23,11 +23,11 @@
 #include <mutex>
 
 #include <ddspipe_participants/participant/dynamic_types/SchemaParticipant.hpp>
-#include <ddspipe_participants/reader/auxiliar/InternalReader.hpp>
 
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/EnablerParticipantConfiguration.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
+#include <ddsenabler_participants/InternalRpcReader.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -54,28 +54,49 @@ public:
             const std::string& json);
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    bool publish_rpc(
+            const std::string&  topic_name,
+            const std::string& json,
+            const uint64_t request_id);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_topic_request_callback(
             participants::DdsTopicRequest callback)
     {
         topic_req_callback_ = callback;
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool announce_service(
+            const std::string& service_name);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool revoke_service(
+            const std::string& service_name);
+
 protected:
 
-    std::shared_ptr<ddspipe::participants::InternalReader> lookup_reader_nts_(
+    bool request_topic(
+            const std::string& topic_name,
+            ddspipe::core::types::DdsTopic& topic);
+
+    std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name,
             std::string& type_name) const;
 
-    std::shared_ptr<ddspipe::participants::InternalReader> lookup_reader_nts_(
+    std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name) const;
 
-    std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::participants::InternalReader>> readers_;
+    std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::core::IReader>> readers_;
 
     std::mutex mtx_;
 
     std::condition_variable cv_;
 
     DdsTopicRequest topic_req_callback_;
+
+    // Store for a given service server its corresponding endpoint
+    std::map<std::string, ddspipe::core::types::Endpoint> server_endpoint_;
 };
 
 } /* namespace participants */

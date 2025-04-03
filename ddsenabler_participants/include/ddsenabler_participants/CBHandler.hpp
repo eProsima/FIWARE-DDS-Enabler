@@ -26,6 +26,7 @@
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
 #include <ddspipe_core/types/data/RtpsPayloadData.hpp>
+#include <ddspipe_core/types/data/RpcPayloadData.hpp>
 #include <ddspipe_core/types/dds/Payload.hpp>
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
@@ -57,6 +58,23 @@ struct hash<eprosima::fastdds::dds::xtypes::TypeIdentifier>
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
+
+// Struct that contains the information of a request: service name, request id and guid
+struct RequestInfo
+{
+    RequestInfo(
+            std::string request_topic,
+            uint64_t request_id)
+            : request_topic(std::move(request_topic))
+            , request_id(request_id)
+    {
+    }
+
+    RequestInfo() = default;
+
+    std::string request_topic;
+    uint64_t request_id;
+};
 
 /**
  * Class that manages the interaction between \c EnablerParticipant and CB.
@@ -130,10 +148,40 @@ public:
             ddspipe::core::types::Payload& payload);
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    bool get_request_info(
+            const uint64_t request_id,
+            RequestInfo& request_info)
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = request_id_map_.find(request_id);
+        if (it != request_id_map_.end())
+        {
+            request_info = it->second;
+            request_id_map_.erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_callback(
             participants::DdsNotification callback)
     {
         cb_writer_->set_data_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_reply_callback(
+            participants::RpcReplyNotification callback)
+    {
+        cb_writer_->set_reply_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_request_callback(
+            participants::RpcRequestNotification callback)
+    {
+        cb_writer_->set_request_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -176,6 +224,16 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    void write_reply_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
+    void write_request_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
     bool register_type_nts_(
             const std::string& type_name,
             const unsigned char* serialized_type,
@@ -201,6 +259,12 @@ protected:
     std::mutex mtx_;
 
     DdsTypeRequest type_req_callback_;
+
+    //! Counter of received requests
+    uint64_t received_requests_id_{0};
+
+    //! Map of request_id to request information
+    std::unordered_map<uint64_t, RequestInfo> request_id_map_;
 };
 
 } /* namespace participants */

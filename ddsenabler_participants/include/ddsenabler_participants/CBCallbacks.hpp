@@ -60,6 +60,40 @@ typedef void (*DdsNotification)(
         const char* json,
         int64_t publishTime);
 
+/**
+ * @brief Callback for reception of RPC reply data.
+ * 
+ * This callback is used to notify the reception of a reply for a specific service.
+ * 
+ * @param serviceName The name of the service for which the reply was received.
+ * @param json The JSON data received in the reply.
+ * @param requestId The unique identifier of the request for which this is a reply.
+ * @param publishTime The time at which the reply was published.
+ */
+typedef void (*RpcReplyNotification)(
+        const char* serviceName,
+        const char* json,
+        uint64_t requestId,
+        int64_t publishTime);
+
+/**
+ * @brief Callback for reception of RPC request data.
+ * 
+ * This callback is used to notify the reception of a request for a specific service.
+ * 
+ * @param serviceName The name of the service for which the request was received.
+ * @param json The JSON data received in the request.
+ * @param requestId The unique identifier of the request.
+ * @param publishTime The time at which the request was published.
+ * 
+ * @note The requestId is unique for each request and must be later used to identify the reply.
+ */
+typedef void (*RpcRequestNotification)(
+        const char* serviceName,
+        const char* json,
+        uint64_t requestId,
+        int64_t publishTime);
+
 // TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
 typedef void (*DdsTopicRequest)(
         const char* topicName,

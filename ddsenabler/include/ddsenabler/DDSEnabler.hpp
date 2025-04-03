@@ -70,6 +70,18 @@ public:
         cb_handler_->set_data_callback(callback);
     }
 
+    void set_reply_callback(
+            participants::RpcReplyNotification callback)
+    {
+        cb_handler_->set_reply_callback(callback);
+    }
+
+    void set_request_callback(
+            participants::RpcRequestNotification callback)
+    {
+        cb_handler_->set_request_callback(callback);
+    }
+
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
@@ -118,6 +130,72 @@ public:
             const std::string& topic_name,
             const std::string& json);
 
+    /**
+     * @brief Sends a request to a specified service.
+     * 
+     * Sends a request containing the given JSON data to the specified service. 
+     * If successful, the request identifier is stored in the provided reference 
+     * and will match the one received in the reply callback. 
+     * 
+     * The function fails if there is no server for the service or if the request is malformed.
+     * The request identifier is incremented sequentially across all services.
+     * 
+     * @param service_name The target service name.
+     * @param json The JSON-formatted request data.
+     * @param request_id Reference to store the unique request identifier.
+     * @return true if the request was successfully sent, false otherwise.
+     */
+    bool send_request(
+            const std::string& service_name,
+            const std::string& json,
+            uint64_t& request_id);
+    
+    /**
+     * @brief Creates a server for the given service.
+     * 
+     * This function announces a service by setting up a server for it. 
+     * It returns a boolean indicating whether the operation was successful. 
+     * Failure may occur if there is an issue requesting the data types to CB
+     * for the corresponding request and reply topics.
+     * 
+     * @param service_name The name of the service to be announced.
+     * @return true if the service was successfully announced, false otherwise.
+     */
+    bool announce_service(
+            const std::string& service_name);
+
+    /**
+     * @brief Stops the server for the given service.
+     * 
+     * This function revokes the server associated with the specified service. 
+     * It returns a boolean indicating whether the operation was successful. 
+     * The operation will fail if the service was not previously announced.
+     * 
+     * @param service_name The name of the service to be stopped.
+     * @return true if the service was successfully stopped, false otherwise.
+     */
+    bool revoke_service(
+            const std::string& service_name);
+
+    /**
+     * @brief Sends a reply to the given service.
+     * 
+     * This function sends a reply to the specified service with the provided JSON data.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if the service was not previously created or if the request ID does not match any request.
+     * 
+     * @param service_name The name of the service to send the reply to.
+     * @param json The JSON data to be sent with the reply.
+     * @param request_id The unique identifier of the request to which this reply corresponds.
+     * @return true if the reply was successfully sent, false otherwise.
+     * 
+     * @note The request_id must coincide with the one received in the request.
+     */
+    bool send_reply(
+            const std::string& service_name,
+            const std::string& json,
+            const uint64_t request_id);
+
 protected:
 
     /**
@@ -160,6 +238,9 @@ protected:
 
     //! Config File watcher handler
     std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler_;
+
+    //! Request identifyer for sent requests (incremented by one after each request)
+    uint64_t sent_request_id_ = 0;
 };
 
 } /* namespace ddsenabler */

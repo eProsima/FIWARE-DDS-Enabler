@@ -35,6 +35,8 @@ namespace ddsenabler {
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
+        participants::RpcReplyNotification reply_callback,
+        participants::RpcRequestNotification request_callback,
         participants::DdsTypeNotification type_callback,
         participants::DdsTopicNotification topic_callback,
         participants::DdsTypeRequest type_req_callback,
@@ -53,6 +55,8 @@ bool create_dds_enabler(
     bool ret = create_dds_enabler(
         configuration,
         data_callback,
+        reply_callback,
+        request_callback,
         type_callback,
         topic_callback,
         type_req_callback,
@@ -72,6 +76,8 @@ bool create_dds_enabler(
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
         participants::DdsNotification data_callback,
+        participants::RpcReplyNotification reply_callback,
+        participants::RpcRequestNotification request_callback,
         participants::DdsTypeNotification type_callback,
         participants::DdsTopicNotification topic_callback,
         participants::DdsTypeRequest type_req_callback,
@@ -126,6 +132,8 @@ bool create_dds_enabler(
 
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
         enabler->set_data_callback(data_callback);
+        enabler->set_reply_callback(reply_callback);
+        enabler->set_request_callback(request_callback);
         enabler->set_type_callback(type_callback);
         enabler->set_topic_callback(topic_callback);
         enabler->set_type_request_callback(type_req_callback);

@@ -34,6 +34,24 @@ void test_data_callback(
 {
 }
 
+// eprosima::ddsenabler::participants::RpcReplyNotification reply_callback;
+void test_reply_callback(
+        const char* serviceName,
+        const char* json,
+        uint64_t requestId,
+        int64_t publishTime)
+{
+}
+
+// eprosima::ddsenabler::participants::RpcRequestNotification request_callback;
+void test_request_callback(
+        const char* serviceName,
+        const char* json,
+        uint64_t requestId,
+        int64_t publishTime)
+{
+}
+
 // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
 void test_type_callback(
         const char* typeName,
@@ -167,7 +185,7 @@ TEST(ReloadConfig, json)
     
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
+    bool result = create_dds_enabler(configfile, test_data_callback, test_reply_callback, test_request_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
     ASSERT_TRUE(result);
 
     // Create DDSEnablerAccessor to access protected configuration
@@ -199,7 +217,7 @@ TEST(ReloadConfig, yaml)
 
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
+    bool result = create_dds_enabler(configfile, test_data_callback, test_reply_callback, test_request_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
     ASSERT_TRUE(result);
 
     // Create DDSEnablerAccessor to access protected configuration

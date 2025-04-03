@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
@@ -41,6 +43,18 @@ public:
             DdsNotification callback)
     {
         data_callback_ = callback;
+    }
+
+    void set_reply_callback(
+            RpcReplyNotification callback)
+    {
+        reply_callback_ = callback;
+    }
+
+    void set_request_callback(
+            RpcRequestNotification callback)
+    {
+        request_callback_ = callback;
     }
 
     void set_type_callback(
@@ -72,6 +86,16 @@ public:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    void write_reply(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
+    void write_request(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
 protected:
 
     /**
@@ -84,8 +108,16 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
 
+    nlohmann::json prepare_json_data(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    std::string get_service_name(const std::string& topic_name);
+
     // Callbacks to notify the CB
     DdsNotification data_callback_;
+    RpcReplyNotification reply_callback_;
+    RpcRequestNotification request_callback_;
     DdsTypeNotification type_callback_;
     DdsTopicNotification topic_callback_;
 };

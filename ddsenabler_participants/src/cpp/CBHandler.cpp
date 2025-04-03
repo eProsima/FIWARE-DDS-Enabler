@@ -130,8 +130,26 @@ void CBHandler::add_data(
     {
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
-
-    write_sample_(msg, dyn_type);
+    
+    if(topic.m_topic_name.find("rr/") == 0)
+    {
+        auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+        write_reply_(msg, dyn_type, request_id);
+    }
+    else if(topic.m_topic_name.find("rq/") == 0)
+    {
+        received_requests_id_++;
+        auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
+        RequestInfo request_info(
+            topic.m_topic_name,
+            request_id);
+        request_id_map_.emplace(received_requests_id_, request_info);
+        write_request_(msg, dyn_type, received_requests_id_);
+    }
+    else
+    {
+        write_sample_(msg, dyn_type);
+    }
 }
 
 bool CBHandler::get_type_identifier(
@@ -230,6 +248,22 @@ void CBHandler::write_sample_(
         const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
     cb_writer_->write_data(msg, dyn_type);
+}
+
+void CBHandler::write_reply_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_reply(msg, dyn_type, request_id);
+}
+
+void CBHandler::write_request_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_request(msg, dyn_type, request_id);
 }
 
 bool CBHandler::register_type_nts_(

@@ -164,5 +164,48 @@ bool DDSEnabler::publish(
     return enabler_participant_->publish(topic_name, json);
 }
 
+bool DDSEnabler::send_request(
+    const std::string& service_name,
+    const std::string& json,
+    uint64_t& request_id)
+{
+    sent_request_id_++;
+    if (!enabler_participant_->publish_rpc("rq/" + service_name + "Request", json, sent_request_id_))
+        return false;
+
+    request_id = sent_request_id_;
+    return true;
+}
+
+bool DDSEnabler::announce_service(
+    const std::string& service_name)
+{
+    return enabler_participant_->announce_service(service_name);
+}
+
+bool DDSEnabler::revoke_service(
+    const std::string& service_name)
+{
+    return enabler_participant_->revoke_service(service_name);
+}
+
+bool DDSEnabler::send_reply(
+    const std::string& service_name,
+    const std::string& json,
+    const uint64_t request_id)
+{
+    // Get the request info and check if the service name is the same as the one in the request
+    RequestInfo request_info;
+    if ( !cb_handler_->get_request_info(request_id, request_info) || (request_info.request_topic != "rq/" + service_name + "Request") )
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send reply to service " << service_name << " with id " << request_id
+                << ": request id not found for that service.");
+        return false;
+    }
+    
+    return enabler_participant_->publish_rpc("rr/" + service_name + "Reply", json, request_info.request_id);
+}
+
 } /* namespace ddsenabler */
 } /* namespace eprosima */

@@ -16,8 +16,6 @@
  * @file CBWriter.cpp
  */
 
-#include <nlohmann/json.hpp>
-
 #include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
 #include <fastdds/dds/xtypes/utils.hpp>
@@ -119,10 +117,73 @@ void CBWriter::write_data(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
+    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
+    
+    //STORE DATA
+    if (data_callback_)
+    {
+        data_callback_(
+            msg.topic.topic_name().c_str(),
+            json_output.dump(4).c_str(),
+            msg.publish_time.to_ns()
+            );
+    }
+}
+
+void CBWriter::write_reply(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        const uint64_t request_id)
+{
+    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
+
+    // Get the service name
+    std::string service_name = get_service_name(msg.topic.topic_name());
+    
+    //STORE DATA
+    if (reply_callback_)
+    {
+        reply_callback_(
+            service_name.c_str(),
+            json_output.dump(4).c_str(),
+            request_id,
+            msg.publish_time.to_ns()
+            );
+    }
+
+}
+
+void CBWriter::write_request(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        const uint64_t request_id)
+{
+    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
+
+    // Get the service name
+    std::string service_name = get_service_name(msg.topic.topic_name());
+    
+    //STORE DATA
+    if (request_callback_)
+    {
+        request_callback_(
+            service_name.c_str(),
+            json_output.dump(4).c_str(),
+            request_id,
+            msg.publish_time.to_ns()
+            );
+    }
+
+}
+
+nlohmann::json CBWriter::prepare_json_data(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
     assert(nullptr != dyn_type);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-            "Writing message from topic: " << msg.topic.topic_name() << ".");
+            "Processing message from topic: " << msg.topic.topic_name() << ".");
 
     // Get the data as JSON
     fastdds::dds::DynamicData::_ref_type dyn_data = get_dynamic_data_(msg, dyn_type);
@@ -131,7 +192,7 @@ void CBWriter::write_data(
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to get DynamicData from topic " << msg.topic.topic_name() << ".");
-        return;
+        return {};
     }
 
     std::stringstream ss_dyn_data;
@@ -141,13 +202,12 @@ void CBWriter::write_data(
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to serialize data of topic " << msg.topic.topic_name() << " into JSON format.");
-        return;
+        return {};
     }
 
     // Create the base JSON structure
     nlohmann::json json_output;
 
-    // TODO: encapsulate and/or have tags in a constants header??
     std::stringstream ss_source_guid_prefix;
     ss_source_guid_prefix << msg.source_guid.guid_prefix();
     json_output["id"] = ss_source_guid_prefix.str();
@@ -162,15 +222,14 @@ void CBWriter::write_data(
     nlohmann::json parsed_dyn_data = nlohmann::json::parse(ss_dyn_data.str());
     json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = parsed_dyn_data;
 
-    //STORE DATA
-    if (data_callback_)
+    if (json_output.empty())
     {
-        data_callback_(
-            msg.topic.topic_name().c_str(),
-            json_output.dump(4).c_str(),
-            msg.publish_time.to_ns()
-            );
+        // TODO: handle error
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
     }
+
+    return json_output;
 }
 
 fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
@@ -189,6 +248,33 @@ fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
     pubsub_type.deserialize(data_no_const, &dyn_data);
 
     return dyn_data;
+}
+
+std::string CBWriter::get_service_name(const std::string& topic_name)
+{
+    std::string service_name = topic_name;
+
+    // Remove prefix "rr/" or "rq/"
+    if (service_name.rfind("rr/", 0) == 0)
+    {
+        service_name = service_name.substr(3);
+    }
+    else if (service_name.rfind("rq/", 0) == 0)
+    {
+        service_name = service_name.substr(3);
+    }
+
+    // Remove suffix "Reply" or "Request"
+    if (service_name.rfind("Reply", service_name.length() - 5) == service_name.length() - 5)
+    {
+            service_name = service_name.substr(0, service_name.length() - 5);
+    }
+    else if (service_name.rfind("Request", service_name.length() - 7) == service_name.length() - 7)
+    {
+            service_name = service_name.substr(0, service_name.length() - 7);
+    }
+
+    return service_name;
 }
 
 } /* namespace participants */
