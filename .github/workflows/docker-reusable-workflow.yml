@@ -1,0 +1,126 @@
+name: docker-reusable-workflow
+
+on:
+  workflow_call:
+    inputs:
+
+      fastcdr_branch:
+        description: 'Branch or tag of Fast CDR repository (https://github.com/eProsima/Fast-CDR)'
+        required: true
+        default: 'master'
+        type: string
+
+      fastdds_branch:
+        description: 'Branch or tag of Fast DDS repository (https://github.com/eProsima/Fast-DDS)'
+        required: true
+        default: 'master'
+        type: string
+
+      devutils_branch:
+        description: 'Branch or tag of eProsima/dev-utils repository (https://github.com/eProsima/dev-utils)'
+        required: true
+        default: 'main'
+        type: string
+
+      ddspipe_branch:
+        description: 'Branch or tag of DDS Pipe repository (https://github.com/eProsima/DDS-Pipe)'
+        required: true
+        default: 'main'
+        type: string
+
+      ddsenabler_branch:
+        description: 'Branch or tag of DDS Enabler repository (https://github.com/eProsima/FIWARE-DDS-Enabler)'
+        required: true
+        default: 'main'
+        type: string
+
+      custom_version_build:
+        description: >
+          Version of Fast DDS build from eProsima-CI.
+        required: true
+        type: string
+
+      dependencies_artifact_postfix:
+        description: 'Postfix name to add to artifact name to download dependencies. This is use to download a specific artifact version from eProsima-CI.'
+        required: true
+        default: '_nightly'
+        type: string
+
+      ref:
+        description: >
+          The branch or tag name to checkout.
+        required: true
+        type: string
+        default: 'main'
+
+env:
+  code_packages_names: 'ddsenabler_test'
+  docs_packages_names: ''
+
+jobs:
+  docker-test:
+
+    runs-on: ubuntu-22.04
+
+    env:
+      DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE: "ddsenabler:ci"
+      DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE: "eprosima/vulcanexus:jazzy-desktop"
+
+    steps:
+
+      - name: Sync repository
+        uses: eProsima/eProsima-CI/external/checkout@v0
+        with:
+          path: src
+          ref: ${{ inputs.ref }}
+
+      # Build DDS Enabler Docker image
+      - name: Build DDS Enabler Docker image
+        run: |
+          cd ./src/.github/docker/ddsenabler
+          docker build \
+            --no-cache \
+            --build-arg fastcdr_branch=${{ inputs.fastcdr_branch }} \
+            --build-arg fastdds_branch=${{ inputs.fastdds_branch }} \
+            --build-arg devutils_branch=${{ inputs.devutils_branch }} \
+            --build-arg ddspipe_branch=${{ inputs.ddspipe_branch }} \
+            --build-arg ddsenabler_branch=${{ inputs.ddsenabler_branch }} \
+            -t ${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }} \
+            -f Dockerfile .
+
+      # Check Docker images exist
+      - name: Check if Docker images exist
+        run: |
+          [ -n "$(docker images -q ${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }})" ] || echo "DDS Enabler Docker image does not exists"
+
+      - name: Download dependencies and install requirements
+        uses: ./src/.github/actions/project_dependencies
+        with:
+          os: ubuntu-22.04
+          cmake_build_type: "Release"
+          custom_version_build: ${{ inputs.custom_version_build }}
+          dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
+          secret_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile docker tests
+        uses: eProsima/eProsima-CI/multiplatform/colcon_build@v0
+        with:
+          workspace: ${{ github.workspace }}
+          colcon_build_args: --packages-up-to ddsenabler_test
+          cmake_args: -DBUILD_COMPOSE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+          workspace_dependencies: install
+          colcon_meta_file: src/.github/workflows/configurations/${{ runner.os }}/colcon.meta
+
+      # Run ddsenabler_test compose tests
+      - name: Run tests
+        run: |
+          export DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE=${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }}
+          export DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE=${{ env.DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE }}
+          source install/setup.bash
+          colcon test \
+            --packages-select ddsenabler_test \
+            --event-handlers console_direct+ \
+            --return-code-on-test-failure \
+            --ctest-args \
+              --label-exclude xfail \
+              --timeout 120

@@ -1,0 +1,73 @@
+# Test description:
+#   This test getting the profile name for a XML participant using different ways.
+#
+# Test architecture:
+#  topic0 -> non reliable
+#  topic1 -> reliable transient_local
+#
+# Domain 1: using raw xml
+#  - publisher  topic0
+#  - subscriber topic1
+# Domain 2: loading xml file from configuration file
+#  - publisher  topic1
+#  - subscriber topic2
+# Domain 3: loading xml from env var
+#  - publisher  topic2
+#  - subscriber topic3
+# Domain 4: loading xml from default file name
+#  - publisher  topic3
+#  - subscriber topic0
+#
+
+services:
+
+  # ENABLER
+  ddsenabler:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: ddsenabler
+    networks:
+      - std_net
+    volumes:
+      - ./ddsenabler.yaml:/config.yaml
+      - ./configurations/domain2_configuration.xml:/domain2_configuration.xml
+      - ./configurations/domain3_configuration.xml:/domain3_configuration.xml
+      - ./configurations/DEFAULT_FASTDDS_PROFILES.xml:/ddsenabler/DEFAULT_FASTDDS_PROFILES.xml
+    environment:
+      - FASTDDS_DEFAULT_PROFILES_FILE=/domain3_configuration.xml
+    command: ddsenabler -c /config.yaml --timeout 8
+
+
+  # DOMAIN 1
+  publisher_1_t0:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: publisher_1_t0
+    networks:
+      - std_net
+    command: build/fastdds_configuration_example/configuration publisher --interval 100 --samples 80 --domain 1 --name topic0
+
+  subscriber_1_t1:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: subscriber_1_t1
+    networks:
+      - std_net
+    volumes:
+      - ../../scripts:/scripts
+    command: python3 /scripts/execute_and_validate_subscriber.py --exe build/fastdds_configuration_example/configuration --samples 20 --timeout 8 --args "--samples 20 --domain 1 --name topic1"
+
+
+  # DOMAIN 2
+  publisher_2_t1:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: publisher_2_t1
+    networks:
+      - std_net
+    command: build/fastdds_configuration_example/configuration publisher --interval 100 --samples 80 --domain 2 --name topic1
+
+  subscriber_2_t2:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: subscriber_2_t2
+    networks:
+      - std_net
+    volumes:
+      - ../../scripts:/scripts
+    command: python3 /scripts/execute_and_validate_subscriber.py --exe build/fastdds_configuration_example/configuration --samples 20 --timeout 8 --args "--samples 20 --domain 2 --name topic1"
