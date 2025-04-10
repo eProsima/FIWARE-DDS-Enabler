@@ -172,14 +172,14 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_reply_callback(
-            participants::RpcReplyNotification callback)
+            participants::ServiceReplyNotification callback)
     {
         cb_writer_->set_reply_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_request_callback(
-            participants::RpcRequestNotification callback)
+            participants::ServiceRequestNotification callback)
     {
         cb_writer_->set_request_callback(callback);
     }

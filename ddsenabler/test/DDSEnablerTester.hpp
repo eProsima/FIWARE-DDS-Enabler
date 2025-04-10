@@ -289,7 +289,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::RpcReplyNotification reply_callback;
+    // eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
     static void test_reply_callback(
             const char* serviceName,
             const char* json,
@@ -305,7 +305,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::RpcRequestNotification request_callback;
+    // eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
     static void test_request_callback(
             const char* serviceName,
             const char* json,

@@ -35,8 +35,8 @@ namespace ddsenabler {
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
-        participants::RpcReplyNotification reply_callback,
-        participants::RpcRequestNotification request_callback,
+        participants::ServiceReplyNotification reply_callback,
+        participants::ServiceRequestNotification request_callback,
         participants::DdsTypeNotification type_callback,
         participants::DdsTopicNotification topic_callback,
         participants::DdsTypeRequest type_req_callback,
@@ -76,8 +76,8 @@ bool create_dds_enabler(
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
         participants::DdsNotification data_callback,
-        participants::RpcReplyNotification reply_callback,
-        participants::RpcRequestNotification request_callback,
+        participants::ServiceReplyNotification reply_callback,
+        participants::ServiceRequestNotification request_callback,
         participants::DdsTypeNotification type_callback,
         participants::DdsTopicNotification topic_callback,
         participants::DdsTypeRequest type_req_callback,

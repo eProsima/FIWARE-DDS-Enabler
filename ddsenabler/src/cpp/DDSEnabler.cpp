@@ -164,7 +164,7 @@ bool DDSEnabler::publish(
     return enabler_participant_->publish(topic_name, json);
 }
 
-bool DDSEnabler::send_request(
+bool DDSEnabler::send_service_request(
     const std::string& service_name,
     const std::string& json,
     uint64_t& request_id)
@@ -189,7 +189,7 @@ bool DDSEnabler::revoke_service(
     return enabler_participant_->revoke_service(service_name);
 }
 
-bool DDSEnabler::send_reply(
+bool DDSEnabler::send_service_reply(
     const std::string& service_name,
     const std::string& json,
     const uint64_t request_id)

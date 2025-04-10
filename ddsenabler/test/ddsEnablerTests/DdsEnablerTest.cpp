@@ -74,7 +74,7 @@ TEST_F(DDSEnablerTest, manual_reply)
     {
         request_id = wait_for_request(service_name, 10);
         if(request_id > 0)
-            ASSERT_TRUE(enabler->send_reply(service_name, json, request_id));
+            ASSERT_TRUE(enabler->send_service_reply(service_name, json, request_id));
     }
 
     ASSERT_TRUE(enabler->revoke_service(service_name));
@@ -91,7 +91,7 @@ TEST_F(DDSEnablerTest, manual_request)
     std::string json = "{\"a\": 1, \"b\": 2}";
     std::string service_name = "add_two_ints";
     uint64_t request_id = 0;
-    ASSERT_FALSE(enabler->send_request(service_name, json, request_id));
+    ASSERT_FALSE(enabler->send_service_request(service_name, json, request_id));
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
     // Get time for later timeout
@@ -99,7 +99,7 @@ TEST_F(DDSEnablerTest, manual_request)
     int sent_requests = 0;
     while(sent_requests < 3)
     {
-        if(!enabler->send_request(service_name, json, request_id))
+        if(!enabler->send_service_request(service_name, json, request_id))
         {
             std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));

@@ -46,13 +46,13 @@ public:
     }
 
     void set_reply_callback(
-            RpcReplyNotification callback)
+            ServiceReplyNotification callback)
     {
         reply_callback_ = callback;
     }
 
     void set_request_callback(
-            RpcRequestNotification callback)
+            ServiceRequestNotification callback)
     {
         request_callback_ = callback;
     }
@@ -116,8 +116,8 @@ protected:
 
     // Callbacks to notify the CB
     DdsNotification data_callback_;
-    RpcReplyNotification reply_callback_;
-    RpcRequestNotification request_callback_;
+    ServiceReplyNotification reply_callback_;
+    ServiceRequestNotification request_callback_;
     DdsTypeNotification type_callback_;
     DdsTopicNotification topic_callback_;
 };

@@ -34,7 +34,7 @@ void test_data_callback(
 {
 }
 
-// eprosima::ddsenabler::participants::RpcReplyNotification reply_callback;
+// eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
 void test_reply_callback(
         const char* serviceName,
         const char* json,
@@ -43,7 +43,7 @@ void test_reply_callback(
 {
 }
 
-// eprosima::ddsenabler::participants::RpcRequestNotification request_callback;
+// eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
 void test_request_callback(
         const char* serviceName,
         const char* json,
