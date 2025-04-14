@@ -42,7 +42,7 @@ struct KnownType
 
 const unsigned int DOMAIN_ = 0;
 static int num_samples_ =  1;
-static int write_delay_ =  10; // Values below 10 might cause flaky results
+static int write_delay_ =  20; // Values below 10 might cause flaky results
 
 class DDSEnablerTester : public ::testing::Test
 {
@@ -162,7 +162,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
         return true;
     }
 
@@ -212,7 +212,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
         return true;
     }
 
