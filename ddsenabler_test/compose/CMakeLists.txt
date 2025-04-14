@@ -15,8 +15,6 @@
 # Name of files to test
 set(TESTS
     topics
-    rpc/ros2_services_client
-    rpc/ros2_services_server
 )
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cases DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

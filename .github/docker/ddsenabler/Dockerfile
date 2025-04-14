@@ -65,7 +65,7 @@ RUN mkdir src && \
     cd src/ddspipe && git checkout ${ddspipe_branch} && cd ../.. && \
     cd src/ddsenabler && git checkout ${ddsenabler_branch} && cd ../.. && \
     cp -r src/fastdds/examples/cpp/configuration src/. && \
-    colcon build --event-handlers console_direct+ --cmake-args -DLOG_INFO=ON -DSECURITY=ON
+    colcon build --event-handlers console_direct+ --cmake-args -DLOG_INFO=ON -DSECURITY=ON -DCOMPILE_EXAMPLES=ON
 
 COPY run.bash /root/run.bash
 
