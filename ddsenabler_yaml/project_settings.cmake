@@ -40,13 +40,7 @@ endif()
 
 set(MODULE_DEPENDENCIES
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
-    yaml-cpp
-    fastcdr
-    fastdds
-    cpp_utils
-    ddspipe_core
-    ddspipe_participants
-    ddspipe_yaml
+    ${MODULE_FIND_PACKAGES}
     $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
     $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
 

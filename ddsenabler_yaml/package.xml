@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ddsenabler_test</name>
+  <name>ddsenabler_yaml</name>
   <version>1.1.0</version>
   <description>
      *eprosima DDS Enabler* C++ Std Participant implementations.
@@ -23,9 +23,7 @@
   <depend>ddspipe_core</depend>
   <depend>ddspipe_participants</depend>
   <depend>ddspipe_yaml</depend>
-  <depend>ddsenabler_yaml</depend>
-  <depend>ddsenabler_participants</depend>
-  <depend>ddsenabler</depend>
+
 
   <doc_depend>doxygen</doc_depend>
 

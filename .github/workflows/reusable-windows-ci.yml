@@ -35,7 +35,7 @@ on:
         default: 'main'
 
 env:
-  code_packages_names: 'ddsenabler ddsenabler_yaml ddsenabler_tool'
+  code_packages_names: 'ddsenabler ddsenabler_yaml ddsenabler_participants'
   docs_packages_names: 'docs'
 
 jobs:

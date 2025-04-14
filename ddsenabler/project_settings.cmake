@@ -41,15 +41,7 @@ if(WIN32)
 endif()
 
 set(MODULE_DEPENDENCIES
-    yaml-cpp
-    fastcdr
-    fastdds
-    cpp_utils
-    ddspipe_core
-    ddspipe_participants
-    ddspipe_yaml
-    ddsenabler_participants
-    ddsenabler_yaml
+    ${MODULE_FIND_PACKAGES}
     $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
     $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
 
