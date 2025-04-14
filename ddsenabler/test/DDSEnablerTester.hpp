@@ -111,6 +111,7 @@ public:
         auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
 
         // Bind the static callbacks (no captures allowed)
+        // TODO: Resolve potential data race btw first message received and the callback set
         enabler->set_data_callback(test_data_callback);
         enabler->set_type_callback(test_type_callback);
 

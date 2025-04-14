@@ -45,12 +45,14 @@ public:
     void set_data_callback(
             DdsNotification callback)
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         data_callback_ = callback;
     }
 
     void set_type_callback(
             DdsTypeNotification callback)
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         type_callback_ = callback;
     }
 
