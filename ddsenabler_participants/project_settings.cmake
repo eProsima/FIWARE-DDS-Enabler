@@ -32,20 +32,11 @@ set(MODULE_FIND_PACKAGES
     ddspipe_yaml
     ddsenabler_yaml)
 
-if(WIN32)
-    set(MODULE_FIND_PACKAGES
-        ${MODULE_FIND_PACKAGES}
-        lz4
-        zstd)
-endif()
-
 set(fastdds_MINIMUM_VERSION "3.0.0")
 
 set(MODULE_DEPENDENCIES
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
-    ${MODULE_FIND_PACKAGES}
-    $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
-    $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
+    ${MODULE_FIND_PACKAGES})
 
 set(MODULE_CPP_VERSION
     C++17)

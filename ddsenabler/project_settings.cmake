@@ -33,17 +33,8 @@ set(MODULE_FIND_PACKAGES
     ddsenabler_participants
     ddsenabler_yaml)
 
-if(WIN32)
-    set(MODULE_FIND_PACKAGES
-        ${MODULE_FIND_PACKAGES}
-        lz4
-        zstd)
-endif()
-
 set(MODULE_DEPENDENCIES
-    ${MODULE_FIND_PACKAGES}
-    $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
-    $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
+    ${MODULE_FIND_PACKAGES})
 
 set(MODULE_LICENSE_FILE_PATH
     "../LICENSE")

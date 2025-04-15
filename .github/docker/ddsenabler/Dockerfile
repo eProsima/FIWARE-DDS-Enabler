@@ -27,9 +27,7 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     libasio-dev \
     libtinyxml2-dev \
     openssl \
-    libyaml-cpp-dev \
-    liblz4-dev \
-    libzstd-dev
+    libyaml-cpp-dev
 
 # Install required python modules
 RUN pip3 install \
