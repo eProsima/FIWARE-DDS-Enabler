@@ -26,21 +26,6 @@
 #include "ddsenabler/DDSEnabler.hpp"
 #include "CLIParser.hpp"
 
-// #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
-// #include <fastdds/dds/log/Log.hpp>
-
-// #include "Application.hpp"
-
-// using eprosima::fastdds::dds::Log;
-
-// using namespace eprosima::fastdds::examples::hello_world;
-
-// std::function<void(int)> stop_app_handler;
-// void signal_handler(
-//         int signum)
-// {
-//     // stop_app_handler(signum);
-// }
 uint32_t received_types_ = 0;
 uint32_t received_data_ = 0;
 std::mutex type_received_mutex_;
@@ -48,9 +33,9 @@ std::mutex data_received_mutex_;
 
 // Static type callback
 static void test_type_callback(
-    const char* typeName,
-    const char* topicName,
-    const char* serializedType)
+        const char* typeName,
+        const char* topicName,
+        const char* serializedType)
 {
     std::lock_guard<std::mutex> lock(type_received_mutex_);
 
@@ -61,10 +46,10 @@ static void test_type_callback(
 
 // Static data callback
 static void test_data_callback(
-    const char* typeName,
-    const char* topicName,
-    const char* json,
-    int64_t publishTime)
+        const char* typeName,
+        const char* topicName,
+        const char* json,
+        int64_t publishTime)
 {
     std::lock_guard<std::mutex> lock(data_received_mutex_);
 
@@ -112,7 +97,7 @@ int main(
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         if (get_received_types() >= config.expected_types_ &&
-            get_received_data() >= config.expected_data_)
+                get_received_data() >= config.expected_data_)
         {
             std::cout << "Received enough data, stopping..." << std::endl;
             return EXIT_SUCCESS;

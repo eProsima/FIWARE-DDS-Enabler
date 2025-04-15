@@ -162,7 +162,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(800));
         return true;
     }
 
