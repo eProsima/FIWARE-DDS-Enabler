@@ -199,10 +199,10 @@ bool CBHandler::get_serialized_data(
         return false;
     }
 
-    // TODO: double chekc XCDR2 is the right choice -> only supposed to work against fastdds 3, and appendable only working with XCDR2
+    // Use XCDR1 for backwards compatibility (e.g. ROS 2 distributions prior to Kilt)
     fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
     uint32_t payload_size = pubsub_type.calculate_serialized_size(&dyn_data,
-                    fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION);
+                    fastdds::dds::DataRepresentationId::XCDR_DATA_REPRESENTATION);
 
     if (!payload_pool_->get_payload(payload_size, payload))
     {
@@ -211,7 +211,7 @@ bool CBHandler::get_serialized_data(
         return false;
     }
 
-    if (!pubsub_type.serialize(&dyn_data, payload, fastdds::dds::DataRepresentationId::XCDR2_DATA_REPRESENTATION))
+    if (!pubsub_type.serialize(&dyn_data, payload, fastdds::dds::DataRepresentationId::XCDR_DATA_REPRESENTATION))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                 "Failed to deserialize data for type " << type_name << " : payload serialization failed.");
