@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
-#include <math.h>
-
-#include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/types/dynamic_types/types.hpp>
@@ -53,12 +49,12 @@ DDSEnabler::DDSEnabler(
     // Create CB Handler configuration
     participants::CBHandlerConfiguration handler_config;
 
-    // Create DynTypes Participant
-    dyn_participant_ = std::make_shared<DynTypesParticipant>(
+    // Create DDS Participant
+    dds_participant_ = std::make_shared<DdsParticipant>(
         configuration_.simple_configuration,
         payload_pool_,
         discovery_database_);
-    dyn_participant_->init();
+    dds_participant_->init();
 
     // Create CB Handler
     cb_handler_ = std::make_shared<participants::CBHandler>(
@@ -66,7 +62,7 @@ DDSEnabler::DDSEnabler(
         payload_pool_);
 
     // Create Enabler Participant
-    enabler_participant_ = std::make_shared<SchemaParticipant>(
+    enabler_participant_ = std::make_shared<EnablerParticipant>(
         configuration_.enabler_configuration,
         payload_pool_,
         discovery_database_,
@@ -77,8 +73,8 @@ DDSEnabler::DDSEnabler(
 
     // Populate Participant Database
     participants_database_->add_participant(
-        dyn_participant_->id(),
-        dyn_participant_);
+        dds_participant_->id(),
+        dds_participant_);
 
     participants_database_->add_participant(
         enabler_participant_->id(),
@@ -91,6 +87,44 @@ DDSEnabler::DDSEnabler(
         payload_pool_,
         participants_database_,
         thread_pool_);
+}
+
+void DDSEnabler::set_file_watcher(
+        const std::string& file_path)
+{
+    if (file_path.empty())
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
+                "Error when stablishing file watcher. Configuration file path is empty.");
+        return;
+    }
+
+    // Callback will reload configuration and pass it to DdsPipe
+    // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
+    std::function<void(std::string)> file_watcher_callback =
+            [this, file_path]
+                (std::string file_name)
+            {
+                EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
+                        "FileWatcher notified changes in file " << file_path << ". Reloading configuration");
+                try
+                {
+                    eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
+                    auto ret = this->reload_configuration(new_configuration);
+                    if(ret == utils::ReturnCode::RETCODE_OK)
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "Configuration reloaded successfully");
+                    else
+                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Reloading internal dds pipe configuration from file " << file_path << " failed");
+                }
+                catch (const std::exception& e)
+                {
+                    EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
+                            "Error reloading configuration file " << file_path << " with error: " << e.what());
+                }
+            };
+
+    // Creating FileWatcher event handler
+    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback, file_path);
 }
 
 utils::ReturnCode DDSEnabler::reload_configuration(
@@ -121,6 +155,56 @@ void DDSEnabler::load_internal_topics_(
         configuration.ddspipe_configuration.allowlist.insert(
             utils::Heritable<WildcardDdsFilterTopic>::make_heritable(internal_topic));
     }
+}
+
+bool DDSEnabler::publish(
+        const std::string& topic_name,
+        const std::string& json)
+{
+    return enabler_participant_->publish(topic_name, json);
+}
+
+bool DDSEnabler::send_service_request(
+    const std::string& service_name,
+    const std::string& json,
+    uint64_t& request_id)
+{
+    sent_request_id_++;
+    if (!enabler_participant_->publish_rpc("rq/" + service_name + "Request", json, sent_request_id_))
+        return false;
+
+    request_id = sent_request_id_;
+    return true;
+}
+
+bool DDSEnabler::announce_service(
+    const std::string& service_name)
+{
+    return enabler_participant_->announce_service(service_name);
+}
+
+bool DDSEnabler::revoke_service(
+    const std::string& service_name)
+{
+    return enabler_participant_->revoke_service(service_name);
+}
+
+bool DDSEnabler::send_service_reply(
+    const std::string& service_name,
+    const std::string& json,
+    const uint64_t request_id)
+{
+    // Get the request info and check if the service name is the same as the one in the request
+    RequestInfo request_info;
+    if ( !cb_handler_->get_request_info(request_id, request_info) || (request_info.request_topic != "rq/" + service_name + "Request") )
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send reply to service " << service_name << " with id " << request_id
+                << ": request id not found for that service.");
+        return false;
+    }
+    
+    return enabler_participant_->publish_rpc("rr/" + service_name + "Reply", json, request_info.request_id);
 }
 
 } /* namespace ddsenabler */

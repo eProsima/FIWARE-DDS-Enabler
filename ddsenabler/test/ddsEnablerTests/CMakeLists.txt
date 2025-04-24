@@ -59,3 +59,28 @@ add_blackbox_executable(
     "${TEST_LIBRARY_SOURCES}"
 )
 
+##################################################################################
+
+
+set(TEST_NAME ReloadConfig)
+
+file(
+    GLOB_RECURSE TEST_SOURCES
+    ReloadConfig.cpp
+)
+
+set(TEST_LIST
+    json
+    yaml
+)
+
+list(FILTER TEST_LIBRARY_SOURCES EXCLUDE REGEX "/main.cpp")
+
+add_blackbox_executable(
+    "${TEST_NAME}"
+    "${TEST_SOURCES}"
+    "${TEST_LIST}"
+    "${TEST_NEEDED_SOURCES}"
+    "${TEST_EXTRA_HEADERS}"
+    "${TEST_LIBRARY_SOURCES}"
+)

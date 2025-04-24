@@ -43,7 +43,74 @@ TEST_F(DDSEnablerTest, ddsenabler_reload_configuration)
     eprosima::utils::Formatter error_msg;
     ASSERT_TRUE(configuration.is_valid(error_msg));
 
-    ASSERT_NO_THROW(enabler.get()->reload_configuration(configuration));
+    ASSERT_NO_THROW(enabler->reload_configuration(configuration));
+}
+
+TEST_F(DDSEnablerTest, manual_reply)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    std::string service_name = "add_two_ints";
+
+    ASSERT_FALSE(enabler->revoke_service(service_name));
+
+    while(!enabler->announce_service(service_name))
+    {
+        ASSERT_FALSE(enabler->revoke_service(service_name));
+        std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS CLIENT)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    ASSERT_FALSE(enabler->announce_service(service_name));
+
+    std::string json = "{\"sum\": 3}";
+    uint64_t request_id = 0;
+    while(request_id < 3)
+    {
+        request_id = wait_for_request(service_name, 10);
+        if(request_id > 0)
+            ASSERT_TRUE(enabler->send_service_reply(service_name, json, request_id));
+    }
+
+    ASSERT_TRUE(enabler->revoke_service(service_name));
+    ASSERT_FALSE(enabler->revoke_service(service_name));
+    std::cout << "Service stopped, waiting for 10 seconds to manually test no requests are accepted." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+}
+
+TEST_F(DDSEnablerTest, manual_request)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+    
+    std::string json = "{\"a\": 1, \"b\": 2}";
+    std::string service_name = "add_two_ints";
+    uint64_t request_id = 0;
+    ASSERT_FALSE(enabler->send_service_request(service_name, json, request_id));
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    int sent_requests = 0;
+    while(sent_requests < 3)
+    {
+        if(!enabler->send_service_request(service_name, json, request_id))
+        {
+            std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
+        }
+        sent_requests++;
+
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        ASSERT_EQ(get_received_reply(), request_id);
+        request_id = 0;
+    }
 }
 
 TEST_F(DDSEnablerTest, send_type1)
@@ -58,7 +125,7 @@ TEST_F(DDSEnablerTest, send_type1)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -80,7 +147,7 @@ TEST_F(DDSEnablerTest, send_many_type1)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -102,7 +169,7 @@ TEST_F(DDSEnablerTest, send_type2)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -124,7 +191,7 @@ TEST_F(DDSEnablerTest, send_type3)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -152,7 +219,7 @@ TEST_F(DDSEnablerTest, send_type4)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -174,7 +241,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type1));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
@@ -188,7 +255,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type2));
 
-    ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_types(), 2);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     // Send data
@@ -202,7 +269,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type3));
 
-    ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_types(), 3);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     // Send data
@@ -216,7 +283,7 @@ TEST_F(DDSEnablerTest, send_multiple_types)
 
     ASSERT_TRUE(create_publisher(a_type4));
 
-    ASSERT_EQ(get_received_types(), 3);
+    ASSERT_EQ(get_received_types(), 4);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 
     // Send data
@@ -238,7 +305,7 @@ TEST_F(DDSEnablerTest, send_repeated_type)
 
     ASSERT_TRUE(create_publisher(a_type));
 
-    ASSERT_EQ(get_received_types(), 0);
+    ASSERT_EQ(get_received_types(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data

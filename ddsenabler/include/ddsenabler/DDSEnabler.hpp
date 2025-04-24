@@ -19,8 +19,8 @@
 #pragma once
 
 #include <memory>
-#include <set>
 
+#include <cpp_utils/event/FileWatcherHandler.hpp>
 #include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/ReturnCode.hpp>
 #include <cpp_utils/thread_pool/pool/SlotThreadPool.hpp>
@@ -32,11 +32,11 @@
 #include <ddspipe_core/efficiency/payload/FastPayloadPool.hpp>
 #include <ddspipe_core/types/topic/dds/DistributedTopic.hpp>
 
-#include <ddspipe_participants/participant/dynamic_types/DynTypesParticipant.hpp>
-#include <ddspipe_participants/participant/dynamic_types/SchemaParticipant.hpp>
-
+#include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
+#include <ddsenabler_participants/DdsParticipant.hpp>
+#include <ddsenabler_participants/EnablerParticipant.hpp>
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
@@ -67,14 +67,52 @@ public:
     void set_data_callback(
             participants::DdsNotification callback)
     {
-        cb_handler_.get()->set_data_callback(callback);
+        cb_handler_->set_data_callback(callback);
+    }
+
+    void set_reply_callback(
+            participants::ServiceReplyNotification callback)
+    {
+        cb_handler_->set_reply_callback(callback);
+    }
+
+    void set_request_callback(
+            participants::ServiceRequestNotification callback)
+    {
+        cb_handler_->set_request_callback(callback);
     }
 
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
-        cb_handler_.get()->set_type_callback(callback);
+        cb_handler_->set_type_callback(callback);
     }
+
+    void set_topic_callback(
+            participants::DdsTopicNotification callback)
+    {
+        cb_handler_->set_topic_callback(callback);
+    }
+
+    void set_topic_request_callback(
+            participants::DdsTopicRequest callback)
+    {
+        enabler_participant_->set_topic_request_callback(callback);
+    }
+
+    void set_type_request_callback(
+            participants::DdsTypeRequest callback)
+    {
+        cb_handler_->set_type_request_callback(callback);
+    }
+
+    /**
+     * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
+     *
+     * @param file_path: The path to the configuration file.
+     */
+    void set_file_watcher(
+            const std::string& file_path);
 
     /**
      * Reconfigure the Enabler with the new configuration.
@@ -86,6 +124,165 @@ public:
      */
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
+
+    // TODO
+    bool publish(
+            const std::string& topic_name,
+            const std::string& json);
+
+    /**
+     * @brief Sends a request to a specified service.
+     *
+     * Sends a request containing the given JSON data to the specified service.
+     * If successful, the request identifier is stored in the provided reference
+     * and will match the one received in the reply callback.
+     *
+     * The function fails if there is no server for the service or if the request is malformed.
+     * The request identifier is incremented sequentially across all services.
+     *
+     * @param service_name The target service name.
+     * @param json The JSON-formatted request data.
+     * @param request_id Reference to store the unique request identifier.
+     * @return true if the request was successfully sent, false otherwise.
+     */
+    bool send_service_request(
+            const std::string& service_name,
+            const std::string& json,
+            uint64_t& request_id);
+
+    /**
+     * @brief Creates a server for the given service.
+     *
+     * This function announces a service by setting up a server for it.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if there is an issue requesting the data types to CB
+     * for the corresponding request and reply topics.
+     *
+     * @param service_name The name of the service to be announced.
+     * @return true if the service was successfully announced, false otherwise.
+     */
+    bool announce_service(
+            const std::string& service_name);
+
+    /**
+     * @brief Stops the server for the given service.
+     *
+     * This function revokes the server associated with the specified service.
+     * It returns a boolean indicating whether the operation was successful.
+     * The operation will fail if the service was not previously announced.
+     *
+     * @param service_name The name of the service to be stopped.
+     * @return true if the service was successfully stopped, false otherwise.
+     */
+    bool revoke_service(
+            const std::string& service_name);
+
+    /**
+     * @brief Sends a reply to the given service.
+     *
+     * This function sends a reply to the specified service with the provided JSON data.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if the service was not previously created or if the request ID does not match any request.
+     *
+     * @param service_name The name of the service to send the reply to.
+     * @param json The JSON data to be sent with the reply.
+     * @param request_id The unique identifier of the request to which this reply corresponds.
+     * @return true if the reply was successfully sent, false otherwise.
+     *
+     * @note The request_id must coincide with the one received in the request.
+     */
+    bool send_service_reply(
+            const std::string& service_name,
+            const std::string& json,
+            const uint64_t request_id);
+
+    /**
+     * @brief Sends an action goal to the specified action.
+     *
+     * This function sends an action goal to the specified action with the provided JSON data.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if the action server was not previously created, if the action types are unknown
+     * or if the action goal is malformed.
+     *
+     * The goal_id is a unique identifier for the action goal and is generated by the function.
+     *
+     * @param action_name The name of the action to send the goal to.
+     * @param json The JSON data to be sent with the action goal.
+     * @param goal_id Reference to store the unique identifier of the action goal.
+     * @return true if the action goal was successfully sent, false otherwise.
+     */
+    bool send_action_goal(
+	    const std::string& action_name,
+	    const std::string& json,
+            participants::UUID& goal_id);
+
+    /**
+     * @brief Cancels an action goal for the specified action.
+     *
+     * This function cancels an action goal identified by the given goal ID for the specified action.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if the goal ID is not valid or if the action server was not previously created.
+     * The success of the operation only indicates that the cancel request was sent, not that it was processed.
+     * The actual cancellation of the goal would be notified via a status update.
+     *
+     * @param action_name The name of the action for which the goal is to be canceled.
+     * @param goal_id The unique identifier of the action goal to be canceled.
+     *
+     * @return true if the cancel action request was successfully canceled, false otherwise.
+     */
+    bool cancel_action_goal(
+            const std::string& action_name,
+            participants::UUID& goal_id);
+
+    /**
+     * @brief Creates server for the given action.
+     *
+     * This function announces an action by setting up a server for it.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if there is an issue requesting the data types to CB.
+     *
+     * @param action_name The name of the action to be announced.
+     *
+     * @return true if the action was successfully announced, false otherwise.
+     */
+    bool announce_action(
+            const std::string& action_name);
+
+    /**
+     * @brief Send feedback for the specified goal_id action.
+     *
+     * This function sends feedback for the specified action goal identified by the given goal ID.
+     * It returns a boolean indicating whether the operation was successful.
+     *
+     * @param action_name The name of the action for which the feedback is being sent.
+     * @param json The JSON data to be sent as feedback.
+     * @param goal_id The unique identifier of the action goal for which the feedback is being sent.
+     *
+     * @return true if the feedback was successfully sent, false otherwise.
+     */
+    bool action_send_feedback(
+        const char* action_name,
+        const char* json,
+        const participants::UUID& goal_id);
+
+    /**
+     * @brief Send result for the specified goal_id action.
+     *
+     * This function sends the result for the specified action goal identified by the given goal ID.
+     * It returns a boolean indicating whether the operation was successful.
+     *
+     * @param action_name The name of the action for which the result is being sent.
+     * @param goal_id The unique identifier of the action goal for which the result is being sent.
+     * @param status_code The status code representing the result of the action.
+     * @param json The JSON data to be sent as the result.
+     *
+     * @return true if the result was successfully sent, false otherwise.
+     */
+    bool action_send_result(
+        const char* action_name,
+        const participants::UUID& goal_id,
+        const participants::STATUS_CODE& status_code,
+        const char* json);
 
 protected:
 
@@ -115,17 +312,23 @@ protected:
     //! CB Handler
     std::shared_ptr<eprosima::ddsenabler::participants::CBHandler> cb_handler_;
 
-    //! Dynamic Types Participant
-    std::shared_ptr<eprosima::ddspipe::participants::DynTypesParticipant> dyn_participant_;
+    //! DDS Participant
+    std::shared_ptr<eprosima::ddsenabler::participants::DdsParticipant> dds_participant_;
 
-    //! Schema Participant
-    std::shared_ptr<eprosima::ddspipe::participants::SchemaParticipant> enabler_participant_;
+    //! Enabler Participant
+    std::shared_ptr<eprosima::ddsenabler::participants::EnablerParticipant> enabler_participant_;
 
     //! DDS Pipe
     std::unique_ptr<ddspipe::core::DdsPipe> pipe_;
 
     //! Reference to event handler used for thread synchronization in main application
     std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler_;
+
+    //! Config File watcher handler
+    std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler_;
+
+    //! Request identifyer for sent requests (incremented by one after each request)
+    uint64_t sent_request_id_ = 0;
 };
 
 } /* namespace ddsenabler */
