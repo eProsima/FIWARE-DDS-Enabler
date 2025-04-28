@@ -12,12 +12,6 @@ on:
   workflow_call:
     inputs:
 
-      custom_version_build:
-        description: >
-          Version of Fast DDS build from eProsima-CI.
-        required: true
-        type: string
-
       dependencies_artifact_postfix:
         description: >
           Postfix name to add to artifact name to download dependencies.
@@ -70,7 +64,6 @@ jobs:
         with:
           os: ${{ inputs.os }}
           cmake_build_type: ${{ matrix.cmake_build_type }}
-          custom_version_build: ${{ inputs.custom_version_build }}
           dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
           secret_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -83,7 +76,7 @@ jobs:
           workspace_dependencies: install
           ctest_args: --label-exclude "xfail"
           colcon_meta_file: src/.github/workflows/configurations/${{ runner.os }}/colcon.meta
-          test_report_artifact: test_report${{ inputs.dependencies_artifact_postfix }}_${{ inputs.custom_version_build }}_${{ inputs.os }}_${{ matrix.cmake_build_type }}
+          test_report_artifact: test_report${{ inputs.dependencies_artifact_postfix }}_v3_${{ inputs.os }}_${{ matrix.cmake_build_type }}
 
 
       - name: Test Report

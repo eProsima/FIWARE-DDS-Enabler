@@ -34,12 +34,6 @@ on:
         default: 'main'
         type: string
 
-      custom_version_build:
-        description: >
-          Version of Fast DDS build from eProsima-CI.
-        required: true
-        type: string
-
       dependencies_artifact_postfix:
         description: 'Postfix name to add to artifact name to download dependencies. This is use to download a specific artifact version from eProsima-CI.'
         required: true
@@ -98,7 +92,6 @@ jobs:
         with:
           os: ubuntu-22.04
           cmake_build_type: "Release"
-          custom_version_build: ${{ inputs.custom_version_build }}
           dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
           secret_token: ${{ secrets.GITHUB_TOKEN }}
 

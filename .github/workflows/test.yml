@@ -35,18 +35,6 @@ on:
         default: 'main'
         type: string
 
-      custom_version_build:
-        description: >
-          Use the custom version build from eProsima-CI.
-          If set to false, the workflow will run the tests for Fast DDS v2 and v3.
-        required: true
-        type: choice
-        default: 'custom'
-        options:
-          - custom
-          - v2
-          - v3
-
       dependencies_artifact_postfix:
         description: 'Postfix name to add to artifact name to download dependencies. This is use to download a specific artifact version from eProsima-CI.'
         required: true
@@ -63,7 +51,6 @@ jobs:
     name: reusable_tests
     uses: ./.github/workflows/reusable-ubuntu-ci.yml
     with:
-      custom_version_build: ${{ inputs.custom_version_build || 'v3' }}
       dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
       ref: ${{ github.ref }}
     secrets: inherit
@@ -72,7 +59,6 @@ jobs:
     name: reusable_tests
     uses: ./.github/workflows/reusable-windows-ci.yml
     with:
-      custom_version_build: ${{ inputs.custom_version_build || 'v3' }}
       dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
       ref: ${{ github.ref }}
     secrets: inherit
@@ -86,7 +72,6 @@ jobs:
       devutils_branch: ${{ inputs.devutils_branch || '1.x' }}
       ddspipe_branch: ${{ inputs.ddspipe_branch || '1.x' }}
       ddsenabler_branch: ${{ inputs.ddsenabler_branch || github.head_ref || github.ref_name }}
-      custom_version_build: ${{ inputs.custom_version_build || 'v3' }}
       dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
       ref: ${{ github.ref }}
     secrets: inherit

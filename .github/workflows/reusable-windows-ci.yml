@@ -13,12 +13,6 @@ on:
   workflow_call:
     inputs:
 
-      custom_version_build:
-        description: >
-          Version of Fast DDS build from eProsima-CI.
-        required: true
-        type: string
-
       dependencies_artifact_postfix:
         description: >
           Postfix name to add to artifact name to download dependencies.
@@ -54,7 +48,6 @@ jobs:
     uses: ./.github/workflows/reusable-workflow.yml
     with:
       os: ${{ matrix.os }}
-      custom_version_build: ${{ inputs.custom_version_build || 'v3' }}
       dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
       ref: ${{ inputs.ref }}
     secrets: inherit

@@ -16,7 +16,6 @@ jobs:
       devutils_branch: '1.x'
       ddspipe_branch: '1.x'
       ddsenabler_branch: 'master'
-      custom_version_build: 'v3'
       dependencies_artifact_postfix: '_nightly'
       ref: 'main'
     secrets: inherit

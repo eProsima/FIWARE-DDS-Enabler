@@ -33,12 +33,6 @@ on:
   workflow_call:
     inputs:
 
-      custom_version_build:
-        description: >
-          Version of Fast DDS build from eProsima-CI.
-        required: true
-        type: string
-
       dependencies_artifact_postfix:
         description: >
           Postfix name to add to artifact name to download dependencies.
@@ -74,7 +68,6 @@ jobs:
     uses: ./.github/workflows/reusable-workflow.yml
     with:
       os: ${{ matrix.os }}
-      custom_version_build: ${{ inputs.custom_version_build || 'v3' }}
       dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
       ref: ${{ inputs.ref }}
     secrets: inherit
@@ -97,7 +90,6 @@ jobs:
         with:
           os: ubuntu-22.04
           cmake_build_type: Release
-          custom_version_build: ${{ inputs.custom_version_build }}
           dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
           secret_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -110,7 +102,7 @@ jobs:
           cmake_build_type: Debug
           cmake_args: -DBUILD_TESTS=ON -DASAN_BUILD=ON
           ctest_args: --label-exclude "xfail|xtsan"
-          test_report_artifact: test_report_asan${{ inputs.dependencies_artifact_postfix }}_${{ inputs.custom_version_build }}
+          test_report_artifact: test_report_asan${{ inputs.dependencies_artifact_postfix }}_v3
 
 
       - name: Test Report
@@ -140,7 +132,6 @@ jobs:
         with:
           os: ubuntu-22.04
           cmake_build_type: Release
-          custom_version_build: ${{ inputs.custom_version_build }}
           dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
           secret_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -158,7 +149,7 @@ jobs:
           cmake_build_type: Debug
           cmake_args: -DBUILD_TESTS=ON -DTSAN_BUILD=ON
           ctest_args: --label-exclude "xfail|xasan"
-          test_report_artifact: test_report_tsan${{ inputs.dependencies_artifact_postfix }}_${{ inputs.custom_version_build }}
+          test_report_artifact: test_report_tsan${{ inputs.dependencies_artifact_postfix }}_v3
 
       - name: Test Report
         uses: eProsima/eProsima-CI/external/test-reporter@v0
@@ -187,7 +178,6 @@ jobs:
         with:
           os: ubuntu-22.04
           cmake_build_type: Release
-          custom_version_build: ${{ inputs.custom_version_build }}
           dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix }}
           secret_token: ${{ secrets.GITHUB_TOKEN }}
 
