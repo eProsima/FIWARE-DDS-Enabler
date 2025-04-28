@@ -1,4 +1,4 @@
-# eProsima DDS Router Developer Directory
+# eProsima DDS Enabler Developer Directory
 
 This directory and this documentation is only targeted to developers and users highly familiarized with this
 project and the repository.
@@ -13,28 +13,16 @@ and its dependencies.
 
 This repository follows the ROS 2 convention of holding various colcon packages within the same git repository.
 This way there could be different packages that could be used independently, not being forced to used them if
-the requirements or dependencies of higher level packages are not fulfilled
-(e.g. `yamlcpp` is no longer a requirement for the whole project, but only for `ddsrouter_yaml` and `ddsrouter_tool`).
+the requirements or dependencies of higher level packages are not fulfilled.
 
 The modules contained in this repository are the following:
 
-* **ddsrouter_core** This is the main library that implements the operation of the DDS Router.
-  The `DDSRouter` class could be instantiate and has some methods to handle the operation of a DDS Router
-  (e.g `start`, `reload`, `stop`).
-  This package is divided in:
-  * `Types`: all the types that are used to configure the DDS Router and in its internal functionality.
-  * `Configuration`: Configuration classes to configure the DDS Router
-  * `Core`: The main functionality and internal classes. This is not exported.
+* **ddsenabler** This is the main library that implements the operation of the DDS Enabler.
 
-* **ddsrouter_yaml** This library allows to get a DDS Router configuration object from a `yaml`.
+* **ddsenabler_yaml** This library allows to get a DDS Enabler configuration object from a `yaml`.
   It depends on `yaml-cpp` external library.
 
-* **ddsrouter_tool** This is an executable that instantiates a DDS Router from a `yaml` file.
-
-* **ddsrouter_docs** (hosted in directory `docs`)
-  This package contains the user documentation built with sphinx.
-
-* **ddsrouter_yaml_validator** This is an application used for validating DDS Router `yaml` configuration files.
+* **ddsenabler_participants** This library contains the pipe participants that execute the communication with dds and broker.
 
 This is the dependency graph of the packages:
 
@@ -42,21 +30,11 @@ This is the dependency graph of the packages:
 #  *  = dependency
 # (*) = test dependency
 
-ddsrouter_docs  +
-ddsrouter_core     +  *  *
-ddsrouter_yaml        +  *
-ddsrouter_tool           +
+ddsenabler_yaml          +***
+ddsenabler_participants   +**
+ddsenabler                 +*
+ddsenabler_test             +
 ```
-
-The reasons of the packages division are:
-
-1. Using the DDS Router as a library will be very useful in future developments, avoiding to interact with it as an
-  independent process.
-1. The dependencies of one package are no longer dependencies of the whole project.
-  Thus, the DDS Router could be used without requiring the `yaml` library.
-1. It is easier to organize and maintain small packages than a big one.
-1. In the future utils and events are intended to be generic, and not only part of this project.
-  (e.g. having a common Log library for many projects would be very useful).
 
 ---
 
@@ -110,18 +88,6 @@ This license be consistent with the following one (change the year to the year t
 // limitations under the License.
 ```
 
-### Headers
-
-**Headers must not contain any function implementation**, just the signatures.
-Each header must start with a unique define.
-In order to assure that they are unique, use the path of the file in it.
-
-Example:
-
-```cpp
-#ifndef _DDSROUTERCORE_CORE_DDSROUTERCORE_HPP_
-```
-
 ### Template implementations
 
 The templates must be instantiated in a header file when no specialized.
@@ -161,9 +127,3 @@ Also, configurations must support an `is_valid` method to check that it is in a 
 ## WorkArounds
 
 > // TODO
-
-### RPC in Core refactor
-
-Doing the refactor to separate DDS Router from Core we encountered a difficulty because `RPCBridge` depends on `rtps::CommonReader`.
-This makes impossible so far to separate Participants from the Core.
-This should be solved in future versions by implementing a generic RPC Bridge without dependencies.
