@@ -1,4 +1,4 @@
-# Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+# Copyright 2025 Proyectos y Sistemas de Mantenimiento SL (eProsima).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ compile_test_library(
 ###############################################################################
 # Examples
 ###############################################################################
-option(COMPILE_EXAMPLES "Build example" OFF)
+option(COMPILE_EXAMPLES "Build examples" OFF)
 
 if(COMPILE_EXAMPLES)
     add_subdirectory(examples)

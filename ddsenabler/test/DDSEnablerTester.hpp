@@ -1,4 +1,4 @@
-// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+// Copyright 2025 Proyectos y Sistemas de Mantenimiento SL (eProsima).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -111,7 +111,6 @@ public:
         auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
 
         // Bind the static callbacks (no captures allowed)
-        // TODO: Resolve potential data race btw first message received and the callback set
         enabler->set_data_callback(test_data_callback);
         enabler->set_type_callback(test_type_callback);
 

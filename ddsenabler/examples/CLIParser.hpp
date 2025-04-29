@@ -1,4 +1,4 @@
-// Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+// Copyright 2025 Proyectos y Sistemas de Mantenimiento SL (eProsima).
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,7 @@
 
 #include <fastdds/dds/log/Log.hpp>
 
-#ifndef DDSENABLER_EXAMPLES_HPP
-#define DDSENABLER_EXAMPLES_HPP
+#pragma once
 
 class CLIParser
 {
@@ -116,4 +115,3 @@ public:
 
 };
 
-#endif // FASTDDS_EXAMPLES_CPP_HELLO_WORLD__CLIPARSER_HPP

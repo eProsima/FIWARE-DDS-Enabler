@@ -18,7 +18,7 @@ repositories:
     ddspipe:
         type: git
         url: https://github.com/eProsima/DDS-Pipe.git
-        version: tmp/dds_enabler
+        version: 1.x
     ddsenabler:
         type: git
         url: https://github.com/eProsima/FIWARE-DDS-Enabler.git

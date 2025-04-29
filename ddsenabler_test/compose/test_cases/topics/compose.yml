@@ -1,23 +1,5 @@
 # Test description:
-#   This test getting the profile name for a XML participant using different ways.
-#
-# Test architecture:
-#  topic0 -> non reliable
-#  topic1 -> reliable transient_local
-#
-# Domain 1: using raw xml
-#  - publisher  topic0
-#  - subscriber topic1
-# Domain 2: loading xml file from configuration file
-#  - publisher  topic1
-#  - subscriber topic2
-# Domain 3: loading xml from env var
-#  - publisher  topic2
-#  - subscriber topic3
-# Domain 4: loading xml from default file name
-#  - publisher  topic3
-#  - subscriber topic0
-#
+#   This test case checks the DDS Enabler receives the chatter topic published in ROS2 domain 0 (with no config file).
 
 services:
 
@@ -31,28 +13,6 @@ services:
       - ./config.json:/build/ddsenabler/examples/config.json
     command: ./build/ddsenabler/examples/ddsenabler_example 2 4 10
 
-  # # DOMAIN 0
-  # publisher_0:
-  #   image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
-  #   container_name: publisher_0
-  #   networks:
-  #     - std_net
-  #   volumes:
-  #     - ../../scripts:/scripts
-  #   command: python3 /scripts/execute_and_validate_publisher.py --exe build/fastdds_configuration_example/configuration --n-matches 1 --n-unmatches 0 --timeout 15 --args "--samples 1 --domain 0"
-
-  # # DOMAIN 1
-  # publisher_1:
-  #   image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
-  #   container_name: publisher_1
-  #   networks:
-  #     - std_net
-  #   volumes:
-  #     - ../../scripts:/scripts
-  #   command: python3 /scripts/execute_and_validate_publisher.py --exe build/fastdds_configuration_example/configuration --n-matches 0 --n-unmatches 0 --timeout 10 --args "--samples 1 --domain 1"
-
-
-  # DOMAIN 0
   talker:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
     container_name: talker
