@@ -1,53 +1,48 @@
 {
-    "dds": {
-      "ddsmodule": {
-        "dds": {
-          "domain": 0,
-          "allowlist": [
-            {
-              "name": "*"
-            }
-          ],
-          "blocklist": [
-            {
-              "name": "add_blocked_topics_list_here"
-            }
-          ]
-        },
-        "topics": {
-          "name": "*",
-          "qos": {
-            "durability": "TRANSIENT_LOCAL",
-            "history-depth": 10
+  "dds": {
+    "ddsmodule": {
+      "dds": {
+        "domain": 0,
+        "allowlist": [
+          {
+            "name": "*"
           }
-        },
-        "ddsenabler": null,
-        "specs": {
-          "threads": 12,
-          "logging": {
-            "stdout": false,
-            "verbosity": "info"
+        ],
+        "blocklist": [
+          {
+            "name": "add_blocked_topics_list_here"
           }
+        ]
+      },
+      "topics": {
+        "name": "*",
+        "qos": {
+          "durability": "TRANSIENT_LOCAL",
+          "history-depth": 10
         }
       },
-      "ngsild": {
-        "topics": {
-          "rt/turtle1/cmd_vel": {
-            "entityType": "Robot",
-            "entityId": "urn:ngsi-ld:robot:1",
-            "attribute": "velocityCommand"
-          },
-          "rt/turtle1/pose": {
-            "entityType": "Robot",
-            "entityId": "urn:ngsi-ld:robot:1",
-            "attribute": "pose"
-          },
-          "rt/chatter": {
-            "entityType": "Chatter",
-            "entityId": "urn:ngsi-ld:chatter:1",
-            "attribute": "text"
-          }
+      "ddsenabler": null,
+      "specs": {
+        "threads": 12,
+        "logging": {
+          "stdout": false,
+          "verbosity": "info"
+        }
+      }
+    },
+    "ngsild": {
+      "topics": {
+        "P1": {
+          "entityType": "Camera",
+          "entityId": "urn:ngsi-ld:camera:cam1",
+          "attribute": "shutterSpeed"
+        },
+        "P2": {
+          "entityType": "Arm",
+          "entityId": "urn:ngsi-ld:arm:arm1",
+          "attribute": "armReach"
         }
       }
     }
   }
+}

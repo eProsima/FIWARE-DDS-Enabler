@@ -78,10 +78,10 @@ int main(
 {
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
-
-    YAML::Node yml;
-
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+    // Config file asummes the executable is run from workspace level,
+    // as it is done in the docker tests
+    std::string config_file = "./build/ddsenabler/examples/config.json";
+    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(config_file);
 
     auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
