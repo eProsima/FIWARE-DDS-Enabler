@@ -31,6 +31,7 @@ public:
         uint32_t expected_types_ = 0;
         uint32_t expected_data_ = 0;
         uint32_t timeout_seconds = 30;
+        std::string config_file_path_ = "";
     };
 
     /**
@@ -43,11 +44,18 @@ public:
     static void print_help(
             uint8_t return_code)
     {
-        std::cout << "Usage: ddsenabler_example <expected_types> <expected_data> <timeout>"          << std::endl;
-        std::cout << ""                                                                              << std::endl;
-        std::cout << "expected_types: number of types to be expected"                                << std::endl;
-        std::cout << "expected_data: number of data to be expected"                                  << std::endl;
-        std::cout << "timeout: time to wait before stopping the program if the data is not received" << std::endl;
+        std::cout << "Usage: ddsenabler_example <expected_types> <expected_data> <timeout> <path/to/config/file>"   <<
+                std::endl;
+        std::cout << ""                                                                                             <<
+                std::endl;
+        std::cout << "expected_types: number of types to be expected"                                               <<
+                std::endl;
+        std::cout << "expected_data: number of data to be expected"                                                 <<
+                std::endl;
+        std::cout << "timeout: time to wait before stopping the program if the data is not received"                <<
+                std::endl;
+        std::cout << "path/to/config/file: absolute path to the configuration file"                                 <<
+                std::endl;
         std::exit(return_code);
     }
 
@@ -66,7 +74,7 @@ public:
     {
         example_config config;
 
-        if (argc < 4)
+        if (argc < 5)
         {
             std::cerr << "Missing entity argument" << std::endl;
             print_help(EXIT_FAILURE);
@@ -77,6 +85,7 @@ public:
             config.expected_types_ = std::stoi(argv[1]);
             config.expected_data_ = std::stoi(argv[2]);
             config.timeout_seconds = std::stoi(argv[3]);
+            config.config_file_path_ = argv[4];
         }
         catch (const std::exception& e)
         {

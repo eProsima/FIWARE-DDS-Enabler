@@ -78,10 +78,7 @@ int main(
 {
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
-    // Config file asummes the executable is run from workspace level,
-    // as it is done in the docker tests
-    std::string config_file = "./build/ddsenabler/examples/config.json";
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(config_file);
+    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(config.config_file_path_);
 
     auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 

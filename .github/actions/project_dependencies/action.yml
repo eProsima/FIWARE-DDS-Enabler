@@ -14,8 +14,7 @@ inputs:
   dependencies_artifact_postfix:
     description: Specify artifact postfix in case it wants to use a manual one
     required: false
-    #default: _nightly
-    default: _enabler
+    default: _ddsenabler
 
   target_workspace:
     description: Specify directory to download dependencies

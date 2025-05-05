@@ -24,7 +24,7 @@ install(TARGETS ddsenabler_example
     RUNTIME DESTINATION bin
 )
 
-# Copy the JSON files over to the build directory
+# Copy the json files over to the build directory
 file(GLOB_RECURSE JSON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.json)
 foreach(JSON_FILE_COMPLETE_PATH ${JSON_FILES})
     get_filename_component(JSON_FILE ${JSON_FILE_COMPLETE_PATH} NAME_WE)
@@ -33,5 +33,17 @@ foreach(JSON_FILE_COMPLETE_PATH ${JSON_FILES})
         ${CMAKE_CURRENT_BINARY_DIR}/${JSON_FILE}.json
         COPYONLY)
     install(FILES ${JSON_FILE_COMPLETE_PATH}
+        DESTINATION ${DATA_INSTALL_DIR}/ddsenabler/examples/ddsenabler/${BIN_INSTALL_DIR})
+endforeach()
+
+# Copy the yaml files over to the build directory
+file(GLOB_RECURSE YAML_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.yml)
+foreach(YAML_FILE_COMPLETE_PATH ${YAML_FILES})
+    get_filename_component(YAML_FILE ${YAML_FILE_COMPLETE_PATH} NAME_WE)
+    configure_file(
+        ${YAML_FILE_COMPLETE_PATH}
+        ${CMAKE_CURRENT_BINARY_DIR}/${YAML_FILE}.yml
+        COPYONLY)
+    install(FILES ${YAML_FILE_COMPLETE_PATH}
         DESTINATION ${DATA_INSTALL_DIR}/ddsenabler/examples/ddsenabler/${BIN_INSTALL_DIR})
 endforeach()

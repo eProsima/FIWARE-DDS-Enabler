@@ -1,5 +1,10 @@
 # Test description:
-#   This test case checks the DDS Enabler receives the chatter topic published in ROS2 domain 0 (with no config file).
+#   expected_types_ = 1
+#   expected_data_ = 1
+#   timeout_seconds = 10
+#   config_file_path_: allowed only /chatter topic
+#   This test case checks the DDS Enabler receives only the chatter topic
+#   which publishes only 1 msg in ROS2 domain 0.
 
 services:
 
@@ -10,8 +15,8 @@ services:
     networks:
       - std_net
     volumes:
-      - ./config.json:/build/ddsenabler/examples/config.json
-    command: ./build/ddsenabler/examples/ddsenabler_example 2 4 10
+      - ./config.yml:/config/config.yml
+    command: ./build/ddsenabler/examples/ddsenabler_example 2 4 10 /config/config.yml
 
   talker:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
