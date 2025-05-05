@@ -23,6 +23,8 @@
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
+#include <ddsenabler_participants/library/library_dll.h>
+
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
@@ -32,6 +34,7 @@ namespace participants {
  */
 struct CBMessage
 {
+    DDSENABLER_PARTICIPANTS_DllAPI
     CBMessage() = default;
 
     /**
@@ -43,6 +46,7 @@ struct CBMessage
      * free the newly constructed sample (payload's data attribute), thus rendering the latter useless.
      *
      */
+    DDSENABLER_PARTICIPANTS_DllAPI
     CBMessage(
             const CBMessage& data);
 
@@ -55,6 +59,7 @@ struct CBMessage
      * the situation described in copy constructor's note.
      *
      */
+    DDSENABLER_PARTICIPANTS_DllAPI
     ~CBMessage();
 
     //! DdsTopic

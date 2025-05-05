@@ -16,7 +16,7 @@ services:
       - std_net
     volumes:
       - ./config.yml:/config/config.yml
-    command: ./build/ddsenabler/examples/ddsenabler_example 2 4 10 /config/config.yml
+    command: ./build/ddsenabler/examples/ddsenabler_example 1 1 10 /config/config.yml
 
   talker:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}

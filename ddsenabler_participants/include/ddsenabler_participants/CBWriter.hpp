@@ -37,11 +37,15 @@ namespace participants {
 
 class CBWriter
 {
-public:
 
+public:
+    DDSENABLER_PARTICIPANTS_DllAPI
     CBWriter() = default;
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     ~CBWriter() = default;
 
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_callback(
             DdsNotification callback)
     {
@@ -49,6 +53,7 @@ public:
         data_callback_ = callback;
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_callback(
             DdsTypeNotification callback)
     {
@@ -62,6 +67,7 @@ public:
      * @param [in] msg Pointer to the data to be written.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
+    DDSENABLER_PARTICIPANTS_DllAPI
     void write_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
@@ -74,6 +80,7 @@ protected:
      * @param [in] msg Pointer to the data.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
+    DDSENABLER_PARTICIPANTS_DllAPI
     void write_schema(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
@@ -84,6 +91,7 @@ protected:
      * @param [in] msg Pointer to the data.
      * @param [in] dyn_type DynamicType containing the type information required.
      */
+    DDSENABLER_PARTICIPANTS_DllAPI
     fastdds::dds::DynamicData::_ref_type get_dynamic_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;

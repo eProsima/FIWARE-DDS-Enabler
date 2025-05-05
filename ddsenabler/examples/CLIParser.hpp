@@ -45,17 +45,17 @@ public:
             uint8_t return_code)
     {
         std::cout << "Usage: ddsenabler_example <expected_types> <expected_data> <timeout> <path/to/config/file>"   <<
-                std::endl;
+            std::endl;
         std::cout << ""                                                                                             <<
-                std::endl;
+            std::endl;
         std::cout << "expected_types: number of types to be expected"                                               <<
-                std::endl;
+            std::endl;
         std::cout << "expected_data: number of data to be expected"                                                 <<
-                std::endl;
+            std::endl;
         std::cout << "timeout: time to wait before stopping the program if the data is not received"                <<
-                std::endl;
+            std::endl;
         std::cout << "path/to/config/file: absolute path to the configuration file"                                 <<
-                std::endl;
+            std::endl;
         std::exit(return_code);
     }
 

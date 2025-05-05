@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cpp_utils/testing/gtest_aux.hpp>
 #include <gtest/gtest.h>
 
 #include "DdsEnablerTypedTestTypeHeaders.hpp"
@@ -29,25 +30,25 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
 };
 
 #define DEFINE_DDSENABLER_TYPED_TEST(TestName, Type) \
-        TEST_F(DDSEnablerTypedTest, TestName) \
-        { \
-            auto enabler = create_ddsenabler(); \
-            ASSERT_TRUE(enabler != nullptr); \
+    TEST_F(DDSEnablerTypedTest, TestName) \
+    { \
+        auto enabler = create_ddsenabler(); \
+        ASSERT_TRUE(enabler != nullptr); \
 \
-            KnownType a_type; \
-            a_type.type_sup_.reset(new Type()); \
+        KnownType a_type; \
+        a_type.type_sup_.reset(new Type()); \
 \
-            ASSERT_TRUE(create_publisher(a_type)); \
+        ASSERT_TRUE(create_publisher(a_type)); \
 \
-            ASSERT_EQ(get_received_types(), 0); \
-            ASSERT_EQ(get_received_data(), 0); \
+        ASSERT_EQ(get_received_types(), 0); \
+        ASSERT_EQ(get_received_data(), 0); \
 \
-            /* Send data */ \
-            ASSERT_TRUE(send_samples(a_type)); \
+        /* Send data */ \
+        ASSERT_TRUE(send_samples(a_type)); \
 \
-            ASSERT_EQ(get_received_types(), 1); \
-            ASSERT_EQ(get_received_data(), num_samples_); \
-        }
+        ASSERT_EQ(get_received_types(), 1); \
+        ASSERT_EQ(get_received_data(), num_samples_); \
+    }
 
 
 

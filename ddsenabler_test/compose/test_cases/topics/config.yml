@@ -2,4 +2,4 @@ dds:
   domain: 0
 
   allowlist:
-    - name: "chatter"
+    - name: "rt/chatter"
