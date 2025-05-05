@@ -39,6 +39,7 @@ class CBWriter
 {
 
 public:
+
     DDSENABLER_PARTICIPANTS_DllAPI
     CBWriter() = default;
 
