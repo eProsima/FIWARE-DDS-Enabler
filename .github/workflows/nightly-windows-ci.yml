@@ -1,0 +1,17 @@
+# Nightly test workflow for DDS Enabler
+name: nightly-windows-ci
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+
+  reusable_tests:
+    name: reusable_tests
+    uses: ./.github/workflows/reusable-windows-ci.yml
+    with:
+      dependencies_artifact_postfix: '_nightly'
+      ref: 'main'
+    secrets: inherit
+

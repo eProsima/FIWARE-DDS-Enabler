@@ -1,0 +1,16 @@
+# Nightly test workflow for DDS Enabler
+name: nightly-ubuntu-ci
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+
+  reusable_tests:
+    name: reusable_tests
+    uses: ./.github/workflows/reusable-ubuntu-ci.yml
+    with:
+      dependencies_artifact_postfix: '_nightly'
+      ref: 'main'
+    secrets: inherit

@@ -1,0 +1,77 @@
+# Tests to run with workflow-dispatch, pull-request and push events
+name: test
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      fastcdr_branch:
+        description: 'Branch or tag of Fast CDR repository (https://github.com/eProsima/Fast-CDR)'
+        required: true
+        default: 'master'
+        type: string
+
+      fastdds_branch:
+        description: 'Branch or tag of Fast DDS repository (https://github.com/eProsima/Fast-DDS)'
+        required: true
+        default: 'master'
+        type: string
+
+      devutils_branch:
+        description: 'Branch or tag of eProsima/dev-utils repository (https://github.com/eProsima/dev-utils)'
+        required: true
+        default: 'main'
+        type: string
+
+      ddspipe_branch:
+        description: 'Branch or tag of DDS Pipe repository (https://github.com/eProsima/DDS-Pipe)'
+        required: true
+        default: 'main'
+        type: string
+
+      ddsenabler_branch:
+        description: 'Branch or tag of DDS Enabler repository (https://github.com/eProsima/FIWARE-DDS-Enabler)'
+        required: true
+        default: 'main'
+        type: string
+
+      dependencies_artifact_postfix:
+        description: 'Postfix name to add to artifact name to download dependencies. This is use to download a specific artifact version from eProsima-CI.'
+        required: true
+        default: '_nightly'
+
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  reusable_tests_ubuntu:
+    name: reusable_tests
+    uses: ./.github/workflows/reusable-ubuntu-ci.yml
+    with:
+      dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
+      ref: ${{ github.ref }}
+    secrets: inherit
+
+  reusable_tests_windows:
+    name: reusable_tests
+    uses: ./.github/workflows/reusable-windows-ci.yml
+    with:
+      dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
+      ref: ${{ github.ref }}
+    secrets: inherit
+
+  reusable_docker_tests:
+    name: reusable_docker_tests
+    uses: ./.github/workflows/docker-reusable-workflow.yml
+    with:
+      fastcdr_branch: ${{ inputs.fastcdr_branch || 'master' }}
+      fastdds_branch: ${{ inputs.fastdds_branch || 'feature/json-deserialize' }}
+      devutils_branch: ${{ inputs.devutils_branch || 'main' }}
+      ddspipe_branch: ${{ inputs.ddspipe_branch || 'main' }}
+      ddsenabler_branch: ${{ inputs.ddsenabler_branch || github.head_ref || github.ref_name }}
+      dependencies_artifact_postfix: ${{ inputs.dependencies_artifact_postfix || '_nightly' }}
+      ref: ${{ github.ref }}
+    secrets: inherit

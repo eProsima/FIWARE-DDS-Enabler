@@ -1,0 +1,22 @@
+# Nightly test workflow for DDS Enabler
+name: nightly-system-ci
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+
+  reusable_docker_tests:
+    name: reusable_docker_tests
+    uses: ./.github/workflows/docker-reusable-workflow.yml
+    with:
+      fastcdr_branch: 'master'
+      fastdds_branch: 'feature/json-deserialize'
+      devutils_branch: 'main'
+      ddspipe_branch: 'main'
+      ddsenabler_branch: 'master'
+      dependencies_artifact_postfix: '_nightly'
+      ref: 'main'
+    secrets: inherit
+

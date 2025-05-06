@@ -20,6 +20,10 @@ file(
     types/*.cxx
 )
 
+if(WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+endif()
+
 file(
     GLOB_RECURSE TEST_LIBRARY_SOURCES
     "${PROJECT_SOURCE_DIR}/src/cpp/*.c*"

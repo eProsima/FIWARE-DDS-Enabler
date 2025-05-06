@@ -42,7 +42,7 @@ public:
     DDSEnablerLogConsumer(
             const ddspipe::core::DdsPipeLogConfiguration* configuration);
 
-    DDSPIPE_CORE_DllAPI
+    DDSENABLER_PARTICIPANTS_DllAPI
     ~DDSEnablerLogConsumer()
     {
     }
@@ -63,7 +63,7 @@ public:
      *
      * @param entry entry to consume
      */
-    DDSPIPE_CORE_DllAPI
+    DDSENABLER_PARTICIPANTS_DllAPI
     void Consume(
             const utils::Log::Entry& entry) override;
 

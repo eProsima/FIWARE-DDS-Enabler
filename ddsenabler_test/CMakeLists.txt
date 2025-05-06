@@ -1,4 +1,4 @@
-# Copyright 2024 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+# Copyright 2025 Proyectos y Sistemas de Mantenimiento SL (eProsima).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 # CMake build rules for DDS Enabler Submodule
 ###############################################################################
 cmake_minimum_required(VERSION 3.5)
-add_definitions(-fPIC)
 
 # Done this to set machine architecture and be able to call cmake_utils
 enable_language(CXX)
@@ -36,63 +35,33 @@ find_package(cmake_utils REQUIRED)
 # - Set installation paths
 configure_project()
 
-# Call explictly project
+# Call explicitly project
 project(
     ${MODULE_NAME}
     VERSION
         ${MODULE_VERSION}
     DESCRIPTION
         ${MODULE_DESCRIPTION}
-    LANGUAGES
-        CXX
-)
-
-###############################################################################
-# C++ Project
-###############################################################################
-# Configure CPP project for dependencies and required flags:
-# - Set CMake Build Type
-# - Set C++ version
-# - Set shared libraries by default
-# - Find external packages and thirdparties
-# - Activate Code coverage if flag CODE_COVERAGE
-# - Activate Address sanitizer build if flag ASAN_BUILD
-# - Activate Thread sanitizer build if flag TSAN_BUILD
-# - Configure log depending on LOG_INFO flag and CMake type
-configure_project_cpp()
-
-# Compile C++ library
-compile_library(
-    "${PROJECT_SOURCE_DIR}/src/cpp" # Source directory
-    "${PROJECT_SOURCE_DIR}/include" # Include directory
 )
 
 ###############################################################################
 # Test
 ###############################################################################
 # Compile tests if CMake options requires it
+option(BUILD_COMPOSE_TESTS "Compile compose tests" OFF)
 
-if(BUILD_TESTING)
-    set(BUILD_LIBRARY_TESTS ON)
+if(BUILD_COMPOSE_TESTS)
+    message(STATUS "Compiling Compose Tests of ${PROJECT_NAME}")
+    configure_test_flags()
+    test_requirements()
+    add_subdirectory(compose)
 endif()
-
-compile_test_library(
-    "${PROJECT_SOURCE_DIR}/test/" # Test directory
-)
-
-###############################################################################
-# Examples
-###############################################################################
-option(COMPILE_EXAMPLES "Build examples" OFF)
-
-if(COMPILE_EXAMPLES)
-    add_subdirectory(examples)
-endif()
+# NOTE: this is done explicitly and not by a CMake macro (compile_test) as other packages
+# because it does not feel like reusable, so adding it to cmake_utils does not seems appropriate.
 
 ###############################################################################
 # Packaging
 ###############################################################################
+# NOTE: No packaging needed for this package as it is test only. However it removes the colcon warning.
 # Install package
 eprosima_packaging()
-
-

@@ -28,27 +28,14 @@ set(MODULE_FIND_PACKAGES
     fastdds
     cpp_utils
     ddspipe_core
-    ddspipe_participants)
-
-if(WIN32)
-    set(MODULE_FIND_PACKAGES
-        ${MODULE_FIND_PACKAGES}
-        lz4
-        zstd)
-endif()
+    ddspipe_participants
+    ddspipe_yaml)
 
 set(fastdds_MINIMUM_VERSION "3.0.0")
 
 set(MODULE_DEPENDENCIES
-    yaml-cpp
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
-    fastcdr
-    fastdds
-    cpp_utils
-    ddspipe_core
-    ddspipe_participants
-    $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
-    $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
+    ${MODULE_FIND_PACKAGES})
 
 set(MODULE_CPP_VERSION
     C++17)

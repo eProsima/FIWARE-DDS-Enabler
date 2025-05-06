@@ -303,8 +303,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_data_with_schema)
 
     payload.length = static_cast<uint32_t>(content.length());
     payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = new unsigned char[payload.length];
-    std::memcpy(payload.data, content.data(), payload.length);
+    payload.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
 
     payload_pool_->get_payload(payload, data->payload);
     payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
@@ -347,8 +346,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
 
     payload.length = static_cast<uint32_t>(content.length());
     payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = new unsigned char[payload.length];
-    std::memcpy(payload.data, content.data(), payload.length);
+    payload.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
 
     payload_pool_->get_payload(payload, data->payload);
     payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
@@ -386,8 +384,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
 
     payload2.length = static_cast<uint32_t>(content.length());
     payload2.max_size = static_cast<uint32_t>(content.length());
-    payload2.data = new unsigned char[payload2.length];
-    std::memcpy(payload2.data, content.data(), payload2.length);
+    payload2.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
 
     payload_pool_->get_payload(payload2, data2->payload);
     payload2.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
@@ -443,8 +440,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_repeated)
 
     payload.length = static_cast<uint32_t>(content.length());
     payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = new unsigned char[payload.length];
-    std::memcpy(payload.data, content.data(), payload.length);
+    payload.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
 
     payload_pool_->get_payload(payload, data->payload);
     payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
