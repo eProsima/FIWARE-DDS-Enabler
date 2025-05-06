@@ -23,7 +23,6 @@
   <depend>ddspipe_core</depend>
   <depend>ddspipe_participants</depend>
   <depend>ddspipe_yaml</depend>
-  <depend>ddsenabler_yaml</depend>
 
   <doc_depend>doxygen</doc_depend>
 

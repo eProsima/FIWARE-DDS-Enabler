@@ -7,8 +7,8 @@ on:
 
 jobs:
 
-  reusable_tests_v3:
-    name: reusable_tests_v3
+  reusable_tests:
+    name: reusable_tests
     uses: ./.github/workflows/reusable-windows-ci.yml
     with:
       dependencies_artifact_postfix: '_nightly'

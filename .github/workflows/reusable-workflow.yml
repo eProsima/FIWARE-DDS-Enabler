@@ -76,7 +76,7 @@ jobs:
           workspace_dependencies: install
           ctest_args: --label-exclude "xfail"
           colcon_meta_file: src/.github/workflows/configurations/${{ runner.os }}/colcon.meta
-          test_report_artifact: test_report${{ inputs.dependencies_artifact_postfix }}_v3_${{ inputs.os }}_${{ matrix.cmake_build_type }}
+          test_report_artifact: test_report${{ inputs.dependencies_artifact_postfix }}_${{ inputs.os }}_${{ matrix.cmake_build_type }}
 
 
       - name: Test Report

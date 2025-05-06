@@ -102,7 +102,7 @@ jobs:
           cmake_build_type: Debug
           cmake_args: -DBUILD_TESTS=ON -DASAN_BUILD=ON
           ctest_args: --label-exclude "xfail|xtsan"
-          test_report_artifact: test_report_asan${{ inputs.dependencies_artifact_postfix }}_v3
+          test_report_artifact: test_report_asan${{ inputs.dependencies_artifact_postfix }}
 
 
       - name: Test Report
@@ -149,7 +149,7 @@ jobs:
           cmake_build_type: Debug
           cmake_args: -DBUILD_TESTS=ON -DTSAN_BUILD=ON
           ctest_args: --label-exclude "xfail|xasan"
-          test_report_artifact: test_report_tsan${{ inputs.dependencies_artifact_postfix }}_v3
+          test_report_artifact: test_report_tsan${{ inputs.dependencies_artifact_postfix }}
 
 #####################################################################
 # CLANG

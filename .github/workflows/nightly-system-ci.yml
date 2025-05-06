@@ -7,14 +7,14 @@ on:
 
 jobs:
 
-  reusable_docker_tests_v3:
-    name: reusable_docker_tests_v3
+  reusable_docker_tests:
+    name: reusable_docker_tests
     uses: ./.github/workflows/docker-reusable-workflow.yml
     with:
-      fastcdr_branch: '2.x'
-      fastdds_branch: '3.x'
-      devutils_branch: '1.x'
-      ddspipe_branch: '1.x'
+      fastcdr_branch: 'master'
+      fastdds_branch: 'feature/json-deserialize'
+      devutils_branch: 'main'
+      ddspipe_branch: 'main'
       ddsenabler_branch: 'master'
       dependencies_artifact_postfix: '_nightly'
       ref: 'main'

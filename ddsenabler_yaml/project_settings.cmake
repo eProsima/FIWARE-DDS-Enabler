@@ -29,7 +29,8 @@ set(MODULE_FIND_PACKAGES
     cpp_utils
     ddspipe_core
     ddspipe_participants
-    ddspipe_yaml)
+    ddspipe_yaml
+    ddsenabler_participants)
 
 set(MODULE_DEPENDENCIES
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>

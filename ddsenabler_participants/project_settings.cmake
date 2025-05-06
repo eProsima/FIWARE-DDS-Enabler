@@ -29,8 +29,7 @@ set(MODULE_FIND_PACKAGES
     cpp_utils
     ddspipe_core
     ddspipe_participants
-    ddspipe_yaml
-    ddsenabler_yaml)
+    ddspipe_yaml)
 
 set(fastdds_MINIMUM_VERSION "3.0.0")
 
