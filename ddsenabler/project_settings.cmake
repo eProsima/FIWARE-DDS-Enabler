@@ -34,7 +34,15 @@ set(MODULE_FIND_PACKAGES
     ddsenabler_yaml)
 
 set(MODULE_DEPENDENCIES
-    ${MODULE_FIND_PACKAGES})
+    yaml-cpp
+    fastcdr
+    fastdds
+    cpp_utils
+    ddspipe_core
+    ddspipe_participants
+    ddspipe_yaml
+    ddsenabler_participants
+    ddsenabler_yaml)
 
 set(MODULE_THIRDPARTY_HEADERONLY
     nlohmann-json
@@ -48,6 +56,3 @@ set(MODULE_LICENSE_FILE_PATH
 
 set(MODULE_VERSION_FILE_PATH
     "../VERSION")
-
-set(MODULE_CPP_VERSION
-    C++17)

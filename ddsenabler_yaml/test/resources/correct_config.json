@@ -13,9 +13,9 @@
             "error": "DDSENABLER_ERROR",
             "warning": "DDSENABLER_WARNING",
             "info": "DDSENABLER_INFO"
-            }
           }
         }
       }
     }
   }
+}

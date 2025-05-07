@@ -28,6 +28,8 @@
 #include <cpp_utils/types/Fuzzy.hpp>
 #include <cpp_utils/utils.hpp>
 
+#include <ddspipe_core/logging/DdsLogConsumer.hpp>
+
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 #include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
@@ -38,7 +40,7 @@ using namespace eprosima::ddsenabler;
 
 namespace eprosima {
 namespace ddsenabler {
-        
+
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,

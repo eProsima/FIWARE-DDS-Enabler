@@ -93,14 +93,14 @@ DDSEnabler::DDSEnabler(
         thread_pool_);
 }
 
-void DDSEnabler::set_file_watcher(
+bool DDSEnabler::set_file_watcher(
         const std::string& file_path)
 {
     if (file_path.empty())
     {
-        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
-                "Error when stablishing file watcher. Configuration file path is empty.");
-        return;
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to set file watcher. Configuration file path is empty.");
+        return false;
     }
 
     // Callback will reload configuration and pass it to DdsPipe
@@ -115,10 +115,18 @@ void DDSEnabler::set_file_watcher(
                 {
                     eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
                     auto ret = this->reload_configuration(new_configuration);
-                    if(ret == utils::ReturnCode::RETCODE_OK)
+                    if (ret == utils::ReturnCode::RETCODE_OK)
+                    {
                         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "Configuration reloaded successfully");
+                    }
+                    else if (ret == utils::ReturnCode::RETCODE_NO_DATA)
+                    {
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "No relevant changes in configuration file " << file_path);
+                    }
                     else
-                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Reloading internal dds pipe configuration from file " << file_path << " failed");
+                    {
+                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Failed to reload configuration from file " << file_path);
+                    }
                 }
                 catch (const std::exception& e)
                 {
@@ -129,6 +137,8 @@ void DDSEnabler::set_file_watcher(
 
     // Creating FileWatcher event handler
     file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback, file_path);
+
+    return true;
 }
 
 utils::ReturnCode DDSEnabler::reload_configuration(
@@ -137,10 +147,13 @@ utils::ReturnCode DDSEnabler::reload_configuration(
     // Load the Enabler's internal topics from a configuration object.
     load_internal_topics_(new_configuration);
 
-    // Update the Enabler's configuration
-    configuration_ = new_configuration;
-
-    return pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+    auto ret = pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+    if (ret == utils::ReturnCode::RETCODE_OK)
+    {
+        // Update the Enabler's configuration
+        configuration_ = new_configuration;
+    }
+    return ret;
 }
 
 void DDSEnabler::load_internal_topics_(

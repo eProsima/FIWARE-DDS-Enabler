@@ -91,11 +91,12 @@ public:
     {
         const char* yml_str =
                 R"(
-                topics:
-                  name: "*"
-                  qos:
-                    durability: TRANSIENT_LOCAL
-                    history-depth: 10
+                dds:
+                  topics:
+                    - name: "*"
+                      qos:
+                        durability: true
+                        history-depth: 10
             )";
         eprosima::Yaml yml = YAML::Load(yml_str);
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);

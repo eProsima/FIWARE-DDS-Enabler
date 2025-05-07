@@ -14,13 +14,12 @@
 
 #include <gtest/gtest.h>
 
-//#include "DDSEnablerTester.hpp"
 #include "dds_enabler_runner.hpp"
 
-#include <fstream>
 #include <filesystem>
-#include <string>
+#include <fstream>
 #include <sstream>
+#include <string>
 
 // Static type callback
 void type_callback(
@@ -48,14 +47,21 @@ void write_json_file(const std::string filePath, bool block) {
   "dds": {
     "ddsmodule": {
       "dds": {
-        "domain": 0%s
-      },
-      "topics": {
-        "name": "*",
-        "qos": {
-          "durability": "TRANSIENT_LOCAL",
-          "history-depth": 10
-        }
+        "domain": 0,
+        "allowlist": [
+          {
+            "name": "*"
+          }
+        ],%s
+        "topics": [
+          {
+            "name": "*",
+            "qos": {
+            "durability": true,
+            "history-depth": 10
+            }
+          }
+        ]
       }
     }
   }
@@ -63,7 +69,7 @@ void write_json_file(const std::string filePath, bool block) {
 
     // Replace the %d placeholder with the provided domain
     char buffer[1024];
-    snprintf(buffer, sizeof(buffer), jsonTemplate.c_str(), block ? ",\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]" : "");
+    snprintf(buffer, sizeof(buffer), jsonTemplate.c_str(), block ? "\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]," : "");
 
     // Write the formatted JSON to the file
     std::ofstream outFile(filePath);
@@ -117,7 +123,7 @@ public:
     const void get_allowed_topics(std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const {
         ptr = std::make_shared<ddspipe::core::AllowedTopicList>(
             this->configuration_.ddspipe_configuration.allowlist,
-            this->configuration_.ddspipe_configuration.blocklist); 
+            this->configuration_.ddspipe_configuration.blocklist);
     }
 };
 
@@ -125,12 +131,11 @@ public:
 TEST(ReloadConfig, json)
 {
     auto configfile = "./file_watcher_test.json";
-    write_json_file(configfile, 0);
-    
+    write_json_file(configfile, false);
+
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler);
-    ASSERT_TRUE(result);
+    ASSERT_TRUE(create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
@@ -138,9 +143,9 @@ TEST(ReloadConfig, json)
     // Take initial configuration (allowed topics)
     std::shared_ptr<ddspipe::core::AllowedTopicList> allowed_topics_init;
     enabler_accessor->get_allowed_topics(allowed_topics_init);
-    
+
     // Modify configuration file
-    write_json_file(configfile, 1);
+    write_json_file(configfile, true);
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // Take final configuration (allowed topics)
@@ -166,11 +171,11 @@ TEST(ReloadConfig, yaml)
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
-    
+
     // Take initial configuration (allowed topics)
     std::shared_ptr<ddspipe::core::AllowedTopicList> allowed_topics_init;
     enabler_accessor->get_allowed_topics(allowed_topics_init);
-    
+
     // Modify configuration file
     write_yaml_file(configfile, 1);
     std::this_thread::sleep_for(std::chrono::seconds(1));

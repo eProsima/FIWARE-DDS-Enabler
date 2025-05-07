@@ -32,13 +32,6 @@ set(MODULE_FIND_PACKAGES
     ddspipe_yaml
     ddsenabler_participants)
 
-if(WIN32)
-    set(MODULE_FIND_PACKAGES
-        ${MODULE_FIND_PACKAGES}
-        lz4
-        zstd)
-endif()
-
 set(MODULE_DEPENDENCIES
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
     yaml-cpp
@@ -48,9 +41,7 @@ set(MODULE_DEPENDENCIES
     ddspipe_core
     ddspipe_participants
     ddspipe_yaml
-    ddsenabler_participants
-    $<IF:$<BOOL:${WIN32}>,lz4::lz4,lz4>
-    $<IF:$<BOOL:${WIN32}>,$<IF:$<TARGET_EXISTS:zstd::libzstd_shared>,zstd::libzstd_shared,zstd::libzstd_static>,zstd>)
+    ddsenabler_participants)
 
 set(MODULE_THIRDPARTY_HEADERONLY
     nlohmann-json
@@ -58,6 +49,3 @@ set(MODULE_THIRDPARTY_HEADERONLY
 
 set(MODULE_THIRDPARTY_PATH
 "../thirdparty")
-
-set(MODULE_CPP_VERSION
-    C++17)

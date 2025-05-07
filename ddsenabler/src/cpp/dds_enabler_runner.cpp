@@ -59,26 +59,34 @@ bool create_dds_enabler(
         }
 
         // Logging
-        if(log_callback != nullptr){
-            // Disable stdout always
-            configuration.ddspipe_configuration.log_configuration.stdout_enable = false;
+        {
             const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
 
             eprosima::utils::Log::ClearConsumers();
             eprosima::utils::Log::SetVerbosity(log_configuration.verbosity);
 
-            // DDS Enabler Log Consumer
-            auto* log_consumer = new eprosima::ddsenabler::participants::DDSEnablerLogConsumer(&log_configuration);
-            log_consumer->set_log_callback(log_callback);
+            if (log_callback)
+            {
+                // User callback Log Consumer
+                auto* log_consumer = new eprosima::ddsenabler::participants::DDSEnablerLogConsumer(&log_configuration);
+                log_consumer->set_log_callback(log_callback);
 
-            eprosima::utils::Log::RegisterConsumer(
-                std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
+                eprosima::utils::Log::RegisterConsumer(
+                    std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
+            }
 
             // Std Log Consumer
             if (log_configuration.stdout_enable)
             {
                 eprosima::utils::Log::RegisterConsumer(
                     std::make_unique<eprosima::utils::StdLogConsumer>(&log_configuration));
+            }
+
+            // DDS Log Consumer
+            if (log_configuration.publish.enable)
+            {
+                eprosima::utils::Log::RegisterConsumer(
+                    std::make_unique<eprosima::ddspipe::core::DdsLogConsumer>(&log_configuration));
             }
         }
 
@@ -95,7 +103,14 @@ bool create_dds_enabler(
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
         enabler->set_data_callback(data_callback);
         enabler->set_type_callback(type_callback);
-        enabler->set_file_watcher(dds_enabler_config_file);
+
+        // Set the file watcher to reload the configuration if the file changes
+        if (!enabler->set_file_watcher(dds_enabler_config_file))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Failed to set file watcher.");
+            return false;
+        }
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");

@@ -78,11 +78,13 @@ public:
     }
 
     /**
-     * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
-     * 
+     * Associate the file watcher to the configuration file and establish the callback to reload the configuration.
+     *
      * @param file_path: The path to the configuration file.
+     *
+     * @return \c true if operation was succesful, \c false otherwise.
      */
-    void set_file_watcher(
+    bool set_file_watcher(
             const std::string& file_path);
 
     /**
@@ -92,6 +94,7 @@ public:
      *
      * @return \c RETCODE_OK if allowed topics list has been updated correctly
      * @return \c RETCODE_NO_DATA if new allowed topics list is the same as the previous one
+     * @return \c RETCODE_ERROR if any other error has occurred.
      */
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);

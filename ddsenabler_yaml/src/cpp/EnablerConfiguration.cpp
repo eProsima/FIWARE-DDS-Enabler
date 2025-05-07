@@ -47,10 +47,26 @@ using namespace eprosima::ddspipe::participants;
 using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
-// Helper method to recognize if the configuration file is in JSON format
-bool is_json(const std::string& file_path)
+// Helper method to check if the configuration file is in JSON format
+bool is_json(
+        const std::string& file_path)
 {
-    return file_path.size() >= 5 && (file_path.substr(file_path.size() - 5) == ".json" || file_path.substr(file_path.size() - 5) == ".JSON");
+    std::ifstream file(file_path);
+    if (!file.is_open())
+    {
+        return false;
+    }
+
+    try
+    {
+        nlohmann::json j;
+        file >> j;
+    } catch (nlohmann::json::parse_error& e)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -110,10 +126,10 @@ YAML::Node convert_json_to_yaml(
 EnablerConfiguration::EnablerConfiguration(
         const std::string& file_path)
 {
-    if(is_json(file_path))
+    if (is_json(file_path))
     {
         load_ddsenabler_configuration_from_json_file(file_path);
-    }else
+    } else
     {
         load_ddsenabler_configuration_from_yaml_file(file_path);
     }

@@ -12,14 +12,16 @@
           {
             "name": "add_blocked_topics_list_here"
           }
+        ],
+        "topics": [
+          {
+            "name": "*",
+            "qos": {
+            "durability": true,
+            "history-depth": 10
+            }
+          }
         ]
-      },
-      "topics": {
-        "name": "*",
-        "qos": {
-          "durability": "TRANSIENT_LOCAL",
-          "history-depth": 10
-        }
       },
       "ddsenabler": null,
       "specs": {
