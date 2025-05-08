@@ -42,10 +42,10 @@ struct KnownType
 
 const unsigned int DOMAIN_ = 33;
 static int num_samples_ =  1;
-static int wait_after_writer_creation_ms_ =  800;
+static int wait_after_writer_creation_ms_ =  300;
 static int write_delay_ms_ =  20;
 static int wait_for_ack_ns_ =  1000000000;
-static int wait_after_publication_ms_ =  800;
+static int wait_after_publication_ms_ =  200;
 
 class DDSEnablerTester : public ::testing::Test
 {
@@ -245,7 +245,6 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_publication_ms_));
 
         return true;
     }
