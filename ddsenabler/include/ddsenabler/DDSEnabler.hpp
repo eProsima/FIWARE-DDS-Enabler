@@ -141,6 +141,9 @@ protected:
 
     //! Config File watcher handler
     std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler_;
+
+    //! Mutex to protect class attributes
+    mutable std::mutex mutex_;
 };
 
 } /* namespace ddsenabler */

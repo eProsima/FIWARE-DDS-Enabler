@@ -144,6 +144,8 @@ bool DDSEnabler::set_file_watcher(
 utils::ReturnCode DDSEnabler::reload_configuration(
         yaml::EnablerConfiguration& new_configuration)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     // Load the Enabler's internal topics from a configuration object.
     load_internal_topics_(new_configuration);
 

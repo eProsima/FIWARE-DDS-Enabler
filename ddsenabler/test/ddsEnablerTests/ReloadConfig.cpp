@@ -121,6 +121,7 @@ class DDSEnablerAccessor : public DDSEnabler {
 public:
     using DDSEnabler::DDSEnabler;
     const void get_allowed_topics(std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const {
+        std::lock_guard<std::mutex> lock(mutex_);
         ptr = std::make_shared<ddspipe::core::AllowedTopicList>(
             this->configuration_.ddspipe_configuration.allowlist,
             this->configuration_.ddspipe_configuration.blocklist);
