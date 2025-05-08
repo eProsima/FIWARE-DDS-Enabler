@@ -40,7 +40,7 @@ struct KnownType
     DataWriter* writer_ = nullptr;
 };
 
-const unsigned int DOMAIN_ = 0;
+const unsigned int DOMAIN_ = 33;
 static int num_samples_ =  1;
 static int write_delay_ =  20; // Values below 10 might cause flaky results
 
@@ -74,6 +74,7 @@ public:
         YAML::Node yml;
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+        configuration.simple_configuration->domain = DOMAIN_;
 
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
@@ -100,6 +101,7 @@ public:
             )";
         eprosima::Yaml yml = YAML::Load(yml_str);
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+        configuration.simple_configuration->domain = DOMAIN_;
 
         eprosima::utils::Formatter error_msg;
         if (!configuration.is_valid(error_msg))
@@ -122,7 +124,7 @@ public:
             KnownType& a_type)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
-                        ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+                        ->create_participant(DOMAIN_, PARTICIPANT_QOS_DEFAULT);
         if (participant == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
@@ -171,7 +173,7 @@ public:
             int history_depth)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
-                        ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+                        ->create_participant(DOMAIN_, PARTICIPANT_QOS_DEFAULT);
         if (participant == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
