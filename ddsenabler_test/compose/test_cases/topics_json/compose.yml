@@ -1,0 +1,37 @@
+# Test description:
+#   expected_types_ = 1
+#   expected_data_ = 1
+#   timeout_seconds = 10
+#   config_file_path_: allowed only /chatter topic
+#   This test case checks the DDS Enabler receives only the chatter topic
+#   which publishes only 1 msg in ROS2 domain 1.
+
+services:
+
+  # ENABLER
+  ddsenabler:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: ddsenabler
+    networks:
+      - std_net
+    volumes:
+      - ./config.json:/config/config.json
+    command: ./build/ddsenabler/examples/ddsenabler_example 1 1 10 /config/config.json
+
+  talker:
+    image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
+    container_name: talker
+    depends_on:
+      - ddsenabler
+    networks:
+      - std_net
+    environment:
+      - ROS_DOMAIN_ID=1
+    volumes:
+      - ../../scripts:/scripts
+    command: ros2 topic pub /chatter std_msgs/msg/String "{}" --once --spin-time 3
+
+networks:
+  std_net:
+  default:
+    driver: none

@@ -14,7 +14,8 @@
 
 # Name of files to test
 set(TESTS
-    topics
+    topics_yaml
+    topics_json
 )
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_cases DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
