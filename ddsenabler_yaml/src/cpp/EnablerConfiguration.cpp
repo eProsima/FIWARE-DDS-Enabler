@@ -61,14 +61,14 @@ bool is_json(
     {
         nlohmann::json j;
         file >> j;
-    } catch (nlohmann::json::parse_error& e)
+    }
+    catch (nlohmann::json::parse_error& e)
     {
         return false;
     }
 
     return true;
 }
-
 
 // Helper method to handle nlohmann::json to YAML conversion
 YAML::Node convert_json_to_yaml(
@@ -131,6 +131,13 @@ EnablerConfiguration::EnablerConfiguration(
         load_ddsenabler_configuration_from_json_file(file_path);
     } else
     {
+        if (file_path.size() >= 5 &&
+                (file_path.substr(file_path.size() - 5) == ".json" ||
+                file_path.substr(file_path.size() - 5) == ".JSON"))
+        {
+            EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
+                    "Failed to parse JSON configuration, treating as YAML.");
+        }
         load_ddsenabler_configuration_from_yaml_file(file_path);
     }
 }
