@@ -34,14 +34,7 @@ set(MODULE_FIND_PACKAGES
 
 set(MODULE_DEPENDENCIES
     $<$<BOOL:${WIN32}>:iphlpapi$<SEMICOLON>Shlwapi>
-    yaml-cpp
-    fastcdr
-    fastdds
-    cpp_utils
-    ddspipe_core
-    ddspipe_participants
-    ddspipe_yaml
-    ddsenabler_participants)
+    ${MODULE_FIND_PACKAGES})
 
 set(MODULE_THIRDPARTY_HEADERONLY
     nlohmann-json
@@ -49,3 +42,6 @@ set(MODULE_THIRDPARTY_HEADERONLY
 
 set(MODULE_THIRDPARTY_PATH
 "../thirdparty")
+
+set(MODULE_CPP_VERSION
+    C++17)

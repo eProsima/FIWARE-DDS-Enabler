@@ -21,8 +21,6 @@
 #include <filesystem>
 #include <vector>
 
-#include <yaml-cpp/yaml.h>
-
 #include <fastdds/dds/topic/TypeSupport.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
