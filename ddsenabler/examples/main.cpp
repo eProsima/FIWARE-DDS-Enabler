@@ -30,6 +30,7 @@ uint32_t received_types_ = 0;
 uint32_t received_data_ = 0;
 std::mutex type_received_mutex_;
 std::mutex data_received_mutex_;
+bool stop_app_ = false;
 
 // Static type callback
 static void test_type_callback(
@@ -72,6 +73,13 @@ int get_received_data()
     return received_data_;
 }
 
+void signal_handler(
+        int signum)
+{
+    std::cout << "Signal " << CLIParser::parse_signal(signum) << " received, stopping..." << std::endl;
+    stop_app_ = true;
+}
+
 int main(
         int argc,
         char** argv)
@@ -81,12 +89,23 @@ int main(
     std::unique_ptr<DDSEnabler> enabler;
     create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, nullptr, enabler);
 
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+#ifndef _WIN32
+    signal(SIGQUIT, signal_handler);
+    signal(SIGHUP, signal_handler);
+#endif // _WIN32
+
     // Loop until timeout seconds
     auto end_time = std::chrono::steady_clock::now() + std::chrono::seconds(config.timeout_seconds);
     while (std::chrono::steady_clock::now() < end_time)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (get_received_types() >= config.expected_types_ &&
+        if (stop_app_)
+        {
+            return EXIT_SUCCESS;
+        }
+        else if (get_received_types() >= config.expected_types_ &&
                 get_received_data() >= config.expected_data_)
         {
             std::cout << "Received enough data, stopping..." << std::endl;
