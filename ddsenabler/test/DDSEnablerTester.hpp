@@ -42,7 +42,10 @@ struct KnownType
 
 const unsigned int DOMAIN_ = 33;
 static int num_samples_ =  1;
-static int write_delay_ =  20; // Values below 10 might cause flaky results
+static int wait_after_writer_creation_ms_ =  800;
+static int write_delay_ms_ =  20;
+static int wait_for_ack_ns_ =  1000000000;
+static int wait_after_publication_ms_ =  800;
 
 class DDSEnablerTester : public ::testing::Test
 {
@@ -164,7 +167,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_writer_creation_ms_));
         return true;
     }
 
@@ -214,7 +217,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_writer_creation_ms_));
         return true;
     }
 
@@ -232,17 +235,17 @@ public:
                 return false;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_));
+            std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ms_));
             a_type.type_sup_.delete_data(sample);
         }
 
-        if (RETCODE_OK != a_type.writer_->wait_for_acknowledgments(Duration_t(0, 1000000000)))
+        if (RETCODE_OK != a_type.writer_->wait_for_acknowledgments(Duration_t(0, wait_for_ack_ns_)))
         {
             std::cout << "ERROR DDSEnablerTester: fail waiting for acknowledgments: " <<
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_publication_ms_));
 
         return true;
     }
