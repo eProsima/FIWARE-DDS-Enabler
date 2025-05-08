@@ -1,5 +1,5 @@
 dds:
-  domain: 0
+  domain: 2
 
   allowlist:
     - name: "rt/chatter"

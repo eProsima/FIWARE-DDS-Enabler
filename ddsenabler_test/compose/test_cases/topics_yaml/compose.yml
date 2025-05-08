@@ -26,7 +26,7 @@ services:
     networks:
       - std_net
     environment:
-      - ROS_DOMAIN_ID=0
+      - ROS_DOMAIN_ID=2
     volumes:
       - ../../scripts:/scripts
     command: ros2 topic pub /chatter std_msgs/msg/String "{}" --once --spin-time 3
