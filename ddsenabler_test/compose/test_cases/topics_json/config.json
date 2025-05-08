@@ -12,7 +12,7 @@
           {
             "name": "*",
             "qos": {
-            "durability": true,
+            "durability": false,
             "history-depth": 10
             }
           }
