@@ -78,15 +78,8 @@ int main(
 {
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(config.config_file_path_);
-
-    auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
-
-    auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
-
-    // Bind the static callbacks (no captures allowed)
-    enabler->set_data_callback(test_data_callback);
-    enabler->set_type_callback(test_type_callback);
+    std::unique_ptr<DDSEnabler> enabler;
+    create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, nullptr, enabler);
 
     // Loop until timeout seconds
     auto end_time = std::chrono::steady_clock::now() + std::chrono::seconds(config.timeout_seconds);
