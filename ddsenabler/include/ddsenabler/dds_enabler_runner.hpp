@@ -13,16 +13,12 @@
 // limitations under the License.
 
 /**
- * @file intDDSEnabler.hpp
+ * @file dds_enabler_runner.hpp
  *
  */
 
 #pragma once
 
-#include <cpp_utils/event/FileWatcherHandler.hpp>
-#include <cpp_utils/event/MultipleEventHandler.hpp>
-#include <cpp_utils/event/PeriodicEventHandler.hpp>
-#include <cpp_utils/event/SignalEventHandler.hpp>
 #include <cpp_utils/exception/ConfigurationException.hpp>
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/logging/BaseLogConfiguration.hpp>
@@ -31,6 +27,8 @@
 #include <cpp_utils/time/time_utils.hpp>
 #include <cpp_utils/types/Fuzzy.hpp>
 #include <cpp_utils/utils.hpp>
+
+#include <ddspipe_core/logging/DdsLogConsumer.hpp>
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 #include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
@@ -43,20 +41,12 @@ using namespace eprosima::ddsenabler;
 namespace eprosima {
 namespace ddsenabler {
 
-std::unique_ptr<eprosima::utils::event::FileWatcherHandler> create_filewatcher(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path);
-
-std::unique_ptr<eprosima::utils::event::PeriodicEventHandler> create_periodic_handler(
-        const std::unique_ptr<DDSEnabler>& enabler,
-        const std::string& file_path,
-        const eprosima::utils::Duration_ms& reload_time);
-
-int init_dds_enabler(
+bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
         participants::DdsTypeNotification type_callback,
-        participants::DdsLogFunc log_callback);
+        participants::DdsLogFunc log_callback,
+        std::unique_ptr<DDSEnabler>& enabler);
 
 
 } /* namespace ddsenabler */

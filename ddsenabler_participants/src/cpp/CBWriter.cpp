@@ -16,6 +16,8 @@
  * @file CBWriter.cpp
  */
 
+#include <nlohmann/json.hpp>
+
 #include <cpp_utils/utils.hpp>
 
 #include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>

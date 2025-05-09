@@ -6,6 +6,14 @@
 DEBUG_MODE=0
 BUILD_TESTS=0
 
+# Function to check for errors
+check_command() {
+    if [[ $? -ne 0 ]]; then
+        echo "Error: $1 failed. Exiting."
+        exit 1
+    fi
+}
+
 # Parse input arguments
 for arg in "$@"
 do
@@ -34,7 +42,10 @@ install_module() {
 
     # Create build directory
     mkdir -p build/${module_name}
+    check_command "Creating build directory for ${module_name}"
+
     cd build/${module_name}
+    check_command "Entering build directory for ${module_name}"
 
     # Base cmake command
     cmake_cmd="cmake ../../${module_name}"
@@ -50,13 +61,18 @@ install_module() {
     fi
 
     # Run the cmake command
+    echo "Running cmake command: $cmake_cmd"
     eval $cmake_cmd
+    check_command "CMake configuration for ${module_name}"
 
     # Build and install the module
+    echo "Building and installing ${module_name}..."
     sudo cmake --build . --target install
+    check_command "Building and installing ${module_name}"
 
     # Go back to the root directory
     cd ../..
+    check_command "Returning to root directory"
 }
 
 # Install modules
@@ -64,4 +80,4 @@ install_module "ddsenabler_participants"
 install_module "ddsenabler_yaml"
 install_module "ddsenabler"
 
-echo "Installation completed."
+echo "Installation completed successfully."

@@ -93,16 +93,69 @@ DDSEnabler::DDSEnabler(
         thread_pool_);
 }
 
+bool DDSEnabler::set_file_watcher(
+        const std::string& file_path)
+{
+    if (file_path.empty())
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to set file watcher. Configuration file path is empty.");
+        return false;
+    }
+
+    // Callback will reload configuration and pass it to DdsPipe
+    // WARNING: it is needed to pass file_path, as FileWatcher only retrieves file_name
+    std::function<void(std::string)> file_watcher_callback =
+            [this, file_path]
+                (std::string file_name)
+            {
+                EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
+                        "FileWatcher notified changes in file " << file_path << ". Reloading configuration");
+                try
+                {
+                    eprosima::ddsenabler::yaml::EnablerConfiguration new_configuration(file_path);
+                    auto ret = this->reload_configuration(new_configuration);
+                    if (ret == utils::ReturnCode::RETCODE_OK)
+                    {
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "Configuration reloaded successfully");
+                    }
+                    else if (ret == utils::ReturnCode::RETCODE_NO_DATA)
+                    {
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "No relevant changes in configuration file " << file_path);
+                    }
+                    else
+                    {
+                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Failed to reload configuration from file " << file_path);
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
+                            "Error reloading configuration file " << file_path << " with error: " << e.what());
+                }
+            };
+
+    // Creating FileWatcher event handler
+    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback, file_path);
+
+    return true;
+}
+
 utils::ReturnCode DDSEnabler::reload_configuration(
         yaml::EnablerConfiguration& new_configuration)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+
     // Load the Enabler's internal topics from a configuration object.
     load_internal_topics_(new_configuration);
 
-    // Update the Enabler's configuration
-    configuration_ = new_configuration;
-
-    return pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+    auto ret = pipe_->reload_configuration(new_configuration.ddspipe_configuration);
+    if (ret == utils::ReturnCode::RETCODE_OK)
+    {
+        // Update the Enabler's configuration
+        configuration_ = new_configuration;
+    }
+    return ret;
 }
 
 void DDSEnabler::load_internal_topics_(

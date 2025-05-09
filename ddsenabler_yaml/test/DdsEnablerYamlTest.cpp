@@ -15,6 +15,8 @@
 #include <cpp_utils/testing/gtest_aux.hpp>
 #include <gtest/gtest.h>
 
+#include <nlohmann/json.hpp>
+
 #include <ddspipe_yaml/YamlReader.hpp>
 
 #include <EnablerConfiguration.hpp>
@@ -96,7 +98,6 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_n_threads_configuration_yaml)
     EXPECT_THROW({EnablerConfiguration configuration(yml);}, std::exception);
 }
 
-
 TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
 {
     const char* yml_str =
@@ -114,11 +115,78 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
     ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
 }
 
-TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
+TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_json)
 {
-    const char* path_str = "incorrect/path/file";
+    const char* path_str = "incorrect/path/file.json";
 
     EXPECT_THROW({EnablerConfiguration configuration(path_str);}, eprosima::utils::ConfigurationException);
+}
+
+TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_json)
+{
+    const char* path_str = "./resources/correct_config.json";
+    
+    ASSERT_TRUE(std::filesystem::exists(path_str));
+
+    EnablerConfiguration configuration(path_str);
+
+    utils::Formatter error_msg;
+
+    ASSERT_TRUE(configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.n_threads, 12);
+
+    ASSERT_TRUE(configuration.ddspipe_configuration.log_configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.verbosity.get_value(), utils::VerbosityKind::Info);
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Error].get_value(),
+            "DDSENABLER_ERROR");
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Warning].get_value(),
+            "DDSENABLER_WARNING");
+    ASSERT_EQ(configuration.ddspipe_configuration.log_configuration.filter[utils::VerbosityKind::Info].get_value(),
+            "DDSENABLER_INFO");
+}
+
+TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_n_threads_configuration_json)
+{
+    const char* path_str = "./resources/incorrect_threads_config.json";
+    
+    ASSERT_TRUE(std::filesystem::exists(path_str));
+
+    EXPECT_THROW({EnablerConfiguration configuration(path_str);}, std::exception);
+}
+
+TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_json)
+{
+    const char* path_str = "./resources/default_config.json";
+
+    ASSERT_TRUE(std::filesystem::exists(path_str));
+
+    EnablerConfiguration configuration(path_str);
+
+    utils::Formatter error_msg;
+
+    ASSERT_TRUE(configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
+}
+
+TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
+{
+    const char* path_str = "incorrect/path/file.yaml";
+
+    EXPECT_THROW({EnablerConfiguration configuration(path_str);}, eprosima::utils::ConfigurationException);
+}
+
+TEST(DdsEnablerYamlTest, get_ddsenabler_full_configuration_json)
+{
+    const char* path_str = "./resources/correct_config.json";
+    
+    ASSERT_TRUE(std::filesystem::exists(path_str));
+
+    EnablerConfiguration configuration(path_str);
+
+    utils::Formatter error_msg;
+
+    ASSERT_TRUE(configuration.is_valid(error_msg));
+    ASSERT_EQ(configuration.n_threads, 12);
 }
 
 int main(

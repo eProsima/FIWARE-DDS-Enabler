@@ -1,0 +1,21 @@
+{
+  "dds": {
+    "ddsmodule": {
+      "dds": {
+        "domain": 0
+      },
+      "ddsenabler": null,
+      "specs": {
+        "threads": "error",
+        "logging": {
+          "verbosity": "info",
+          "filter": {
+            "error": "DDSENABLER_ERROR",
+            "warning": "DDSENABLER_WARNING",
+            "info": "DDSENABLER_INFO"
+          }
+        }
+      }
+    }
+  }
+}

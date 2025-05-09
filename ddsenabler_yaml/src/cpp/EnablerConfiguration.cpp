@@ -17,6 +17,10 @@
  *
  */
 
+#include <fstream>
+
+#include <nlohmann/json.hpp>
+
 #include <cpp_utils/Log.hpp>
 #include <cpp_utils/utils.hpp>
 
@@ -43,16 +47,105 @@ using namespace eprosima::ddspipe::participants;
 using namespace eprosima::ddspipe::participants::types;
 using namespace eprosima::ddspipe::yaml;
 
-EnablerConfiguration::EnablerConfiguration(
-        const Yaml& yml)
+// Helper method to check if the configuration file is in JSON format
+bool is_json(
+        const std::string& file_path)
 {
-    load_ddsenabler_configuration_(yml);
+    std::ifstream file(file_path);
+    if (!file.is_open())
+    {
+        return false;
+    }
+
+    try
+    {
+        nlohmann::json j;
+        file >> j;
+    }
+    catch (nlohmann::json::parse_error& e)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// Helper method to handle nlohmann::json to YAML conversion
+YAML::Node convert_json_to_yaml(
+        const nlohmann::json& json)
+{
+    YAML::Node yaml_node;
+
+    for (auto& element : json.items())
+    {
+        if (element.value().is_object())
+        {
+            // Recursively convert nested objects
+            yaml_node[element.key()] = convert_json_to_yaml(element.value());
+        }
+        else if (element.value().is_array())
+        {
+            // Handle arrays
+            YAML::Node arrayNode;
+            for (const auto& item : element.value())
+            {
+                arrayNode.push_back(convert_json_to_yaml(item));
+            }
+            yaml_node[element.key()] = arrayNode;
+        }
+        else
+        {
+            // Handle basic data types explicitly
+            if (element.value().is_string())
+            {
+                yaml_node[element.key()] = element.value().get<std::string>();
+            }
+            else if (element.value().is_number_integer())
+            {
+                yaml_node[element.key()] = element.value().get<int>();
+            }
+            else if (element.value().is_number_float())
+            {
+                yaml_node[element.key()] = element.value().get<double>();
+            }
+            else if (element.value().is_boolean())
+            {
+                yaml_node[element.key()] = element.value().get<bool>();
+            }
+            else
+            {
+                // Fallback for any other types (like null)
+                yaml_node[element.key()] = "";
+            }
+        }
+    }
+
+    return yaml_node;
 }
 
 EnablerConfiguration::EnablerConfiguration(
         const std::string& file_path)
 {
-    load_ddsenabler_configuration_from_file_(file_path);
+    if (is_json(file_path))
+    {
+        load_ddsenabler_configuration_from_json_file(file_path);
+    } else
+    {
+        if (file_path.size() >= 5 &&
+                (file_path.substr(file_path.size() - 5) == ".json" ||
+                file_path.substr(file_path.size() - 5) == ".JSON"))
+        {
+            EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
+                    "Failed to parse JSON configuration, treating as YAML.");
+        }
+        load_ddsenabler_configuration_from_yaml_file(file_path);
+    }
+}
+
+EnablerConfiguration::EnablerConfiguration(
+        const Yaml& yml)
+{
+    load_ddsenabler_configuration(yml);
 }
 
 bool EnablerConfiguration::is_valid(
@@ -61,7 +154,7 @@ bool EnablerConfiguration::is_valid(
     return true;
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_(
+void EnablerConfiguration::load_ddsenabler_configuration(
         const Yaml& yml)
 {
     try
@@ -94,7 +187,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, ENABLER_ENABLER_TAG))
         {
             auto enabler_yml = YamlReader::get_value_in_tag(yml, ENABLER_ENABLER_TAG);
-            load_enabler_configuration_(enabler_yml, version);
+            load_enabler_configuration(enabler_yml, version);
         }
 
         /////
@@ -103,7 +196,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, SPECS_TAG))
         {
             auto specs_yml = YamlReader::get_value_in_tag(yml, SPECS_TAG);
-            load_specs_configuration_(specs_yml, version);
+            load_specs_configuration(specs_yml, version);
         }
 
         /////
@@ -111,7 +204,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         if (YamlReader::is_tag_present(yml, ENABLER_DDS_TAG))
         {
             auto dds_yml = YamlReader::get_value_in_tag(yml, ENABLER_DDS_TAG);
-            load_dds_configuration_(dds_yml, version);
+            load_dds_configuration(dds_yml, version);
         }
 
         // Block ROS 2 services (RPC) topics
@@ -144,13 +237,14 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
 
 }
 
-void EnablerConfiguration::load_enabler_configuration_(
+void EnablerConfiguration::load_enabler_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
+    //Nothing to configure yet
 }
 
-void EnablerConfiguration::load_specs_configuration_(
+void EnablerConfiguration::load_specs_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -169,7 +263,7 @@ void EnablerConfiguration::load_specs_configuration_(
     }
 }
 
-void EnablerConfiguration::load_dds_configuration_(
+void EnablerConfiguration::load_dds_configuration(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -242,7 +336,7 @@ void EnablerConfiguration::load_dds_configuration_(
     }
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
+void EnablerConfiguration::load_ddsenabler_configuration_from_yaml_file(
         const std::string& file_path)
 {
     Yaml yml;
@@ -265,7 +359,67 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_file_(
         EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                 "No configuration file specified, using default values.");
     }
-    EnablerConfiguration::load_ddsenabler_configuration_(yml);
+    EnablerConfiguration::load_ddsenabler_configuration(yml);
+}
+
+void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
+        const std::string& file_path)
+{
+    Yaml yml;
+    if (!file_path.empty())
+    {
+        try
+        {
+            // Load the JSON file
+            std::ifstream file(file_path);
+            if (!file.is_open())
+            {
+                throw eprosima::utils::ConfigurationException(
+                        utils::Formatter() << "Could not open JSON file");
+            }
+
+            // Parse the JSON file
+            nlohmann::json json;
+            file >> json;
+
+            // Close the file
+            file.close();
+
+            // Extract the "dds" part which contains "ddsmodule"
+            if (json.contains("dds") && json["dds"].is_object())
+            {
+                if (json["dds"].contains("ddsmodule") && json["dds"]["ddsmodule"].is_object())
+                {
+                    // Convert the "ddsmodule" content to YAML
+                    yml = convert_json_to_yaml(json["dds"]["ddsmodule"]);
+                }
+                else
+                {
+                    throw eprosima::utils::ConfigurationException(
+                            utils::Formatter() <<
+                                "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
+                }
+            }
+            else
+            {
+                throw eprosima::utils::ConfigurationException(
+                        utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
+            }
+
+        }
+        catch (const std::exception& e)
+        {
+            throw eprosima::utils::ConfigurationException(
+                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                        "> :\n " << e.what());
+        }
+    }
+    else
+    {
+        EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
+                "No configuration file specified, using default values.");
+    }
+    EnablerConfiguration::load_ddsenabler_configuration(yml);
 }
 
 } /* namespace yaml */

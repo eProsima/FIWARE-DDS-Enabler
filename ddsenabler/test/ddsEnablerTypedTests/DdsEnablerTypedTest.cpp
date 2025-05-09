@@ -29,7 +29,14 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
 {
 };
 
-#define DEFINE_DDSENABLER_TYPED_TEST(TestName, Type) \
+// Helper to enable macro overloading
+#define GET_MACRO(_1, _2, _3, NAME, ...) NAME
+
+#define DEFINE_DDSENABLER_TYPED_TEST_DEFAULT_SLEEP(TestName, Type) DEFINE_DDSENABLER_TYPED_TEST_CUSTOM_SLEEP(TestName, \
+            Type, \
+            wait_after_publication_ms_)
+
+#define DEFINE_DDSENABLER_TYPED_TEST_CUSTOM_SLEEP(TestName, Type, wait_after_publication_ms) \
     TEST_F(DDSEnablerTypedTest, TestName) \
     { \
         auto enabler = create_ddsenabler(); \
@@ -46,10 +53,15 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
         /* Send data */ \
         ASSERT_TRUE(send_samples(a_type)); \
 \
+        /* Wait some time for data to reach the data callback (after being received by reader) */ \
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_publication_ms)); \
+\
         ASSERT_EQ(get_received_types(), 1); \
         ASSERT_EQ(get_received_data(), num_samples_); \
     }
 
+#define DEFINE_DDSENABLER_TYPED_TEST(...) GET_MACRO(__VA_ARGS__, DEFINE_DDSENABLER_TYPED_TEST_CUSTOM_SLEEP, \
+            DEFINE_DDSENABLER_TYPED_TEST_DEFAULT_SLEEP)(__VA_ARGS__)
 
 
 // This macros are updated automatically using the update_headers_and_create_cases.py script
@@ -264,7 +276,7 @@ DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ArrayUShort, ArrayUShortPub
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ArrayUnion, ArrayUnionPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ArrayWChar, ArrayWCharPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ArrayWString, ArrayWStringPubSubType);
-DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_BoundedBigArrays, BoundedBigArraysPubSubType);
+DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_BoundedBigArrays, BoundedBigArraysPubSubType, 800);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_BoundedSmallArrays, BoundedSmallArraysPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_BitsetStruct, BitsetStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ConstsLiteralsStruct, ConstsLiteralsStructPubSubType);

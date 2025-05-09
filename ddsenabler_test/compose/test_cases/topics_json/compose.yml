@@ -4,7 +4,7 @@
 #   timeout_seconds = 10
 #   config_file_path_: allowed only /chatter topic
 #   This test case checks the DDS Enabler receives only the chatter topic
-#   which publishes only 1 msg in ROS2 domain 0.
+#   which publishes only 1 msg in ROS2 domain 1.
 
 services:
 
@@ -15,8 +15,8 @@ services:
     networks:
       - std_net
     volumes:
-      - ./config.yml:/config/config.yml
-    command: ./build/ddsenabler/examples/ddsenabler_example 1 1 10 /config/config.yml
+      - ./config.json:/config/config.json
+    command: ./build/ddsenabler/examples/ddsenabler_example 1 1 10 /config/config.json
 
   talker:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
@@ -26,7 +26,7 @@ services:
     networks:
       - std_net
     environment:
-      - ROS_DOMAIN_ID=0
+      - ROS_DOMAIN_ID=1
     volumes:
       - ../../scripts:/scripts
     command: ros2 topic pub /chatter std_msgs/msg/String "{}" --once --spin-time 3

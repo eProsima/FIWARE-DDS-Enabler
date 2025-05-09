@@ -40,9 +40,12 @@ struct KnownType
     DataWriter* writer_ = nullptr;
 };
 
-const unsigned int DOMAIN_ = 0;
+const unsigned int DOMAIN_ = 33;
 static int num_samples_ =  1;
-static int write_delay_ =  20; // Values below 10 might cause flaky results
+static int wait_after_writer_creation_ms_ =  300;
+static int write_delay_ms_ =  20;
+static int wait_for_ack_ns_ =  1000000000;
+static int wait_after_publication_ms_ =  200;
 
 class DDSEnablerTester : public ::testing::Test
 {
@@ -74,6 +77,7 @@ public:
         YAML::Node yml;
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+        configuration.simple_configuration->domain = DOMAIN_;
 
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
@@ -91,14 +95,16 @@ public:
     {
         const char* yml_str =
                 R"(
-                topics:
-                  name: "*"
-                  qos:
-                    durability: TRANSIENT_LOCAL
-                    history-depth: 10
+                dds:
+                  topics:
+                    - name: "*"
+                      qos:
+                        durability: true
+                        history-depth: 10
             )";
         eprosima::Yaml yml = YAML::Load(yml_str);
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
+        configuration.simple_configuration->domain = DOMAIN_;
 
         eprosima::utils::Formatter error_msg;
         if (!configuration.is_valid(error_msg))
@@ -121,7 +127,7 @@ public:
             KnownType& a_type)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
-                        ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+                        ->create_participant(DOMAIN_, PARTICIPANT_QOS_DEFAULT);
         if (participant == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
@@ -161,7 +167,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_writer_creation_ms_));
         return true;
     }
 
@@ -170,7 +176,7 @@ public:
             int history_depth)
     {
         DomainParticipant* participant = DomainParticipantFactory::get_instance()
-                        ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
+                        ->create_participant(DOMAIN_, PARTICIPANT_QOS_DEFAULT);
         if (participant == nullptr)
         {
             std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
@@ -211,7 +217,7 @@ public:
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_writer_creation_ms_));
         return true;
     }
 
@@ -229,17 +235,16 @@ public:
                 return false;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_));
+            std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ms_));
             a_type.type_sup_.delete_data(sample);
         }
 
-        if (RETCODE_OK != a_type.writer_->wait_for_acknowledgments(Duration_t(0, 1000000000)))
+        if (RETCODE_OK != a_type.writer_->wait_for_acknowledgments(Duration_t(0, wait_for_ack_ns_)))
         {
             std::cout << "ERROR DDSEnablerTester: fail waiting for acknowledgments: " <<
                 a_type.type_sup_.get_type_name() << std::endl;
             return false;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(write_delay_ * 10));
 
         return true;
     }
