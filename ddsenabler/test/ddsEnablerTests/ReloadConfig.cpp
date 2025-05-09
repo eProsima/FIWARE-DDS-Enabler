@@ -206,8 +206,7 @@ TEST(ReloadConfig, yaml)
 
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
-    ASSERT_TRUE(result);
+    ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());

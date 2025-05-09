@@ -29,6 +29,7 @@ public:
     struct example_config
     {
         uint32_t expected_types_ = 0;
+        uint32_t expected_topics_ = 0;
         uint32_t expected_data_ = 0;
         uint32_t timeout_seconds = 30;
         std::string config_file_path_ = "";
@@ -44,11 +45,13 @@ public:
     static void print_help(
             uint8_t return_code)
     {
-        std::cout << "Usage: ddsenabler_example <expected_types> <expected_data> <timeout> <path/to/config/file>"   <<
+        std::cout << "Usage: ddsenabler_example <expected_types> <expected_topics> <expected_data> <timeout> <path/to/config/file>"   <<
             std::endl;
         std::cout << ""                                                                                             <<
             std::endl;
         std::cout << "expected_types: number of types to be expected"                                               <<
+            std::endl;
+        std::cout << "expected_topics: number of topics to be expected"                                             <<
             std::endl;
         std::cout << "expected_data: number of data to be expected"                                                 <<
             std::endl;
@@ -74,7 +77,7 @@ public:
     {
         example_config config;
 
-        if (argc < 5)
+        if (argc < 6)
         {
             std::cerr << "Missing entity argument" << std::endl;
             print_help(EXIT_FAILURE);
@@ -83,9 +86,10 @@ public:
         try
         {
             config.expected_types_ = std::stoi(argv[1]);
-            config.expected_data_ = std::stoi(argv[2]);
-            config.timeout_seconds = std::stoi(argv[3]);
-            config.config_file_path_ = argv[4];
+            config.expected_topics_ = std::stoi(argv[2]);
+            config.expected_data_ = std::stoi(argv[3]);
+            config.timeout_seconds = std::stoi(argv[4]);
+            config.config_file_path_ = argv[5];
         }
         catch (const std::exception& e)
         {
