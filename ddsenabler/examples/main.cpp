@@ -27,16 +27,20 @@
 #include "CLIParser.hpp"
 
 uint32_t received_types_ = 0;
+uint32_t received_topics_ = 0;
 uint32_t received_data_ = 0;
 std::mutex type_received_mutex_;
+std::mutex topic_received_mutex_;
 std::mutex data_received_mutex_;
 bool stop_app_ = false;
 
 // Static type callback
 static void test_type_callback(
         const char* typeName,
-        const char* topicName,
-        const char* serializedType)
+        const char* serializedType,
+        const unsigned char* serializedTypeInternal,
+        uint32_t serializedTypeInternalSize,
+        const char* dataPlaceholder)
 {
     std::lock_guard<std::mutex> lock(type_received_mutex_);
 
@@ -45,9 +49,21 @@ static void test_type_callback(
         received_types_ << std::endl;
 }
 
+// Static topic callback
+static void test_topic_callback(
+        const char* topicName,
+        const char* typeName,
+        const char* serializedQos)
+{
+    std::lock_guard<std::mutex> lock(topic_received_mutex_);
+
+    received_topics_++;
+    std::cout << "Topic callback received: " << topicName << " of type " << typeName << ", Total topics: " <<
+        received_topics_ << std::endl;
+}
+
 // Static data callback
 static void test_data_callback(
-        const char* typeName,
         const char* topicName,
         const char* json,
         int64_t publishTime)
@@ -55,7 +71,7 @@ static void test_data_callback(
     std::lock_guard<std::mutex> lock(data_received_mutex_);
 
     received_data_++;
-    std::cout << "Data callback received: " << typeName << ", Total data: " <<
+    std::cout << "Data callback received: " << topicName << ", Total data: " <<
         received_data_ << std::endl;
 }
 
@@ -64,6 +80,13 @@ int get_received_types()
     std::lock_guard<std::mutex> lock(type_received_mutex_);
 
     return received_types_;
+}
+
+int get_received_topics()
+{
+    std::lock_guard<std::mutex> lock(topic_received_mutex_);
+
+    return received_topics_;
 }
 
 int get_received_data()
@@ -84,10 +107,12 @@ int main(
         int argc,
         char** argv)
 {
+    using namespace eprosima::ddsenabler;
+
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
     std::unique_ptr<DDSEnabler> enabler;
-    create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, nullptr, enabler);
+    create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, test_topic_callback, nullptr, nullptr, nullptr, enabler);
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
@@ -106,6 +131,7 @@ int main(
             return EXIT_SUCCESS;
         }
         else if (get_received_types() >= config.expected_types_ &&
+                get_received_topics() >= config.expected_topics_ &&
                 get_received_data() >= config.expected_data_)
         {
             std::cout << "Received enough data, stopping..." << std::endl;

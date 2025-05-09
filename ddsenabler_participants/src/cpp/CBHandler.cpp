@@ -16,18 +16,9 @@
  * @file CBHandler.cpp
  */
 
-<<<<<<< HEAD
-#include <algorithm>
-#include <cstdio>
-#include <filesystem>
-#include <vector>
-
-#include <fastdds/dds/topic/TypeSupport.hpp>
-=======
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
->>>>>>> e025823 (DDS data publication implementation)
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
 #include <fastdds/dds/xtypes/utils.hpp>
