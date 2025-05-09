@@ -17,14 +17,15 @@
  *
  */
 
-#include <fstream>
 #include <string>
 
-#include "fastdds/dds/log/FileConsumer.hpp"
+#include <cpp_utils/Log.hpp>
+#include <cpp_utils/logging/StdLogConsumer.hpp>
+
+#include <ddsenabler_participants/CBCallbacks.hpp>
+#include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
 #include "ddsenabler/dds_enabler_runner.hpp"
-
-#include <cpp_utils/Log.hpp>
 
 using namespace eprosima::ddspipe;
 
@@ -35,6 +36,9 @@ bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
         participants::DdsNotification data_callback,
         participants::DdsTypeNotification type_callback,
+        participants::DdsTopicNotification topic_callback,
+        participants::DdsTypeRequest type_req_callback,
+        participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
         std::unique_ptr<DDSEnabler>& enabler)
 {
@@ -43,13 +47,49 @@ bool create_dds_enabler(
     {
         dds_enabler_config_file = ddsEnablerConfigFile;
     }
+    // Load configuration from file
+    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
 
+    // Create DDS Enabler instance
+    if (!create_dds_enabler(
+        configuration,
+        data_callback,
+        type_callback,
+        topic_callback,
+        type_req_callback,
+        topic_req_callback,
+        log_callback,
+        enabler))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to create DDS Enabler from configuration file: " << dds_enabler_config_file);
+        return false;
+    }
+
+    // Set the file watcher to reload the configuration if the file changes
+    if (!enabler->set_file_watcher(dds_enabler_config_file))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to set file watcher.");
+        return false;
+    }
+
+    return true;
+}
+
+bool create_dds_enabler(
+        yaml::EnablerConfiguration configuration,
+        participants::DdsNotification data_callback,
+        participants::DdsTypeNotification type_callback,
+        participants::DdsTopicNotification topic_callback,
+        participants::DdsTypeRequest type_req_callback,
+        participants::DdsTopicRequest topic_req_callback,
+        participants::DdsLogFunc log_callback,
+        std::unique_ptr<DDSEnabler>& enabler)
+{
     // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
-        // Load configuration from file
-        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
-
         // Verify that the configuration is correct
         eprosima::utils::Formatter error_msg;
         if (!configuration.is_valid(error_msg))
@@ -103,14 +143,9 @@ bool create_dds_enabler(
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
         enabler->set_data_callback(data_callback);
         enabler->set_type_callback(type_callback);
-
-        // Set the file watcher to reload the configuration if the file changes
-        if (!enabler->set_file_watcher(dds_enabler_config_file))
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                    "Failed to set file watcher.");
-            return false;
-        }
+        enabler->set_topic_callback(topic_callback);
+        enabler->set_type_request_callback(type_req_callback);
+        enabler->set_topic_request_callback(topic_req_callback);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");
@@ -118,8 +153,7 @@ bool create_dds_enabler(
     catch (const eprosima::utils::ConfigurationException& e)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Error Loading DDS Enabler Configuration from file " << dds_enabler_config_file <<
-                ". Error message:\n " << e.what());
+                "Error Loading DDS Enabler Configuration. Error message:\n " << e.what());
         return false;
     }
     catch (const eprosima::utils::InitializationException& e)

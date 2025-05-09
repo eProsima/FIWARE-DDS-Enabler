@@ -50,6 +50,8 @@ This callback is invoked by the ``CBHandler`` through the ``CBWriter`` class.
             const char* topicName,
             const char* serializedType);
 
+.. TODO: update with topic notification, topic request and type request callbacks
+
 Log callback
 ============
 The Log Callback is responsible for relaying all relevant logging information from the Fast DDS ecosystem to the
