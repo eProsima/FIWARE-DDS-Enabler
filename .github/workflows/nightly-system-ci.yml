@@ -15,7 +15,7 @@ jobs:
       fastdds_branch: 'feature/json-deserialize'
       devutils_branch: 'main'
       ddspipe_branch: 'main'
-      ddsenabler_branch: 'master'
+      ddsenabler_branch: 'main'
       dependencies_artifact_postfix: '_nightly'
       ref: 'main'
     secrets: inherit
