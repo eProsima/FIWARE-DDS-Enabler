@@ -18,8 +18,6 @@
 
 #pragma once
 
-#include <nlohmann/json.hpp>
-
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
@@ -108,7 +106,7 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
 
-    nlohmann::json prepare_json_data(
+    std::shared_ptr<void> prepare_json_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 

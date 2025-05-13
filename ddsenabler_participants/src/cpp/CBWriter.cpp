@@ -16,6 +16,8 @@
  * @file CBWriter.cpp
  */
 
+ #include <nlohmann/json.hpp>
+
 #include <fastdds/dds/xtypes/dynamic_types/DynamicDataFactory.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
 #include <fastdds/dds/xtypes/utils.hpp>
@@ -117,14 +119,21 @@ void CBWriter::write_data(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
-    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
-    
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
     //STORE DATA
     if (data_callback_)
     {
         data_callback_(
             msg.topic.topic_name().c_str(),
-            json_output.dump(4).c_str(),
+            json_output->dump(4).c_str(),
             msg.publish_time.to_ns()
             );
     }
@@ -135,22 +144,28 @@ void CBWriter::write_reply(
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
         const uint64_t request_id)
 {
-    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
     // Get the service name
     std::string service_name = get_service_name(msg.topic.topic_name());
-    
+
     //STORE DATA
     if (reply_callback_)
     {
         reply_callback_(
             service_name.c_str(),
-            json_output.dump(4).c_str(),
+            json_output->dump(4).c_str(),
             request_id,
             msg.publish_time.to_ns()
             );
     }
-
 }
 
 void CBWriter::write_request(
@@ -158,25 +173,31 @@ void CBWriter::write_request(
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
         const uint64_t request_id)
 {
-    nlohmann::json json_output = prepare_json_data(msg, dyn_type);
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
     // Get the service name
     std::string service_name = get_service_name(msg.topic.topic_name());
-    
+
     //STORE DATA
     if (request_callback_)
     {
         request_callback_(
             service_name.c_str(),
-            json_output.dump(4).c_str(),
+            json_output->dump(4).c_str(),
             request_id,
             msg.publish_time.to_ns()
             );
     }
-
 }
 
-nlohmann::json CBWriter::prepare_json_data(
+std::shared_ptr<void> CBWriter::prepare_json_data(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
@@ -192,7 +213,7 @@ nlohmann::json CBWriter::prepare_json_data(
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to get DynamicData from topic " << msg.topic.topic_name() << ".");
-        return {};
+        return nullptr;
     }
 
     std::stringstream ss_dyn_data;
@@ -202,7 +223,7 @@ nlohmann::json CBWriter::prepare_json_data(
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to serialize data of topic " << msg.topic.topic_name() << " into JSON format.");
-        return {};
+        return nullptr;
     }
 
     // Create the base JSON structure
@@ -229,7 +250,7 @@ nlohmann::json CBWriter::prepare_json_data(
                 "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
     }
 
-    return json_output;
+    return std::make_shared<nlohmann::json>(json_output);
 }
 
 fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
