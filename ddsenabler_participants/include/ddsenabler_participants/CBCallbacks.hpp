@@ -76,6 +76,51 @@ typedef void (*DdsNotification)(
         const char* json,
         int64_t publishTime);
 
+// TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
+typedef void (*DdsTopicRequest)(
+        const char* topicName,
+        char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        char*& serializedQos);
+
+typedef void (*DdsTypeRequest)(
+        const char* typeName,
+        unsigned char*& serializedTypeInternal,
+        uint32_t& serializedTypeInternalSize);
+
+struct ddsCallbacks
+{
+        participants::DdsNotification data_callback;
+        participants::DdsTypeNotification type_callback;
+        participants::DdsTopicNotification topic_callback;
+        participants::DdsTypeRequest type_req_callback;
+        participants::DdsTopicRequest topic_req_callback;
+        participants::DdsLogFunc log_callback;
+};
+
+
+/**********************/
+/*      SERVICES      */
+/**********************/
+
+
+/**
+ * @brief Callback for notification of service discovery and its request and reply types.
+ *
+ * This callback is used to notify the discovery of a service and its associated request and reply types.
+ *
+ * @param serviceName The name of the service that was discovered.
+ * @param requestTypeName The name of the request type associated with the service.
+ * @param requestSerializedQos The serialized Quality of Service (QoS) settings for the request type.
+ * @param replyTypeName The name of the reply type associated with the service.
+ * @param replySerializedQos The serialized Quality of Service (QoS) settings for the reply type.
+ */
+typedef void (*ServiceNotification)(
+        const char* serviceName,
+        const char* requestTypeName,
+        const char* replyTypeName,
+        const char* requestSerializedQos,
+        const char* replySerializedQos);
+
 /**
  * @brief Callback for reception of RPC reply data.
  *
@@ -110,12 +155,6 @@ typedef void (*ServiceRequestNotification)(
         uint64_t requestId,
         int64_t publishTime);
 
-// TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
-typedef void (*DdsTopicRequest)(
-        const char* topicName,
-        char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
-        char*& serializedQos);
-
 /**
  * @brief Callback requesting the type information of a given service's request and reply.
  *
@@ -134,29 +173,17 @@ typedef void (*ServiceTypeRequest)(
         char*& replyTypeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
         char*& replySerializedQos);
 
+struct serviceCallbacks
+{
+        participants::ServiceNotification service_callback;
+        participants::ServiceReplyNotification reply_callback;
+        participants::ServiceRequestNotification request_callback;
+        participants::ServiceTypeRequest type_req_callback;
+};
 
-typedef void (*DdsTypeRequest)(
-        const char* typeName,
-        unsigned char*& serializedTypeInternal,
-        uint32_t& serializedTypeInternalSize);
-
-/**
- * @brief Callback for notification of service discovery and its request and reply types.
- *
- * This callback is used to notify the discovery of a service and its associated request and reply types.
- *
- * @param serviceName The name of the service that was discovered.
- * @param requestTypeName The name of the request type associated with the service.
- * @param requestSerializedQos The serialized Quality of Service (QoS) settings for the request type.
- * @param replyTypeName The name of the reply type associated with the service.
- * @param replySerializedQos The serialized Quality of Service (QoS) settings for the reply type.
- */
-typedef void (*ServiceNotification)(
-        const char* serviceName,
-        const char* requestTypeName,
-        const char* replyTypeName,
-        const char* requestSerializedQos,
-        const char* replySerializedQos);
+/**********************/
+/*      ACTIONS       */
+/**********************/
 
 
 /**
@@ -318,6 +345,17 @@ typedef void (*RosActionCancelRequestNotification)(
     const UUID& goal_id,
     int64_t publish_time,
     STATUS_CODE& status_code);
+
+struct actionCallbacks
+{
+    participants::RosActionNotification action_callback;
+    participants::RosActionResultNotification result_callback;
+    participants::RosActionFeedbackNotification feedback_callback;
+    participants::RosActionStatusNotification status_callback;
+    participants::RosActionGoalRequestNotification goal_request_callback;
+    participants::RosActionTypeRequest type_req_callback;
+    participants::RosActionCancelRequestNotification cancel_request_callback;
+};
 
 } /* namespace participants */
 } /* namespace ddsenabler */

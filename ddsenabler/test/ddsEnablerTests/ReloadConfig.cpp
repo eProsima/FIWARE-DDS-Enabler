@@ -173,7 +173,7 @@ public:
     const void get_allowed_topics(std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const {
         ptr = std::make_shared<ddspipe::core::AllowedTopicList>(
             this->configuration_.ddspipe_configuration.allowlist,
-            this->configuration_.ddspipe_configuration.blocklist); 
+            this->configuration_.ddspipe_configuration.blocklist);
     }
 };
 
@@ -182,10 +182,24 @@ TEST(ReloadConfig, json)
 {
     auto configfile = "./file_watcher_test.json";
     write_json_file(configfile, 0);
-    
+
+    eprosima::ddsenabler::participants::ddsCallbacks dds_callbacks;
+    dds_callbacks.data_callback = test_data_callback;
+    dds_callbacks.type_callback = test_type_callback;
+    dds_callbacks.topic_callback = test_topic_notification_callback;
+    dds_callbacks.type_req_callback = test_type_request_callback;
+    dds_callbacks.topic_req_callback = test_topic_request_callback;
+    dds_callbacks.log_callback = test_log_callback;
+
+    eprosima::ddsenabler::participants::serviceCallbacks service_callbacks;
+    service_callbacks.reply_callback = test_reply_callback;
+    service_callbacks.request_callback = test_request_callback;
+
+    eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
+
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, test_data_callback, test_reply_callback, test_request_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
+    bool result = create_dds_enabler(configfile, dds_callbacks, service_callbacks, action_callbacks, enabler);
     ASSERT_TRUE(result);
 
     // Create DDSEnablerAccessor to access protected configuration
@@ -194,7 +208,7 @@ TEST(ReloadConfig, json)
     // Take initial configuration (allowed topics)
     std::shared_ptr<ddspipe::core::AllowedTopicList> allowed_topics_init;
     enabler_accessor->get_allowed_topics(allowed_topics_init);
-    
+
     // Modify configuration file
     write_json_file(configfile, 1);
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -215,18 +229,32 @@ TEST(ReloadConfig, yaml)
     auto configfile = "./file_watcher_test.yaml";
     write_yaml_file(configfile, 0);
 
+    eprosima::ddsenabler::participants::ddsCallbacks dds_callbacks;
+    dds_callbacks.data_callback = test_data_callback;
+    dds_callbacks.type_callback = test_type_callback;
+    dds_callbacks.topic_callback = test_topic_notification_callback;
+    dds_callbacks.type_req_callback = test_type_request_callback;
+    dds_callbacks.topic_req_callback = test_topic_request_callback;
+    dds_callbacks.log_callback = test_log_callback;
+
+    eprosima::ddsenabler::participants::serviceCallbacks service_callbacks;
+    service_callbacks.reply_callback = test_reply_callback;
+    service_callbacks.request_callback = test_request_callback;
+
+    eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
+
     // Create DDS Enabler
     std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, test_data_callback, test_reply_callback, test_request_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
+    bool result = create_dds_enabler(configfile, dds_callbacks, service_callbacks, action_callbacks, enabler);
     ASSERT_TRUE(result);
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
-    
+
     // Take initial configuration (allowed topics)
     std::shared_ptr<ddspipe::core::AllowedTopicList> allowed_topics_init;
     enabler_accessor->get_allowed_topics(allowed_topics_init);
-    
+
     // Modify configuration file
     write_yaml_file(configfile, 1);
     std::this_thread::sleep_for(std::chrono::seconds(1));

@@ -38,29 +38,19 @@
 
 namespace eprosima {
 namespace ddsenabler {
-        
+
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::ServiceReplyNotification reply_callback,
-        participants::ServiceRequestNotification request_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        participants::ddsCallbacks& dds_callbacks,
+        participants::serviceCallbacks& service_callbacks,
+        participants::actionCallbacks& action_callbacks,
         std::unique_ptr<DDSEnabler>& enabler);
 
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
-        participants::DdsNotification data_callback,
-        participants::ServiceReplyNotification reply_callback,
-        participants::ServiceRequestNotification request_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        participants::ddsCallbacks& dds_callbacks,
+        participants::serviceCallbacks& service_callbacks,
+        participants::actionCallbacks& action_callbacks,
         std::unique_ptr<DDSEnabler>& enabler);
 
 } /* namespace ddsenabler */

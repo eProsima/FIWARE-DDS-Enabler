@@ -34,14 +34,9 @@ namespace ddsenabler {
 
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::ServiceReplyNotification reply_callback,
-        participants::ServiceRequestNotification request_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        participants::ddsCallbacks& dds_callbacks,
+        participants::serviceCallbacks& service_callbacks,
+        participants::actionCallbacks& action_callbacks,
         std::unique_ptr<DDSEnabler>& enabler)
 {
     std::string dds_enabler_config_file = "";
@@ -54,17 +49,12 @@ bool create_dds_enabler(
 
     bool ret = create_dds_enabler(
         configuration,
-        data_callback,
-        reply_callback,
-        request_callback,
-        type_callback,
-        topic_callback,
-        type_req_callback,
-        topic_req_callback,
-        log_callback,
+        dds_callbacks,
+        service_callbacks,
+        action_callbacks,
         enabler);
 
-    
+
     if(ret)
     {
         enabler->set_file_watcher(dds_enabler_config_file);
@@ -75,14 +65,9 @@ bool create_dds_enabler(
 
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
-        participants::DdsNotification data_callback,
-        participants::ServiceReplyNotification reply_callback,
-        participants::ServiceRequestNotification request_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        participants::ddsCallbacks& dds_callbacks,
+        participants::serviceCallbacks& service_callbacks,
+        participants::actionCallbacks& action_callbacks,
         std::unique_ptr<DDSEnabler>& enabler)
 {
     // Encapsulating execution in block to erase all memory correctly before closing process
@@ -97,7 +82,7 @@ bool create_dds_enabler(
         }
 
         // Logging
-        if(log_callback != nullptr){
+        if(dds_callbacks.log_callback != nullptr){
             // Disable stdout always
             configuration.ddspipe_configuration.log_configuration.stdout_enable = false;
             const auto log_configuration = configuration.ddspipe_configuration.log_configuration;
@@ -107,7 +92,7 @@ bool create_dds_enabler(
 
             // DDS Enabler Log Consumer
             auto* log_consumer = new eprosima::ddsenabler::participants::DDSEnablerLogConsumer(&log_configuration);
-            log_consumer->set_log_callback(log_callback);
+            log_consumer->set_log_callback(dds_callbacks.log_callback);
 
             eprosima::utils::Log::RegisterConsumer(
                 std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
@@ -131,13 +116,14 @@ bool create_dds_enabler(
         enabler.reset(new DDSEnabler(configuration, close_handler));
 
         // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
-        enabler->set_data_callback(data_callback);
-        enabler->set_reply_callback(reply_callback);
-        enabler->set_request_callback(request_callback);
-        enabler->set_type_callback(type_callback);
-        enabler->set_topic_callback(topic_callback);
-        enabler->set_type_request_callback(type_req_callback);
-        enabler->set_topic_request_callback(topic_req_callback);
+        enabler->set_data_callback(dds_callbacks.data_callback);
+        enabler->set_type_callback(dds_callbacks.type_callback);
+        enabler->set_topic_callback(dds_callbacks.topic_callback);
+        enabler->set_type_request_callback(dds_callbacks.type_req_callback);
+        enabler->set_topic_request_callback(dds_callbacks.topic_req_callback);
+
+        enabler->set_reply_callback(service_callbacks.reply_callback);
+        enabler->set_request_callback(service_callbacks.request_callback);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");

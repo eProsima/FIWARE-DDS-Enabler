@@ -214,7 +214,7 @@ public:
     bool send_action_goal(
 	    const std::string& action_name,
 	    const std::string& json,
-            participants::UUID& goal_id);
+            participants::UUID& goal_id){/*TODO*/ return false;};
 
     /**
      * @brief Cancels an action goal for the specified action.
@@ -232,7 +232,7 @@ public:
      */
     bool cancel_action_goal(
             const std::string& action_name,
-            participants::UUID& goal_id);
+            participants::UUID& goal_id){/*TODO*/ return false;};
 
     /**
      * @brief Creates server for the given action.
@@ -246,7 +246,7 @@ public:
      * @return true if the action was successfully announced, false otherwise.
      */
     bool announce_action(
-            const std::string& action_name);
+            const std::string& action_name){/*TODO*/ return false;};
 
     /**
      * @brief Send feedback for the specified goal_id action.
@@ -263,7 +263,7 @@ public:
     bool action_send_feedback(
         const char* action_name,
         const char* json,
-        const participants::UUID& goal_id);
+        const participants::UUID& goal_id){/*TODO*/ return false;};
 
     /**
      * @brief Send result for the specified goal_id action.
@@ -282,7 +282,7 @@ public:
         const char* action_name,
         const participants::UUID& goal_id,
         const participants::STATUS_CODE& status_code,
-        const char* json);
+        const char* json){/*TODO*/ return false;};
 
 protected:
 

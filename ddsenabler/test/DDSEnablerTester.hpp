@@ -86,9 +86,23 @@ public:
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
 
+        eprosima::ddsenabler::participants::ddsCallbacks dds_callbacks;
+        dds_callbacks.data_callback = test_data_callback;
+        dds_callbacks.type_callback = test_type_callback;
+        dds_callbacks.topic_callback = test_topic_notification_callback;
+        dds_callbacks.type_req_callback = test_type_request_callback;
+        dds_callbacks.topic_req_callback = test_topic_request_callback;
+        dds_callbacks.log_callback = test_log_callback;
+
+        eprosima::ddsenabler::participants::serviceCallbacks service_callbacks;
+        service_callbacks.reply_callback = test_reply_callback;
+        service_callbacks.request_callback = test_request_callback;
+
+        eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
+
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
-        bool result = create_dds_enabler(configuration, test_data_callback, test_reply_callback, test_request_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
+        bool result = create_dds_enabler(configuration, dds_callbacks, service_callbacks, action_callbacks, enabler);
 
         return enabler;
     }
@@ -430,7 +444,7 @@ public:
             return 0;
         }
     }
-    
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
