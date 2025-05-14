@@ -86,11 +86,13 @@ TEST_F(DDSEnablerTest, manual_reply)
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
+    ASSERT_TRUE(get_received_services_request() > 0);
     std::this_thread::sleep_for(std::chrono::seconds(2));
     ASSERT_FALSE(enabler->announce_service(service_name));
 
     std::string json = "{\"sum\": 3}";
     uint64_t request_id = 0;
+    // TODO fix only first request is accepted
     while(request_id < 3)
     {
         request_id = wait_for_request(service_name, 10);
@@ -108,7 +110,7 @@ TEST_F(DDSEnablerTest, manual_request)
 {
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
-    
+
     std::string json = "{\"a\": 1, \"b\": 2}";
     std::string service_name = "add_two_ints";
     uint64_t request_id = 0;

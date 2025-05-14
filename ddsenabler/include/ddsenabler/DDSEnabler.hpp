@@ -112,6 +112,14 @@ public:
         cb_handler_->set_request_callback(callback);
     }
 
+    // TODO rename request of service (rq) to distinguish from request to broker
+    // TODO rename all service methods to start with service_ (e.g. service_request_callback)
+    void set_service_request_callback(
+                participants::ServiceTypeRequest callback)
+    {
+        enabler_participant_->set_service_request_callback(callback);
+    }
+
     /**
      * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
      *

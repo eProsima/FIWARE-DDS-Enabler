@@ -155,6 +155,7 @@ typedef void (*ServiceRequestNotification)(
         uint64_t requestId,
         int64_t publishTime);
 
+// TODO rename it so that "Type" is smth equal to the one in DdsTopicRequest
 /**
  * @brief Callback requesting the type information of a given service's request and reply.
  *

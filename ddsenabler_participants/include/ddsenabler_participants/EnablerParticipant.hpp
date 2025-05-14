@@ -83,6 +83,14 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_request_callback(
+            participants::ServiceTypeRequest callback)
+    {
+        service_req_callback_ = callback;
+    }
+
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     bool announce_service(
             const std::string& service_name);
 
@@ -95,6 +103,10 @@ protected:
     bool request_topic(
             const std::string& topic_name,
             ddspipe::core::types::DdsTopic& topic);
+
+    bool request_service(
+            const std::string& service_name,
+            ServiceDiscovered& service);
 
     std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name,
@@ -117,6 +129,8 @@ protected:
     std::condition_variable cv_;
 
     DdsTopicRequest topic_req_callback_;
+
+    ServiceTypeRequest service_req_callback_;
 
     // Store for a given service server its corresponding endpoint
     std::map<std::string, ddspipe::core::types::Endpoint> server_endpoint_;

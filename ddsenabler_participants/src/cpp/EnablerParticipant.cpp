@@ -201,11 +201,6 @@ bool EnablerParticipant::publish_rpc(
                 "Failed to publish in " << topic_name << " : topic does not exist.");
         return false;
     }
-    // TODO: Use topic_req_callback_?
-    // if(!request_topic(reply_name, topic))
-    // {
-    //     return false;
-    // }
 
     std::string type_name;
     auto reader = std::dynamic_pointer_cast<InternalRpcReader>(lookup_reader_nts_(topic.m_topic_name, type_name));
@@ -265,19 +260,25 @@ bool EnablerParticipant::announce_service(
 
     if (nullptr == reader)
     {
-
-        DdsTopic topic;
-        // if(!request_topic(request_name, topic))
-        // {
-        //     return false;
-        // }
-        // TODO remove this and change by the request
-        if(!this->discovery_database_->topic_exists(request_name, topic))
+        ServiceDiscovered service;
+        if(!request_service(service_name, service))
+        {
+            return false;
+        }
+        // TODO remove this after manual test and change by the request from the service
+        DdsTopic topic_request;
+        // if(service.topic_request.has_value())
+            // topic_request = service.topic_request.value();
+        if(!this->discovery_database_->topic_exists(request_name, topic_request))
         {
             std::cout << "Topic not discovered yet, test not possible" << std::endl;
             return false;
         }
-        auto request_edp = rtps::CommonParticipant::simulate_endpoint(topic, this->id());
+        service.topic_request = topic_request;
+        service.request_discovered = true;
+        services_[service_name] = service;
+
+        auto request_edp = rtps::CommonParticipant::simulate_endpoint(topic_request, this->id());
         this->discovery_database_->add_endpoint(request_edp);
         server_endpoint_.emplace(service_name, request_edp);
 
@@ -363,6 +364,89 @@ bool EnablerParticipant::request_topic(
     topic.topic_qos = qos;
     topic.type_identifiers.type_identifier1(type_identifier);
 
+    return true;
+}
+
+bool EnablerParticipant::request_service(
+    const std::string& service_name,
+    ServiceDiscovered& service)
+{
+    auto it = services_.find(service_name);
+    if (it != services_.end())
+    {
+        if(service.request_discovered)
+        {
+            service = it->second;
+            return true;
+        }
+        // TODO what to do in else case? The discovered reply will be overwritten
+    }
+
+    if(!service_req_callback_)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to announce service " << service_name <<
+                            " : service is unknown and service request callback not set.");
+        return false;
+    }
+
+    char* _request_type_name;
+    char* serialized_request_qos_content;
+    char* _reply_type_name;
+    char* serialized_reply_qos_content;
+    std::string request_type_name;
+    std::string reply_type_name;
+    TopicQoS request_qos;
+    TopicQoS reply_qos;
+    fastdds::dds::xtypes::TypeIdentifier request_type_identifier;
+    fastdds::dds::xtypes::TypeIdentifier reply_type_identifier;
+
+    service_req_callback_(service_name.c_str(), _request_type_name, serialized_request_qos_content,
+            _reply_type_name, serialized_reply_qos_content); // TODO: allow the user not to provide QoS + handle fail case
+    // TODO remove this after manual testing
+
+    if (std::strcmp(_request_type_name, "Test") == 0)
+        return true;
+
+    request_type_name = std::string(_request_type_name); // TODO: free resources allocated by user, or redesign interaction (same for serialized_request_qos_content)
+    std::string serialized_request_qos(serialized_request_qos_content); // TODO check serialized_request_qos_content non-null otherwise it may crash
+    request_qos = serialization::deserialize_qos(serialized_request_qos); // TODO: handle fail case (try-catch?)
+    if (!std::static_pointer_cast<CBHandler>(schema_handler_)->get_type_identifier(request_type_name, request_type_identifier))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to announce " << service_name << " : type identifier not found.");
+        return false;
+    }
+
+    reply_type_name = std::string(_reply_type_name); // TODO: free resources allocated by user, or redesign interaction (same for serialized_reply_qos_content)
+    std::string serialized_reply_qos(serialized_reply_qos_content);
+    reply_qos = serialization::deserialize_qos(serialized_reply_qos); // TODO: handle fail case (try-catch?)
+    if (!std::static_pointer_cast<CBHandler>(schema_handler_)->get_type_identifier(reply_type_name, reply_type_identifier))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to announce " << service_name << " : type identifier not found.");
+        return false;
+    }
+
+    DdsTopic topic_request;
+    topic_request.m_topic_name = "rq/" + service_name + "Request";
+    topic_request.type_name = request_type_name;
+    topic_request.topic_qos = request_qos;
+    topic_request.type_identifiers.type_identifier1(request_type_identifier);
+    service.topic_request = topic_request;
+    service.request_discovered = true;
+
+    DdsTopic topic_reply;
+    topic_reply.m_topic_name = "rr/" + service_name + "Reply";
+    topic_reply.type_name = reply_type_name;
+    topic_reply.topic_qos = reply_qos;
+    topic_reply.type_identifiers.type_identifier1(reply_type_identifier);
+    service.topic_reply = topic_reply;
+    service.reply_discovered = true;
+
+    service.fully_discovered = true;
+    service.rpc_topic = RpcTopic(service_name, topic_request, topic_reply);
+    services_[service_name] = service;
     return true;
 }
 

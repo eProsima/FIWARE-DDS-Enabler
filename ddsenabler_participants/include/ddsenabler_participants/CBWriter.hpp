@@ -74,6 +74,12 @@ public:
         request_callback_ = callback;
     }
 
+    void set_service_type_request_callback(
+            ServiceTypeRequest callback)
+    {
+        service_type_request_callback_ = callback;
+    }
+
     void write_schema(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
@@ -127,6 +133,7 @@ protected:
     ServiceNotification service_callback_;
     ServiceReplyNotification reply_callback_;
     ServiceRequestNotification request_callback_;
+    ServiceTypeRequest service_type_request_callback_;
 
 };
 

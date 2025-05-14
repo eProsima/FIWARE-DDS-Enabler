@@ -62,6 +62,7 @@ public:
         received_reply_ = 0;
         received_request_id_ = 0;
         received_services_ = 0;
+        received_services_request_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
@@ -74,11 +75,13 @@ public:
         std::cout << "Received reply before reset: " << received_reply_ << std::endl;
         std::cout << "Received request before reset: " << received_request_id_ << std::endl;
         std::cout << "Received services before reset: " << received_services_ << std::endl;
+        std::cout << "Received services request before reset: " << received_services_request_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
         received_reply_ = 0;
         received_request_id_ = 0;
         received_services_ = 0;
+        received_services_request_ = 0;
         current_test_instance_ = nullptr;
     }
 
@@ -101,6 +104,7 @@ public:
         service_callbacks.service_callback = test_service_callback;
         service_callbacks.reply_callback = test_reply_callback;
         service_callbacks.request_callback = test_request_callback;
+        service_callbacks.type_req_callback = test_service_request_callback;
 
         eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
 
@@ -273,7 +277,6 @@ public:
             const std::string& service_name,
             int timeout = 10)
     {
-        // Asume there is a mtx and a condition variable in test_request_callback
         std::unique_lock<std::mutex> lock(data_received_mutex_);
         if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this, service_name]()
                 {
@@ -411,6 +414,26 @@ public:
         }
     }
 
+    // eprosima::ddsenabler::participants::ServiceTypeRequest type_req_callback;
+    static void test_service_request_callback(
+            const char* serviceName,
+            char*& requestTypeName,
+            char*& requestSerializedQos,
+            char*& replyTypeName,
+            char*& replySerializedQos)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
+
+            current_test_instance_->received_services_request_++;
+            std::cout << "Service type request callback received: " << serviceName << ", Total services request: " <<
+                current_test_instance_->received_services_request_ << std::endl;
+
+            requestTypeName = const_cast<char*>("Test");
+        }
+    }
+
     int get_received_types()
     {
         if (current_test_instance_)
@@ -481,6 +504,20 @@ public:
         }
     }
 
+    int get_received_services_request()
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
+
+            return current_test_instance_->received_services_request_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
@@ -491,6 +528,7 @@ public:
     int received_reply_ = 0;
     int received_request_id_ = 0;
     int received_services_ = 0;
+    int received_services_request_ = 0;
     // Condition variable for synchronization
     std::condition_variable cv_;
 
