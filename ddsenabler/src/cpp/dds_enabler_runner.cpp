@@ -122,6 +122,7 @@ bool create_dds_enabler(
         enabler->set_type_request_callback(dds_callbacks.type_req_callback);
         enabler->set_topic_request_callback(dds_callbacks.topic_req_callback);
 
+        enabler->set_service_callback(service_callbacks.service_callback);
         enabler->set_reply_callback(service_callbacks.reply_callback);
         enabler->set_request_callback(service_callbacks.request_callback);
 

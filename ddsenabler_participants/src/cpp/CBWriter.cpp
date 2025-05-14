@@ -25,6 +25,7 @@
 #include <fastdds/rtps/common/Types.hpp>
 
 #include <ddsenabler_participants/serialization.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
 
 #include <ddsenabler_participants/CBWriter.hpp>
@@ -139,6 +140,26 @@ void CBWriter::write_data(
     }
 }
 
+void CBWriter::write_service(
+    const ddspipe::core::types::RpcTopic& service)
+{
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+            "Writting service: " << service.service_name() << ".");
+
+    if (service_callback_)
+    {
+        std::string request_serialized_qos = serialize_qos(service.request_topic().topic_qos);
+        std::string reply_serialized_qos = serialize_qos(service.reply_topic().topic_qos);
+        service_callback_(
+            service.service_name().c_str(),
+            service.request_topic().topic_name().c_str(),
+            service.reply_topic().topic_name().c_str(),
+            request_serialized_qos.c_str(),
+            reply_serialized_qos.c_str()
+            );
+    }
+}
+
 void CBWriter::write_reply(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
@@ -154,7 +175,13 @@ void CBWriter::write_reply(
     std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
     // Get the service name
-    std::string service_name = get_service_name(msg.topic.topic_name());
+    std::string service_name;
+    if(RpcUtils::RpcType::RPC_REPLY != RpcUtils::get_service_name(msg.topic.topic_name(), service_name))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Wrong topic name for service reply: " << msg.topic.topic_name() << ".");
+        return;
+    }
 
     //STORE DATA
     if (reply_callback_)
@@ -183,7 +210,13 @@ void CBWriter::write_request(
     std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
     // Get the service name
-    std::string service_name = get_service_name(msg.topic.topic_name());
+    std::string service_name;
+    if(RpcUtils::RpcType::RPC_REQUEST != RpcUtils::get_service_name(msg.topic.topic_name(), service_name))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Wrong topic name for service request: " << msg.topic.topic_name() << ".");
+        return;
+    }
 
     //STORE DATA
     if (request_callback_)
@@ -269,33 +302,6 @@ fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
     pubsub_type.deserialize(data_no_const, &dyn_data);
 
     return dyn_data;
-}
-
-std::string CBWriter::get_service_name(const std::string& topic_name)
-{
-    std::string service_name = topic_name;
-
-    // Remove prefix "rr/" or "rq/"
-    if (service_name.rfind("rr/", 0) == 0)
-    {
-        service_name = service_name.substr(3);
-    }
-    else if (service_name.rfind("rq/", 0) == 0)
-    {
-        service_name = service_name.substr(3);
-    }
-
-    // Remove suffix "Reply" or "Request"
-    if (service_name.rfind("Reply", service_name.length() - 5) == service_name.length() - 5)
-    {
-            service_name = service_name.substr(0, service_name.length() - 5);
-    }
-    else if (service_name.rfind("Request", service_name.length() - 7) == service_name.length() - 7)
-    {
-            service_name = service_name.substr(0, service_name.length() - 7);
-    }
-
-    return service_name;
 }
 
 } /* namespace participants */

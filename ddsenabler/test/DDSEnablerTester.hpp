@@ -61,6 +61,7 @@ public:
         received_data_ = 0;
         received_reply_ = 0;
         received_request_id_ = 0;
+        received_services_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
@@ -72,10 +73,12 @@ public:
         std::cout << "Received data before reset: " << received_data_ << std::endl;
         std::cout << "Received reply before reset: " << received_reply_ << std::endl;
         std::cout << "Received request before reset: " << received_request_id_ << std::endl;
+        std::cout << "Received services before reset: " << received_services_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
         received_reply_ = 0;
         received_request_id_ = 0;
+        received_services_ = 0;
         current_test_instance_ = nullptr;
     }
 
@@ -95,6 +98,7 @@ public:
         dds_callbacks.log_callback = test_log_callback;
 
         eprosima::ddsenabler::participants::serviceCallbacks service_callbacks;
+        service_callbacks.service_callback = test_service_callback;
         service_callbacks.reply_callback = test_reply_callback;
         service_callbacks.request_callback = test_request_callback;
 
@@ -303,39 +307,6 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
-    static void test_reply_callback(
-            const char* serviceName,
-            const char* json,
-            uint64_t requestId,
-            int64_t publishTime)
-    {
-        if (current_test_instance_)
-        {
-            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
-
-            current_test_instance_->received_reply_ = requestId;
-            std::cout << "Reply callback received with id: " << requestId << " for service: " << serviceName << std::endl;
-        }
-    }
-
-    // eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
-    static void test_request_callback(
-            const char* serviceName,
-            const char* json,
-            uint64_t requestId,
-            int64_t publishTime)
-    {
-        if (current_test_instance_)
-        {
-            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
-
-            current_test_instance_->received_request_id_ = requestId;
-            std::cout << "Request callback received with id: " << requestId << " for service: " << serviceName << std::endl;
-            current_test_instance_->cv_.notify_all();
-        }
-    }
-
     // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
     static void test_type_callback(
             const char* typeName,
@@ -387,6 +358,57 @@ public:
         int category,
         const char* msg)
     {
+    }
+
+    // eprosima::ddsenabler::participants::ServiceNotification service_callback;
+    static void test_service_callback(
+            const char* serviceName,
+            const char* requestTypeName,
+            const char* replyTypeName,
+            const char* requestSerializedQos,
+            const char* replySerializedQos)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
+
+            current_test_instance_->received_services_++;
+            std::cout << "Service callback received: " << serviceName << ", Total services: " <<
+                current_test_instance_->received_services_ << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
+    static void test_reply_callback(
+            const char* serviceName,
+            const char* json,
+            uint64_t requestId,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
+
+            current_test_instance_->received_reply_ = requestId;
+            std::cout << "Reply callback received with id: " << requestId << " for service: " << serviceName << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
+    static void test_request_callback(
+            const char* serviceName,
+            const char* json,
+            uint64_t requestId,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
+
+            current_test_instance_->received_request_id_ = requestId;
+            std::cout << "Request callback received with id: " << requestId << " for service: " << serviceName << std::endl;
+            current_test_instance_->cv_.notify_all();
+        }
     }
 
     int get_received_types()
@@ -445,6 +467,20 @@ public:
         }
     }
 
+    int get_received_services()
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
+
+            return current_test_instance_->received_services_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
@@ -454,12 +490,14 @@ public:
     int received_data_ = 0;
     int received_reply_ = 0;
     int received_request_id_ = 0;
+    int received_services_ = 0;
     // Condition variable for synchronization
     std::condition_variable cv_;
 
     // Mutex for synchronizing access to received_types_ and received_data_/received_reply_/received_request_id_
     std::mutex type_received_mutex_;
     std::mutex data_received_mutex_;
+    std::mutex service_mutex_;
 };
 
 

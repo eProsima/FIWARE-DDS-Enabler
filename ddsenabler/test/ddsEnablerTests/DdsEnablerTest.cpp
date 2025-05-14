@@ -46,6 +46,27 @@ TEST_F(DDSEnablerTest, ddsenabler_reload_configuration)
     ASSERT_NO_THROW(enabler->reload_configuration(configuration));
 }
 
+TEST_F(DDSEnablerTest, manual_service_discovery)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    while(true)
+    {
+        std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        if(get_received_services() > 0)
+        {
+            std::cout << "Service available" << std::endl;
+            break;
+        }
+    }
+}
+
 TEST_F(DDSEnablerTest, manual_reply)
 {
     auto enabler = create_ddsenabler();

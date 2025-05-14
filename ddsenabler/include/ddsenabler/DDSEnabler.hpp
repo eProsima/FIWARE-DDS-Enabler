@@ -70,18 +70,6 @@ public:
         cb_handler_->set_data_callback(callback);
     }
 
-    void set_reply_callback(
-            participants::ServiceReplyNotification callback)
-    {
-        cb_handler_->set_reply_callback(callback);
-    }
-
-    void set_request_callback(
-            participants::ServiceRequestNotification callback)
-    {
-        cb_handler_->set_request_callback(callback);
-    }
-
     void set_type_callback(
             participants::DdsTypeNotification callback)
     {
@@ -104,6 +92,24 @@ public:
             participants::DdsTypeRequest callback)
     {
         cb_handler_->set_type_request_callback(callback);
+    }
+
+    void set_service_callback(
+            participants::ServiceNotification callback)
+    {
+        cb_handler_->set_service_callback(callback);
+    }
+
+    void set_reply_callback(
+            participants::ServiceReplyNotification callback)
+    {
+        cb_handler_->set_reply_callback(callback);
+    }
+
+    void set_request_callback(
+            participants::ServiceRequestNotification callback)
+    {
+        cb_handler_->set_request_callback(callback);
     }
 
     /**

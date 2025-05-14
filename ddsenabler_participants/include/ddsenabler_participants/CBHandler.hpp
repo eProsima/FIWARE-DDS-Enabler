@@ -123,6 +123,10 @@ public:
     void add_topic(
             const ddspipe::core::types::DdsTopic& topic);
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void add_service(
+            const ddspipe::core::types::RpcTopic& service);
+
     /**
      * @brief Add a data sample, associated to the given \c topic.
      *
@@ -171,20 +175,6 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_reply_callback(
-            participants::ServiceReplyNotification callback)
-    {
-        cb_writer_->set_reply_callback(callback);
-    }
-
-    DDSENABLER_PARTICIPANTS_DllAPI
-    void set_request_callback(
-            participants::ServiceRequestNotification callback)
-    {
-        cb_writer_->set_request_callback(callback);
-    }
-
-    DDSENABLER_PARTICIPANTS_DllAPI
     void set_topic_callback(
             participants::DdsTopicNotification callback)
     {
@@ -203,6 +193,27 @@ public:
             participants::DdsTypeRequest callback)
     {
         type_req_callback_ = callback;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_callback(
+            participants::ServiceNotification callback)
+    {
+        cb_writer_->set_service_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_reply_callback(
+            participants::ServiceReplyNotification callback)
+    {
+        cb_writer_->set_reply_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_request_callback(
+            participants::ServiceRequestNotification callback)
+    {
+        cb_writer_->set_request_callback(callback);
     }
 
 protected:

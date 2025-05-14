@@ -22,6 +22,7 @@
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
+#include <ddspipe_core/types/topic/rpc/RpcTopic.hpp>
 
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
@@ -43,18 +44,6 @@ public:
         data_callback_ = callback;
     }
 
-    void set_reply_callback(
-            ServiceReplyNotification callback)
-    {
-        reply_callback_ = callback;
-    }
-
-    void set_request_callback(
-            ServiceRequestNotification callback)
-    {
-        request_callback_ = callback;
-    }
-
     void set_type_callback(
             DdsTypeNotification callback)
     {
@@ -65,6 +54,24 @@ public:
             DdsTopicNotification callback)
     {
         topic_callback_ = callback;
+    }
+
+    void set_service_callback(
+            ServiceNotification callback)
+    {
+        service_callback_ = callback;
+    }
+
+    void set_reply_callback(
+            ServiceReplyNotification callback)
+    {
+        reply_callback_ = callback;
+    }
+
+    void set_request_callback(
+            ServiceRequestNotification callback)
+    {
+        request_callback_ = callback;
     }
 
     void write_schema(
@@ -83,6 +90,9 @@ public:
     void write_data(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void write_service(
+            const ddspipe::core::types::RpcTopic& service);
 
     void write_reply(
             const CBMessage& msg,
@@ -110,14 +120,14 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
-    std::string get_service_name(const std::string& topic_name);
-
     // Callbacks to notify the CB
     DdsNotification data_callback_;
-    ServiceReplyNotification reply_callback_;
-    ServiceRequestNotification request_callback_;
     DdsTypeNotification type_callback_;
     DdsTopicNotification topic_callback_;
+    ServiceNotification service_callback_;
+    ServiceReplyNotification reply_callback_;
+    ServiceRequestNotification request_callback_;
+
 };
 
 } /* namespace participants */

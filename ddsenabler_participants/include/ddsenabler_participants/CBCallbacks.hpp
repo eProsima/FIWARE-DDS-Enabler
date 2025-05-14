@@ -89,12 +89,12 @@ typedef void (*DdsTypeRequest)(
 
 struct ddsCallbacks
 {
-        participants::DdsNotification data_callback;
-        participants::DdsTypeNotification type_callback;
-        participants::DdsTopicNotification topic_callback;
-        participants::DdsTypeRequest type_req_callback;
-        participants::DdsTopicRequest topic_req_callback;
-        participants::DdsLogFunc log_callback;
+        participants::DdsNotification data_callback = nullptr;
+        participants::DdsTypeNotification type_callback = nullptr;
+        participants::DdsTopicNotification topic_callback = nullptr;
+        participants::DdsTypeRequest type_req_callback = nullptr;
+        participants::DdsTopicRequest topic_req_callback = nullptr;
+        participants::DdsLogFunc log_callback = nullptr;
 };
 
 
@@ -175,10 +175,10 @@ typedef void (*ServiceTypeRequest)(
 
 struct serviceCallbacks
 {
-        participants::ServiceNotification service_callback;
-        participants::ServiceReplyNotification reply_callback;
-        participants::ServiceRequestNotification request_callback;
-        participants::ServiceTypeRequest type_req_callback;
+        participants::ServiceNotification service_callback = nullptr;
+        participants::ServiceReplyNotification reply_callback = nullptr;
+        participants::ServiceRequestNotification request_callback = nullptr;
+        participants::ServiceTypeRequest type_req_callback = nullptr;
 };
 
 /**********************/
@@ -348,13 +348,13 @@ typedef void (*RosActionCancelRequestNotification)(
 
 struct actionCallbacks
 {
-    participants::RosActionNotification action_callback;
-    participants::RosActionResultNotification result_callback;
-    participants::RosActionFeedbackNotification feedback_callback;
-    participants::RosActionStatusNotification status_callback;
-    participants::RosActionGoalRequestNotification goal_request_callback;
-    participants::RosActionTypeRequest type_req_callback;
-    participants::RosActionCancelRequestNotification cancel_request_callback;
+    participants::RosActionNotification action_callback = nullptr;
+    participants::RosActionResultNotification result_callback = nullptr;
+    participants::RosActionFeedbackNotification feedback_callback = nullptr;
+    participants::RosActionStatusNotification status_callback = nullptr;
+    participants::RosActionGoalRequestNotification goal_request_callback = nullptr;
+    participants::RosActionTypeRequest type_req_callback = nullptr;
+    participants::RosActionCancelRequestNotification cancel_request_callback = nullptr;
 };
 
 } /* namespace participants */

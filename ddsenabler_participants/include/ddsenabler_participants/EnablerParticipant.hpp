@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <map>
 #include <mutex>
+#include <optional>
 
 #include <ddspipe_participants/participant/dynamic_types/SchemaParticipant.hpp>
 
@@ -28,10 +29,25 @@
 #include <ddsenabler_participants/EnablerParticipantConfiguration.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
 #include <ddsenabler_participants/InternalRpcReader.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
+
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
+
+struct ServiceDiscovered
+{
+    std::optional<ddspipe::core::types::DdsTopic> topic_request;
+    bool request_discovered{false};
+
+    std::optional<ddspipe::core::types::DdsTopic> topic_reply;
+    bool reply_discovered{false};
+
+    std::optional<ddspipe::core::types::RpcTopic> rpc_topic;
+    bool fully_discovered{false};
+};
+
 
 class EnablerParticipant : public ddspipe::participants::SchemaParticipant
 {
@@ -87,7 +103,14 @@ protected:
     std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name) const;
 
+    bool service_discovered_nts(
+            const std::string& service_name,
+            const ddspipe::core::types::DdsTopic& topic,
+            RpcUtils::RpcType rpc_type);
+
     std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::core::IReader>> readers_;
+
+    std::map<std::string, ServiceDiscovered> services_;
 
     std::mutex mtx_;
 

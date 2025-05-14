@@ -85,6 +85,12 @@ void CBHandler::add_topic(
     cb_writer_->write_topic(topic);
 }
 
+void CBHandler::add_service(
+        const RpcTopic& service)
+{
+    cb_writer_->write_service(service);
+}
+
 void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)
@@ -130,7 +136,7 @@ void CBHandler::add_data(
     {
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
-    
+
     if(topic.m_topic_name.find("rr/") == 0)
     {
         auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();

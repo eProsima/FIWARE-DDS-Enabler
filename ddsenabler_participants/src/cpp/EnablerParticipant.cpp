@@ -46,6 +46,60 @@ EnablerParticipant::EnablerParticipant(
 {
 }
 
+bool EnablerParticipant::service_discovered_nts(
+        const std::string& service_name,
+        const DdsTopic& topic,
+        RpcUtils::RpcType rpc_type)
+{
+    auto it = services_.find(service_name);
+    if (it == services_.end())
+    {
+        ServiceDiscovered service;
+        services_[service_name] = service;
+        it = services_.find(service_name);
+    }
+
+    if(it->second.fully_discovered)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Service " << service_name << " already fully discovered.");
+        return false;
+    }
+
+    if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+    {
+        if(it->second.request_discovered)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Service " << service_name << " already discovered.");
+            return false;
+        }
+        it->second.topic_request = topic;
+        it->second.request_discovered = true;
+    }
+    else
+    {
+        if(it->second.reply_discovered)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Service " << service_name << " already discovered.");
+            return false;
+        }
+        it->second.topic_reply = topic;
+        it->second.reply_discovered = true;
+    }
+
+    if(it->second.request_discovered && it->second.reply_discovered)
+    {
+        it->second.fully_discovered = true;
+        EPROSIMA_LOG_INFO(DDSENABLER_ENABLER_PARTICIPANT,
+                "Service " << service_name << " fully discovered.");
+        return true;
+    }
+
+    return false;
+}
+
 std::shared_ptr<IReader> EnablerParticipant::create_reader(
         const ITopic& topic)
 {
@@ -58,16 +112,22 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
     {
         std::lock_guard<std::mutex> lck(mtx_);
         auto dds_topic = dynamic_cast<const DdsTopic&>(topic);
-        if (dds_topic.m_topic_name.find("rr/") == 0 || dds_topic.m_topic_name.find("rq/") == 0)
+        std::string service_name;
+        RpcUtils::RpcType rpc_type = RpcUtils::get_service_name(dds_topic.m_topic_name, service_name);
+        if (RpcUtils::RpcType::RPC_NONE != rpc_type)
         {
             reader = std::make_shared<InternalRpcReader>(id(), dds_topic);
+            if(service_discovered_nts(service_name, dds_topic, rpc_type))
+            {
+                std::static_pointer_cast<CBHandler>(schema_handler_)->add_service(dds_topic);
+            }
         }
         else
         {
             reader = std::make_shared<InternalReader>(id());
+            std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
         }
         readers_[dds_topic] = reader;
-        std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
     }
     cv_.notify_one();
     return reader;
@@ -231,7 +291,7 @@ bool EnablerParticipant::announce_service(
         // message when not using transient durability
         std::this_thread::sleep_for(std::chrono::milliseconds(std::static_pointer_cast<EnablerParticipantConfiguration>(
                     configuration_)->initial_publish_wait));
-        
+
         return true;
     }
     else
