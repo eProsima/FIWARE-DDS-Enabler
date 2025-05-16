@@ -176,7 +176,7 @@ void CBWriter::write_reply(
 
     // Get the service name
     std::string service_name;
-    if(RpcUtils::RpcType::RPC_REPLY != RpcUtils::get_service_name(msg.topic.topic_name(), service_name))
+    if(RpcUtils::RpcType::RPC_REPLY != RpcUtils::get_rpc_name(msg.topic.topic_name(), service_name))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Wrong topic name for service reply: " << msg.topic.topic_name() << ".");
@@ -211,7 +211,7 @@ void CBWriter::write_request(
 
     // Get the service name
     std::string service_name;
-    if(RpcUtils::RpcType::RPC_REQUEST != RpcUtils::get_service_name(msg.topic.topic_name(), service_name))
+    if(RpcUtils::RpcType::RPC_REQUEST != RpcUtils::get_rpc_name(msg.topic.topic_name(), service_name))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Wrong topic name for service request: " << msg.topic.topic_name() << ".");
@@ -226,6 +226,42 @@ void CBWriter::write_request(
             json_output->dump(4).c_str(),
             request_id,
             msg.publish_time.to_ns()
+            );
+    }
+}
+
+void CBWriter::write_action(
+        const RpcUtils::RpcAction& action)
+{
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
+            "Writting action: " << action.action_name << ".");
+
+    if (action_callback_)
+    {
+        std::string goal_request_serialized_qos = serialize_qos(action.goal.request_topic().topic_qos);
+        std::string goal_reply_serialized_qos = serialize_qos(action.goal.reply_topic().topic_qos);
+        std::string cancel_request_serialized_qos = serialize_qos(action.cancel.request_topic().topic_qos);
+        std::string cancel_reply_serialized_qos = serialize_qos(action.cancel.reply_topic().topic_qos);
+        std::string result_request_serialized_qos = serialize_qos(action.result.request_topic().topic_qos);
+        std::string result_reply_serialized_qos = serialize_qos(action.result.reply_topic().topic_qos);
+        std::string feedback_serialized_qos = serialize_qos(action.feedback.topic_qos);
+
+        action_callback_(
+            action.action_name.c_str(),
+            action.goal.request_topic().topic_name().c_str(),
+            action.goal.reply_topic().topic_name().c_str(),
+            action.cancel.request_topic().topic_name().c_str(),
+            action.cancel.reply_topic().topic_name().c_str(),
+            action.result.request_topic().topic_name().c_str(),
+            action.result.reply_topic().topic_name().c_str(),
+            action.feedback.topic_name().c_str(),
+            goal_request_serialized_qos.c_str(),
+            goal_reply_serialized_qos.c_str(),
+            cancel_request_serialized_qos.c_str(),
+            cancel_reply_serialized_qos.c_str(),
+            result_request_serialized_qos.c_str(),
+            result_reply_serialized_qos.c_str(),
+            feedback_serialized_qos.c_str()
             );
     }
 }

@@ -36,6 +36,7 @@
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
 #include <ddsenabler_participants/CBWriter.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
 
 namespace std {
@@ -127,6 +128,10 @@ public:
     void add_service(
             const ddspipe::core::types::RpcTopic& service);
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void add_action(
+            const RpcUtils::RpcAction& action);
+
     /**
      * @brief Add a data sample, associated to the given \c topic.
      *
@@ -214,6 +219,13 @@ public:
             participants::ServiceRequestNotification callback)
     {
         cb_writer_->set_request_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_callback(
+            participants::RosActionNotification callback)
+    {
+        cb_writer_->set_action_callback(callback);
     }
 
 protected:

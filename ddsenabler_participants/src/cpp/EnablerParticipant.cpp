@@ -59,45 +59,23 @@ bool EnablerParticipant::service_discovered_nts(
         it = services_.find(service_name);
     }
 
-    if(it->second.fully_discovered)
+    return it->second.add_topic(topic, rpc_type);
+}
+
+bool EnablerParticipant::action_discovered_nts(
+    const std::string& action_name,
+    const DdsTopic& topic,
+    RpcUtils::RpcType rpc_type)
+{
+    auto it = actions_.find(action_name);
+    if (it == actions_.end())
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                "Service " << service_name << " already fully discovered.");
-        return false;
+        ActionDiscovered action;
+        actions_[action_name] = action;
+        it = actions_.find(action_name);
     }
 
-    if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
-    {
-        if(it->second.request_discovered)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Service " << service_name << " already discovered.");
-            return false;
-        }
-        it->second.topic_request = topic;
-        it->second.request_discovered = true;
-    }
-    else
-    {
-        if(it->second.reply_discovered)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Service " << service_name << " already discovered.");
-            return false;
-        }
-        it->second.topic_reply = topic;
-        it->second.reply_discovered = true;
-    }
-
-    if(it->second.request_discovered && it->second.reply_discovered)
-    {
-        it->second.fully_discovered = true;
-        EPROSIMA_LOG_INFO(DDSENABLER_ENABLER_PARTICIPANT,
-                "Service " << service_name << " fully discovered.");
-        return true;
-    }
-
-    return false;
+    return it->second.add_topic(topic, rpc_type);
 }
 
 std::shared_ptr<IReader> EnablerParticipant::create_reader(
@@ -112,14 +90,31 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
     {
         std::lock_guard<std::mutex> lck(mtx_);
         auto dds_topic = dynamic_cast<const DdsTopic&>(topic);
-        std::string service_name;
-        RpcUtils::RpcType rpc_type = RpcUtils::get_service_name(dds_topic.m_topic_name, service_name);
+        std::string rpc_name;
+        RpcUtils::RpcType rpc_type = RpcUtils::get_rpc_name(dds_topic.m_topic_name, rpc_name);
         if (RpcUtils::RpcType::RPC_NONE != rpc_type)
         {
-            reader = std::make_shared<InternalRpcReader>(id(), dds_topic);
-            if(service_discovered_nts(service_name, dds_topic, rpc_type))
+            RpcUtils::RpcType rpc_direction = RpcUtils::get_service_direction(rpc_type);
+            if (RpcUtils::RpcType::RPC_NONE != rpc_direction)
+                reader = std::make_shared<InternalRpcReader>(id(), dds_topic);
+            else
+                reader = std::make_shared<InternalReader>(id());
+
+            if (RpcUtils::ActionType::NONE == RpcUtils::get_action_type(rpc_type))
             {
-                std::static_pointer_cast<CBHandler>(schema_handler_)->add_service(dds_topic);
+                if (service_discovered_nts(rpc_name, dds_topic, rpc_type))
+                {
+                    auto service = services_.find(rpc_name)->second.get_service();
+                    std::static_pointer_cast<CBHandler>(schema_handler_)->add_service(service);
+                }
+            }
+            else
+            {
+                if (action_discovered_nts(rpc_name, dds_topic, rpc_type))
+                {
+                    auto action = actions_.find(rpc_name)->second.get_action(rpc_name);
+                    std::static_pointer_cast<CBHandler>(schema_handler_)->add_action(action);
+                }
             }
         }
         else

@@ -120,6 +120,12 @@ public:
         enabler_participant_->set_service_request_callback(callback);
     }
 
+    void set_action_callback(
+            participants::RosActionNotification callback)
+    {
+        cb_handler_->set_action_callback(callback);
+    }
+
     /**
      * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
      *

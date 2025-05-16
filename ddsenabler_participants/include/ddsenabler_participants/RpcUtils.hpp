@@ -20,17 +20,65 @@
 
 #include <string>
 
+#include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
+#include <ddspipe_core/types/topic/rpc/RpcTopic.hpp>
+
 
  namespace eprosima {
  namespace ddsenabler {
  namespace participants {
  namespace RpcUtils {
 
+struct RpcAction
+{
+    RpcAction() = default;
+    RpcAction(
+            const std::string& action_name,
+            const ddspipe::core::types::RpcTopic& goal,
+            const ddspipe::core::types::RpcTopic& result,
+            const ddspipe::core::types::RpcTopic& cancel,
+            const ddspipe::core::types::DdsTopic& feedback,
+            const ddspipe::core::types::DdsTopic& status)
+        : action_name(action_name)
+        , goal(goal)
+        , result(result)
+        , cancel(cancel)
+        , feedback(feedback)
+        , status(status)
+    {
+    }
+
+    std::string action_name;
+    ddspipe::core::types::RpcTopic goal;
+    ddspipe::core::types::RpcTopic result;
+    ddspipe::core::types::RpcTopic cancel;
+    ddspipe::core::types::DdsTopic feedback;
+    ddspipe::core::types::DdsTopic status;
+};
+
 enum RpcType
 {
     RPC_NONE = 0,
     RPC_REQUEST,
-    RPC_REPLY
+    RPC_REPLY,
+    ACTION_GOAL_REQUEST,
+    ACTION_GOAL_REPLY,
+    ACTION_RESULT_REQUEST,
+    ACTION_RESULT_REPLY,
+    ACTION_CANCEL_REQUEST,
+    ACTION_CANCEL_REPLY,
+    ACTION_FEEDBACK,
+    ACTION_STATUS
+};
+
+enum ActionType
+{
+    NONE = 0,
+    GOAL,
+    RESULT,
+    CANCEL,
+    FEEDBACK,
+    STATUS
 };
 
 /**
@@ -39,7 +87,23 @@ enum RpcType
  * @param [in] topic_name Topic name to extract the service name from
  * @return Extracted service name
  */
-RpcType get_service_name(const std::string& topic_name, std::string& service_name);
+RpcType get_rpc_name(const std::string& topic_name, std::string& service_name);
+
+/**
+ * @brief Returns the service direction (request or reply) based on the RPC type.
+ *
+ * @param rpc_type The RPC type to check.
+ * @return The service direction (request or reply) or NONE if it is not a service.
+ */
+RpcType get_service_direction(RpcType rpc_type);
+
+/**
+ * @brief Returns the action type based on the RPC type.
+ *
+ * @param rpc_type The RPC type to check.
+ * @return The action type (goal, result, cancel, feedback, status).
+ */
+ActionType get_action_type(RpcType rpc_type);
 
 } // namespace RpcUtils
 } // namespace participants

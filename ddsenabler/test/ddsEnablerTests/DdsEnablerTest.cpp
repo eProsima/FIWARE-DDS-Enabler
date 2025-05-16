@@ -54,17 +54,12 @@ TEST_F(DDSEnablerTest, manual_service_discovery)
     std::this_thread::sleep_for(std::chrono::seconds(3));
     // Get time for later timeout
     auto start_time = std::chrono::steady_clock::now();
-    while(true)
+    while(get_received_services() == 0)
     {
         std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
-
         std::this_thread::sleep_for(std::chrono::seconds(3));
-        if(get_received_services() > 0)
-        {
-            std::cout << "Service available" << std::endl;
-            break;
-        }
     }
+    std::cout << "Service available" << std::endl;
 }
 
 TEST_F(DDSEnablerTest, manual_reply)
@@ -134,6 +129,23 @@ TEST_F(DDSEnablerTest, manual_request)
         ASSERT_EQ(get_received_reply(), request_id);
         request_id = 0;
     }
+}
+
+TEST_F(DDSEnablerTest, manual_action_discovery)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    while(get_received_actions() == 0)
+    {
+        std::cout << "Waiting for action to be available (REQUIRED MANUAL LAUNCH OF ROS2 FIBONACCI ACTION SERVER)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+
+    std::cout << "Action available" << std::endl;
 }
 
 TEST_F(DDSEnablerTest, send_type1)

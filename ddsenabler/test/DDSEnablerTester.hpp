@@ -63,6 +63,7 @@ public:
         received_request_id_ = 0;
         received_services_ = 0;
         received_services_request_ = 0;
+        received_actions_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
@@ -76,12 +77,14 @@ public:
         std::cout << "Received request before reset: " << received_request_id_ << std::endl;
         std::cout << "Received services before reset: " << received_services_ << std::endl;
         std::cout << "Received services request before reset: " << received_services_request_ << std::endl;
+        std::cout << "Received actions before reset: " << received_actions_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
         received_reply_ = 0;
         received_request_id_ = 0;
         received_services_ = 0;
         received_services_request_ = 0;
+        received_actions_ = 0;
         current_test_instance_ = nullptr;
     }
 
@@ -107,6 +110,7 @@ public:
         service_callbacks.type_req_callback = test_service_request_callback;
 
         eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
+        action_callbacks.action_callback = test_action_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -434,6 +438,34 @@ public:
         }
     }
 
+    // eprosima::ddsenabler::participants::RosActionNotification action_callback;
+    static void test_action_callback(
+            const char* actionName,
+            const char* goalRequestActionType,
+            const char* goalReplyActionType,
+            const char* cancelRequestActionType,
+            const char* cancelReplyActionType,
+            const char* resultRequestActionType,
+            const char* resultReplyActionType,
+            const char* feedbackActionType,
+            const char* goalRequestActionSerializedQos,
+            const char* goalReplyActionSerializedQos,
+            const char* cancelRequestActionSerializedQos,
+            const char* cancelReplyActionSerializedQos,
+            const char* resultRequestActionSerializedQos,
+            const char* resultReplyActionSerializedQos,
+            const char* feedbackActionSerializedQos)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            current_test_instance_->received_actions_++;
+            std::cout << "Action callback received: " << actionName << ", Total actions request: " <<
+                current_test_instance_->received_actions_ << std::endl;
+        }
+    }
+
     int get_received_types()
     {
         if (current_test_instance_)
@@ -518,6 +550,20 @@ public:
         }
     }
 
+    int get_received_actions()
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            return current_test_instance_->received_actions_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
@@ -529,6 +575,7 @@ public:
     int received_request_id_ = 0;
     int received_services_ = 0;
     int received_services_request_ = 0;
+    int received_actions_ = 0;
     // Condition variable for synchronization
     std::condition_variable cv_;
 
@@ -536,6 +583,7 @@ public:
     std::mutex type_received_mutex_;
     std::mutex data_received_mutex_;
     std::mutex service_mutex_;
+    std::mutex action_mutex_;
 };
 
 

@@ -91,6 +91,12 @@ void CBHandler::add_service(
     cb_writer_->write_service(service);
 }
 
+void CBHandler::add_action(
+        const RpcUtils::RpcAction& action)
+{
+    cb_writer_->write_action(action);
+}
+
 void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)

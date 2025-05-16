@@ -26,6 +26,7 @@
 
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -80,6 +81,12 @@ public:
         service_type_request_callback_ = callback;
     }
 
+    void set_action_callback(
+            RosActionNotification callback)
+    {
+        action_callback_ = callback;
+    }
+
     void write_schema(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
@@ -110,6 +117,9 @@ public:
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const uint64_t request_id);
 
+    void write_action(
+            const RpcUtils::RpcAction& action);
+
 protected:
 
     /**
@@ -134,6 +144,7 @@ protected:
     ServiceReplyNotification reply_callback_;
     ServiceRequestNotification request_callback_;
     ServiceTypeRequest service_type_request_callback_;
+    RosActionNotification action_callback_;
 
 };
 
