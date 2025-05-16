@@ -87,10 +87,16 @@ public:
         action_callback_ = callback;
     }
 
-    void set_result_callback(
+    void set_action_result_callback(
             RosActionResultNotification callback)
     {
         action_result_callback_ = callback;
+    }
+
+    void set_action_feedback_callback(
+            RosActionFeedbackNotification callback)
+    {
+        action_feedback_callback_ = callback;
     }
 
     void write_schema(
@@ -131,6 +137,11 @@ public:
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const UUID& action_id);
 
+    void write_action_feedback(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
 protected:
 
     /**
@@ -157,6 +168,7 @@ protected:
     ServiceTypeRequest service_type_request_callback_;
     RosActionNotification action_callback_;
     RosActionResultNotification action_result_callback_;
+    RosActionFeedbackNotification action_feedback_callback_;
 
 };
 

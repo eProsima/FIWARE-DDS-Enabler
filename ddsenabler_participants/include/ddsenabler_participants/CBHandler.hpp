@@ -229,10 +229,17 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_result_callback(
+    void set_action_result_callback(
             participants::RosActionResultNotification callback)
     {
-        cb_writer_->set_result_callback(callback);
+        cb_writer_->set_action_result_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_feedback_callback(
+            participants::RosActionFeedbackNotification callback)
+    {
+        cb_writer_->set_action_feedback_callback(callback);
     }
 
 protected:
@@ -265,6 +272,11 @@ protected:
             const uint64_t request_id);
 
     void write_action_result_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_feedback_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const UUID& action_id);

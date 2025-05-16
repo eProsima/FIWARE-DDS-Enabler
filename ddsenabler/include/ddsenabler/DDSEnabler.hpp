@@ -126,10 +126,16 @@ public:
         cb_handler_->set_action_callback(callback);
     }
 
-    void set_result_callback(
+    void set_action_result_callback(
             participants::RosActionResultNotification callback)
     {
-        cb_handler_->set_result_callback(callback);
+        cb_handler_->set_action_result_callback(callback);
+    }
+
+    void set_action_feedback_callback(
+            participants::RosActionFeedbackNotification callback)
+    {
+        cb_handler_->set_action_feedback_callback(callback);
     }
 
     /**

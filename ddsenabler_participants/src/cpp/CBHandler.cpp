@@ -183,6 +183,15 @@ void CBHandler::add_data(
             // No need to do anything
             break;
 
+        case RpcUtils::RpcType::ACTION_FEEDBACK:
+        {
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            // TODO map this id to action id
+            UUID action_id_uuid;
+            write_action_feedback_(msg, dyn_type, action_id_uuid);
+            break;
+        }
+
         default:
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                     "Unknown RPC type for topic " << topic.m_topic_name << ".");
@@ -310,6 +319,14 @@ void CBHandler::write_action_result_(
     const UUID& action_id)
 {
     cb_writer_->write_action_result(msg, dyn_type, action_id);
+}
+
+void CBHandler::write_action_feedback_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_feedback(msg, dyn_type, action_id);
 }
 
 bool CBHandler::register_type_nts_(
