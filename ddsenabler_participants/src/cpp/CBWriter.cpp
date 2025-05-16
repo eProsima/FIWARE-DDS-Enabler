@@ -266,6 +266,41 @@ void CBWriter::write_action(
     }
 }
 
+void CBWriter::write_action_result(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        const UUID& action_id)
+{
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    // Get the action name
+    std::string action_name;
+    if(RpcUtils::RpcType::ACTION_RESULT_REPLY != RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Wrong topic name for action result: " << msg.topic.topic_name() << ".");
+        return;
+    }
+
+    //STORE DATA
+    if (action_result_callback_)
+    {
+        action_result_callback_(
+            action_name.c_str(),
+            json_output->dump(4).c_str(),
+            action_id,
+            msg.publish_time.to_ns()
+            );
+    }
+}
+
 std::shared_ptr<void> CBWriter::prepare_json_data(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)

@@ -128,6 +128,7 @@ bool create_dds_enabler(
         enabler->set_service_request_callback(service_callbacks.type_req_callback);
 
         enabler->set_action_callback(action_callbacks.action_callback);
+        enabler->set_result_callback(action_callbacks.result_callback);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");

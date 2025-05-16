@@ -126,6 +126,12 @@ public:
         cb_handler_->set_action_callback(callback);
     }
 
+    void set_result_callback(
+            participants::RosActionResultNotification callback)
+    {
+        cb_handler_->set_result_callback(callback);
+    }
+
     /**
      * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
      *

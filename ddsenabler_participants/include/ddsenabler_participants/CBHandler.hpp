@@ -228,6 +228,13 @@ public:
         cb_writer_->set_action_callback(callback);
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_result_callback(
+            participants::RosActionResultNotification callback)
+    {
+        cb_writer_->set_result_callback(callback);
+    }
+
 protected:
 
     void write_schema_(
@@ -256,6 +263,11 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const uint64_t request_id);
+
+    void write_action_result_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
 
     bool register_type_nts_(
             const std::string& type_name,

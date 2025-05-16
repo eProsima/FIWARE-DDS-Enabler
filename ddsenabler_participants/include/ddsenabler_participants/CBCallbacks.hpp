@@ -238,7 +238,7 @@ typedef void (*RosActionNotification)(
 typedef void (*RosActionResultNotification)(
         const char* action_name,
         const char* json,
-        UUID& goal_id,
+        const UUID& goal_id,
         int64_t publish_time);
 
 /**
@@ -254,7 +254,7 @@ typedef void (*RosActionResultNotification)(
 typedef void (*RosActionFeedbackNotification)(
         const char* action_name,
         const char* json,
-        UUID& goal_id,
+        const UUID& goal_id,
         int64_t publish_time);
 
 /**

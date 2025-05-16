@@ -143,24 +143,50 @@ void CBHandler::add_data(
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
 
-    if(topic.m_topic_name.find("rr/") == 0)
+    std::string rpc_name;
+    RpcUtils::RpcType rpc_type = RpcUtils::get_rpc_name(topic.m_topic_name, rpc_name);
+    switch (rpc_type)
     {
-        auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-        write_reply_(msg, dyn_type, request_id);
-    }
-    else if(topic.m_topic_name.find("rq/") == 0)
-    {
-        received_requests_id_++;
-        auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
-        RequestInfo request_info(
-            topic.m_topic_name,
-            request_id);
-        request_id_map_.emplace(received_requests_id_, request_info);
-        write_request_(msg, dyn_type, received_requests_id_);
-    }
-    else
-    {
-        write_sample_(msg, dyn_type);
+        case RpcUtils::RpcType::RPC_NONE:
+            write_sample_(msg, dyn_type);
+            break;
+
+        case RpcUtils::RpcType::RPC_REQUEST:
+        {
+            received_requests_id_++;
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
+            RequestInfo request_info(
+                topic.m_topic_name,
+                request_id);
+            request_id_map_.emplace(received_requests_id_, request_info);
+            write_request_(msg, dyn_type, received_requests_id_);
+            break;
+        }
+
+        case RpcUtils::RpcType::RPC_REPLY:
+        {
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            write_reply_(msg, dyn_type, request_id);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_RESULT_REPLY:
+        {
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            // TODO map this id to action id
+            UUID action_id_uuid;
+            write_action_result_(msg, dyn_type, action_id_uuid);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
+            // No need to do anything
+            break;
+
+        default:
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "Unknown RPC type for topic " << topic.m_topic_name << ".");
+            break;
     }
 }
 
@@ -276,6 +302,14 @@ void CBHandler::write_request_(
     const uint64_t request_id)
 {
     cb_writer_->write_request(msg, dyn_type, request_id);
+}
+
+void CBHandler::write_action_result_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_result(msg, dyn_type, action_id);
 }
 
 bool CBHandler::register_type_nts_(
