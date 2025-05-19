@@ -173,12 +173,12 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void store_get_result_request_UUID(
+    void store_action_request_UUID(
             const UUID& action_id,
             const uint64_t request_id)
     {
         std::lock_guard<std::mutex> lock(mtx_);
-        send_goal_request_id_to_uuid_[request_id] = action_id;
+        action_request_id_to_uuid_[request_id] = action_id;
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -251,6 +251,13 @@ public:
         cb_writer_->set_action_feedback_callback(callback);
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_status_callback(
+            participants::RosActionStatusNotification callback)
+    {
+        cb_writer_->set_action_status_callback(callback);
+    }
+
 protected:
 
     void write_schema_(
@@ -289,6 +296,20 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    void write_action_goal_reply_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_cancel_reply_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_status_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type){/* TODO */};
+
     bool register_type_nts_(
             const std::string& type_name,
             const unsigned char* serialized_type,
@@ -321,8 +342,8 @@ protected:
     //! Map of request_id to request information
     std::unordered_map<uint64_t, RequestInfo> request_id_map_;
 
-    //! Map of action_get_result_request_id to UUID
-    std::unordered_map<uint64_t, participants::UUID> send_goal_request_id_to_uuid_;
+    //! Map of any action services to the action's UUID
+    std::unordered_map<uint64_t, participants::UUID> action_request_id_to_uuid_;
 };
 
 } /* namespace participants */

@@ -351,6 +351,113 @@ void CBWriter::write_action_feedback(
     }
 }
 
+void CBWriter::write_action_goal_reply(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    std::string action_name;
+    RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
+
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    std::string status_message = "Action goal accepted";
+    ddsenabler::participants::STATUS_CODE status_code = ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED;
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
+    if (!(*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["accepted"])
+    {
+        status_message = "Action goal rejected";
+        status_code = ddsenabler::participants::STATUS_CODE::STATUS_REJECTED;
+    }
+
+    if (action_status_callback_)
+    {
+        action_status_callback_(
+            action_name.c_str(),
+            action_id,
+            status_code,
+            status_message.c_str(),
+            msg.publish_time.to_ns()
+            );
+    }
+
+}
+
+void CBWriter::write_action_cancel_reply(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        const UUID& action_id)
+{
+    ddsenabler::participants::STATUS_CODE status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCELED;
+    std::string action_name;
+    RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
+
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
+
+    std::string status_message;
+    int return_code = (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["return_code"];
+    switch (return_code)
+    {
+        case 0:
+            status_message = "Action cancelled successfully";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCELED;
+            break;
+        case 1:
+            status_message = "Action cancel request rejected";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_REJECTED;
+            break;
+        case 2:
+            status_message = "Action cancel request unknown goal ID";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCEL_REQUEST_FAILED;
+            break;
+        case 3:
+            status_message = "Action cancel request rejected as goal was already terminated";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCEL_REQUEST_FAILED;
+            break;
+        default:
+            status_message = "Action cancel request unknown code";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
+            break;
+    }
+
+    const auto& goals = (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goals_canceling"];
+    for (const auto& goal : goals)
+    {
+        UUID msg_action_id = json_to_uuid(goal["goal_id"]);
+        if(msg_action_id != action_id)
+            continue;
+
+        if (action_status_callback_)
+        {
+            action_status_callback_(
+                action_name.c_str(),
+                action_id,
+                status_code,
+                status_message.c_str(),
+                msg.publish_time.to_ns()
+                );
+        }
+    }
+}
+
 std::shared_ptr<void> CBWriter::prepare_json_data(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type)

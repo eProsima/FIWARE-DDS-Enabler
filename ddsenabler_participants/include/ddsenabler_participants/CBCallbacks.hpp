@@ -36,6 +36,7 @@ enum STATUS_CODE {
         STATUS_REJECTED = 6,
         STATUS_TIMEOUT = 7,
         STATUS_FAILED = 8,
+        STATUS_CANCEL_REQUEST_FAILED = 9
     };
 
 /**
@@ -268,7 +269,6 @@ typedef void (*RosActionFeedbackNotification)(
  * @param status_message A message providing additional information about the status.
  * @param publish_time The time at which the status was published.
  */
-// TODO
 typedef void (*RosActionStatusNotification)(
     const char* action_name,
     const UUID& goal_id,

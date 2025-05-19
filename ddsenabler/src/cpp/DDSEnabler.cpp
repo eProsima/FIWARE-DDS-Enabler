@@ -19,6 +19,8 @@
 #include "ddsenabler/DDSEnabler.hpp"
 #include "ddsenabler_participants/RpcUtils.hpp"
 
+#include <nlohmann/json.hpp>
+
 namespace eprosima {
 namespace ddsenabler {
 
@@ -222,6 +224,9 @@ bool DDSEnabler::send_action_goal(
             goal_request_id))
     {
         // TODO wait for response
+        cb_handler_->store_action_request_UUID(
+            action_id,
+            goal_request_id);
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         return action_send_get_result_request(action_name, action_id);
     }
@@ -254,7 +259,7 @@ bool DDSEnabler::action_send_get_result_request(
             json,
             get_result_request_id))
     {
-        cb_handler_->store_get_result_request_UUID(
+        cb_handler_->store_action_request_UUID(
             action_id,
             get_result_request_id);
         return true;
@@ -262,6 +267,42 @@ bool DDSEnabler::action_send_get_result_request(
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action get result request to action " << action_name);
+    return false;
+}
+
+bool DDSEnabler::cancel_action_goal(
+    const std::string& action_name,
+    const participants::UUID& goal_id)
+{
+    // TODO should we check if the goal_id is already in use?
+    // Get current time in seconds and nanoseconds
+    auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
+    auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
+
+    // Create JSON object
+    nlohmann::json j;
+    j["goal_info"]["goal_id"]["uuid"] = goal_id;
+    j["goal_info"]["stamp"]["sec"] = static_cast<int64_t>(sec);
+    j["goal_info"]["stamp"]["nanosec"] = static_cast<uint32_t>(nanosec);
+    std::string cancel_json = j.dump(4);
+
+    uint64_t cancel_request_id = 0;
+    std::string cancel_request_topic = action_name + "cancel_goal";
+    if(send_service_request(
+            cancel_request_topic,
+            cancel_json,
+            cancel_request_id))
+    {
+        cb_handler_->store_action_request_UUID(
+            goal_id,
+            cancel_request_id);
+        return true;
+    }
+
+    EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+            "Failed to send action cancel goal to action " << action_name);
     return false;
 }
 

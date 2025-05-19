@@ -26,8 +26,8 @@
 #include <cpp_utils/exception/InconsistencyException.hpp>
 
 #include <ddsenabler_participants/serialization.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
-
 #include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {
@@ -173,14 +173,14 @@ void CBHandler::add_data(
         case RpcUtils::RpcType::ACTION_RESULT_REPLY:
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            if(send_goal_request_id_to_uuid_.find(action_id) == send_goal_request_id_to_uuid_.end())
+            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
             {
                 EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                         "Action ID not found in map.");
                 return;
             }
-            auto action_id_uuid = send_goal_request_id_to_uuid_[action_id];
-            send_goal_request_id_to_uuid_.erase(action_id);
+            auto action_id_uuid = action_request_id_to_uuid_[action_id];
+            action_request_id_to_uuid_.erase(action_id);
             write_action_result_(msg, dyn_type, action_id_uuid);
             break;
         }
@@ -193,7 +193,31 @@ void CBHandler::add_data(
         {
             // TODO: If it is accepted send directly the get_result_request, if it is not accepted send updated status. How to read the data without deserializing it?
             // TODO: all the send_goal_responses have an "accepted" parameter?
-            // TODO for now we send the get_result_request directly when sending the goal
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Action ID not found in map.");
+                return;
+            }
+            auto action_id_uuid = action_request_id_to_uuid_[action_id];
+            action_request_id_to_uuid_.erase(action_id);
+            write_action_goal_reply_(msg, dyn_type, action_id_uuid);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_CANCEL_REPLY:
+        {
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Action ID not found in map.");
+                return;
+            }
+            auto action_id_uuid = action_request_id_to_uuid_[action_id];
+            action_request_id_to_uuid_.erase(action_id);
+            write_action_cancel_reply_(msg, dyn_type, action_id_uuid);
             break;
         }
 
@@ -345,6 +369,22 @@ void CBHandler::write_action_feedback_(
     const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
     cb_writer_->write_action_feedback(msg, dyn_type);
+}
+
+void CBHandler::write_action_goal_reply_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_goal_reply(msg, dyn_type, action_id);
+}
+
+void CBHandler::write_action_cancel_reply_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_cancel_reply(msg, dyn_type, action_id);
 }
 
 bool CBHandler::register_type_nts_(

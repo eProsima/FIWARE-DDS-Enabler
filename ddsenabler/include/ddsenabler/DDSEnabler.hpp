@@ -138,6 +138,12 @@ public:
         cb_handler_->set_action_feedback_callback(callback);
     }
 
+    void set_action_status_callback(
+            participants::RosActionStatusNotification callback)
+    {
+        cb_handler_->set_action_status_callback(callback);
+    }
+
     /**
      * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
      *
@@ -264,7 +270,7 @@ public:
      */
     bool cancel_action_goal(
             const std::string& action_name,
-            participants::UUID& goal_id){/*TODO*/ return false;};
+            const participants::UUID& goal_id);
 
     /**
      * @brief Creates server for the given action.

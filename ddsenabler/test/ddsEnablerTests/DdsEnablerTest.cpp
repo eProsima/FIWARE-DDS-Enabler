@@ -172,12 +172,16 @@ TEST_F(DDSEnablerTest, manual_action_client)
     int sent_requests = 0;
     while(sent_requests < 3)
     {
-        if(!enabler->send_action_goal(action_name, json, action_id))
+        while (!enabler->send_action_goal(action_name, json, action_id))
         {
             std::cout << "Waiting for send action goal" << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(1));
-            continue;
         }
+
+        eprosima::ddsenabler::participants::STATUS_CODE status;
+        ASSERT_TRUE(wait_for_status_update(action_id, status, sent_requests + 1));
+        ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED);
+
         UUID received_action_id;
         int received_action_feedbacks = 0;
         do
@@ -195,6 +199,42 @@ TEST_F(DDSEnablerTest, manual_action_client)
         ASSERT_EQ(received_action_id, action_id);
         action_id = UUID();
     }
+}
+
+TEST_F(DDSEnablerTest, manual_action_client_cancel)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    std::string json = "{\"order\": 5}";
+    std::string action_name = "fibonacci/_action/";
+    UUID action_id;
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    while(get_received_actions() == 0)
+    {
+        std::cout << "Waiting for action to be available (REQUIRED MANUAL LAUNCH OF ROS2 FIBONACCI ACTION SERVER)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+    }
+    std::cout << "Action available" << std::endl;
+
+    while(!enabler->send_action_goal(action_name, json, action_id))
+    {
+        std::cout << "Waiting for send action goal" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    eprosima::ddsenabler::participants::STATUS_CODE status;
+    ASSERT_TRUE(wait_for_status_update(action_id, status, 1));
+    ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED);
+
+    ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id));
+    ASSERT_TRUE(wait_for_status_update(action_id, status, 2));
+    ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_CANCELED);
 }
 
 TEST_F(DDSEnablerTest, send_type1)

@@ -99,6 +99,12 @@ public:
         action_feedback_callback_ = callback;
     }
 
+    void set_action_status_callback(
+            RosActionStatusNotification callback)
+    {
+        action_status_callback_ = callback;
+    }
+
     void write_schema(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
@@ -141,6 +147,16 @@ public:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    void write_action_goal_reply(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_cancel_reply(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
 protected:
 
     /**
@@ -168,6 +184,7 @@ protected:
     RosActionNotification action_callback_;
     RosActionResultNotification action_result_callback_;
     RosActionFeedbackNotification action_feedback_callback_;
+    RosActionStatusNotification action_status_callback_;
 
 };
 

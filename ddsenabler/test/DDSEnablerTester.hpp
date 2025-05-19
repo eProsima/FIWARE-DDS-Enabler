@@ -68,6 +68,8 @@ public:
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         received_actions_feedback_ = 0;
+        last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
+        received_actions_status_updates_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
@@ -84,6 +86,7 @@ public:
         std::cout << "Received actions before reset: " << received_actions_ << std::endl;
         std::cout << "Received actions result before reset: " << received_actions_result_ << std::endl;
         std::cout << "Received actions feedback before reset: " << received_actions_feedback_ << std::endl;
+        std::cout << "Received actions status updates before reset: " << received_actions_status_updates_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
         received_reply_ = 0;
@@ -95,6 +98,8 @@ public:
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         received_actions_feedback_ = 0;
+        last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
+        received_actions_status_updates_ = 0;
         current_test_instance_ = nullptr;
     }
 
@@ -123,6 +128,7 @@ public:
         action_callbacks.action_callback = test_action_callback;
         action_callbacks.result_callback = test_action_result_callback;
         action_callbacks.feedback_callback = test_action_feedback_callback;
+        action_callbacks.status_callback = test_action_status_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -308,6 +314,28 @@ public:
             std::cout << "Timeout waiting for request callback" << std::endl;
             return 0;
         }
+    }
+
+    bool wait_for_status_update(
+            const UUID& action_id,
+            eprosima::ddsenabler::participants::STATUS_CODE& status,
+            int min_received,
+            int timeout = 10)
+    {
+        std::unique_lock<std::mutex> lock(data_received_mutex_);
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this, action_id, min_received]()
+                {
+                    return received_actions_status_updates_ >= min_received;
+                }))
+        {
+            status = last_status_;
+            last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN; // Reset the status after receiving it
+            return true;
+        }
+
+        std::cout << "Timeout waiting for status update" << std::endl;
+        status = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
+        return false;
     }
 
     // eprosima::ddsenabler::participants::DdsNotification data_callback;
@@ -512,6 +540,27 @@ public:
         }
     }
 
+    // eprosima::ddsenabler::participants::RosActionStatusNotification status_callback;
+    static void test_action_status_callback(
+            const char* actionName,
+            const UUID& goalId,
+            eprosima::ddsenabler::participants::STATUS_CODE statusCode,
+            const char* statusMessage,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            current_test_instance_->last_status_ = static_cast<eprosima::ddsenabler::participants::STATUS_CODE>(statusCode);
+            current_test_instance_->received_actions_status_updates_++;
+            std::cout << "Action status callback received: " << actionName << ": " << statusMessage << ", Total status updates: " <<
+                current_test_instance_->received_actions_status_updates_ << std::endl;
+
+            current_test_instance_->cv_.notify_all();
+        }
+    }
+
     int get_received_types()
     {
         if (current_test_instance_)
@@ -638,6 +687,20 @@ public:
         }
     }
 
+    int get_received_actions_status_updates(eprosima::ddsenabler::participants::STATUS_CODE& status)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+            status = current_test_instance_->last_status_;
+            return current_test_instance_->received_actions_status_updates_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
@@ -654,6 +717,8 @@ public:
     UUID actions_feedback_uuid_;
     UUID actions_goal_uuid_;
     int received_actions_feedback_ = 0;
+    eprosima::ddsenabler::participants::STATUS_CODE last_status_;
+    int received_actions_status_updates_ = 0;
     // Condition variable for synchronization
     std::condition_variable cv_;
 
