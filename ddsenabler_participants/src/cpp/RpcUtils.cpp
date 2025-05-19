@@ -164,6 +164,34 @@ ActionType get_action_type(RpcType rpc_type)
     return NONE;
 }
 
+UUID generate_UUID()
+{
+    UUID uuid;
+    // Generate a random UUID
+    for (size_t i = 0; i < sizeof(uuid); ++i)
+    {
+        uuid[i] = static_cast<uint8_t>(rand() % 256);
+    }
+    return uuid;
+}
+
+std::string make_send_goal_request_json(const std::string& goal_json, UUID& goal_id)
+{
+    goal_id = generate_UUID();
+
+    std::string json = "{\"goal_id\": {\"uuid\": [";
+    for (size_t i = 0; i < sizeof(goal_id); ++i)
+    {
+        json += std::to_string(goal_id[i]);
+        if (i != sizeof(goal_id) - 1)
+        {
+            json += ", ";
+        }
+    }
+    json += "]}, \"goal\": " + goal_json + "}";
+    return json;
+}
+
 } // namespace RpcUtils
 } // namespace participants
 } // namespace ddsenabler

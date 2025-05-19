@@ -37,6 +37,25 @@ namespace participants {
 using namespace eprosima::ddsenabler::participants::serialization;
 using namespace eprosima::ddspipe::core::types;
 
+
+UUID json_to_uuid(const nlohmann::json& json)
+{
+    UUID uuid;
+    std::cout << "UUID: " << json.dump(4) << std::endl;
+    if (!json.contains("uuid") || !json["uuid"].is_array() || json["uuid"].size() != sizeof(UUID))
+
+    {
+        throw std::invalid_argument("Invalid UUID format in JSON");
+    }
+
+    for (size_t i = 0; i < sizeof(UUID); ++i)
+    {
+        uuid[i] = json["uuid"][i].get<uint8_t>();
+    }
+
+    return uuid;
+}
+
 void CBWriter::write_schema(
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
         const fastdds::dds::xtypes::TypeIdentifier& type_id)
@@ -303,8 +322,7 @@ void CBWriter::write_action_result(
 
 void CBWriter::write_action_feedback(
         const CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type,
-        const UUID& action_id)
+        const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
     std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
     if (nullptr == json_ptr)
@@ -317,20 +335,17 @@ void CBWriter::write_action_feedback(
 
     // Get the action name
     std::string action_name;
-    if(RpcUtils::RpcType::ACTION_FEEDBACK != RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name))
-    {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Wrong topic name for action feedback: " << msg.topic.topic_name() << ".");
-        return;
-    }
+    RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
 
-    //STORE DATA
+    // TODO check what we want to have in the json now that the type is not the same as the one in the action
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
     if (action_feedback_callback_)
     {
         action_feedback_callback_(
             action_name.c_str(),
-            json_output->dump(4).c_str(),
-            action_id,
+            (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["feedback"].dump(4).c_str(),
+            json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
             msg.publish_time.to_ns()
             );
     }

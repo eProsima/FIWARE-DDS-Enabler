@@ -24,7 +24,7 @@ namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
-using UUID = uint8_t[16];
+using UUID = std::array<uint8_t, 16>;
 
 enum STATUS_CODE {
         STATUS_UNKNOWN = 0,
@@ -268,6 +268,7 @@ typedef void (*RosActionFeedbackNotification)(
  * @param status_message A message providing additional information about the status.
  * @param publish_time The time at which the status was published.
  */
+// TODO
 typedef void (*RosActionStatusNotification)(
     const char* action_name,
     const UUID& goal_id,

@@ -17,6 +17,7 @@
 #include <ddspipe_core/types/dynamic_types/types.hpp>
 
 #include "ddsenabler/DDSEnabler.hpp"
+#include "ddsenabler_participants/RpcUtils.hpp"
 
 namespace eprosima {
 namespace ddsenabler {
@@ -203,9 +204,67 @@ bool DDSEnabler::send_service_reply(
                 << ": request id not found for that service.");
         return false;
     }
-    
+
     return enabler_participant_->publish_rpc("rr/" + service_name + "Reply", json, request_info.request_id);
 }
+
+bool DDSEnabler::send_action_goal(
+    const std::string& action_name,
+    const std::string& json,
+    UUID& action_id)
+{
+    std::string goal_json = RpcUtils::make_send_goal_request_json(json, action_id);
+    uint64_t goal_request_id = 0;
+    std::string goal_request_topic = action_name + "send_goal";
+    if(send_service_request(
+            goal_request_topic,
+            goal_json,
+            goal_request_id))
+    {
+        // TODO wait for response
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        return action_send_get_result_request(action_name, action_id);
+    }
+
+    EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+            "Failed to send action goal to action " << action_name);
+    return false;
+}
+
+bool DDSEnabler::action_send_get_result_request(
+    const std::string& action_name,
+    const UUID& action_id)
+{
+    std::string json = "{\"goal_id\": {\"uuid\": [";
+    for (size_t i = 0; i < sizeof(action_id); ++i)
+    {
+        json += std::to_string(action_id[i]);
+        if (i != sizeof(action_id) - 1)
+        {
+            json += ", ";
+        }
+    }
+    json += "]}}";
+
+    std::string get_result_request_topic = action_name + "get_result";
+    uint64_t get_result_request_id = 0;
+
+    if(send_service_request(
+            get_result_request_topic,
+            json,
+            get_result_request_id))
+    {
+        cb_handler_->store_get_result_request_UUID(
+            action_id,
+            get_result_request_id);
+        return true;
+    }
+
+    EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+            "Failed to send action get result request to action " << action_name);
+    return false;
+}
+
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */

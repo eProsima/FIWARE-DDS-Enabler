@@ -139,8 +139,7 @@ public:
 
     void write_action_feedback(
             const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type,
-            const UUID& action_id);
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
 protected:
 

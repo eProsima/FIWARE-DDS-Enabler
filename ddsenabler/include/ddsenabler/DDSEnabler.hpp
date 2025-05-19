@@ -246,7 +246,7 @@ public:
     bool send_action_goal(
 	    const std::string& action_name,
 	    const std::string& json,
-            participants::UUID& goal_id){/*TODO*/ return false;};
+            participants::UUID& goal_id);
 
     /**
      * @brief Cancels an action goal for the specified action.
@@ -317,6 +317,12 @@ public:
         const char* json){/*TODO*/ return false;};
 
 protected:
+
+    // TODO this method is used automatically whenever a positivo send_goal_reply is received.
+    //         As that is received by the CBHandler it is needed to be able to call this method from there.
+    bool action_send_get_result_request(
+        const std::string& action_name,
+        const participants::UUID& goal_id);
 
     /**
      * Load the Enabler's internal topics into a configuration object.

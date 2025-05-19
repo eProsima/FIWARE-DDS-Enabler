@@ -22,6 +22,7 @@
 
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 #include <ddspipe_core/types/topic/rpc/RpcTopic.hpp>
+#include <ddsenabler_participants/CBCallbacks.hpp>
 
 
  namespace eprosima {
@@ -104,6 +105,16 @@ RpcType get_service_direction(RpcType rpc_type);
  * @return The action type (goal, result, cancel, feedback, status).
  */
 ActionType get_action_type(RpcType rpc_type);
+
+UUID generate_UUID();
+
+/**
+ * @brief Creates a JSON string for sending a goal request.
+ *
+ * @param goal_json The JSON string representing the goal (without the UUID part).
+ * @return The JSON string for sending the goal request.
+ */
+std::string make_send_goal_request_json(const std::string& goal_json, UUID& goal_id);
 
 } // namespace RpcUtils
 } // namespace participants

@@ -64,6 +64,10 @@ public:
         received_services_ = 0;
         received_services_request_ = 0;
         received_actions_ = 0;
+        received_actions_result_ = 0;
+        actions_feedback_uuid_ = UUID();
+        actions_goal_uuid_ = UUID();
+        received_actions_feedback_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
 
@@ -78,6 +82,8 @@ public:
         std::cout << "Received services before reset: " << received_services_ << std::endl;
         std::cout << "Received services request before reset: " << received_services_request_ << std::endl;
         std::cout << "Received actions before reset: " << received_actions_ << std::endl;
+        std::cout << "Received actions result before reset: " << received_actions_result_ << std::endl;
+        std::cout << "Received actions feedback before reset: " << received_actions_feedback_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
         received_reply_ = 0;
@@ -85,6 +91,10 @@ public:
         received_services_ = 0;
         received_services_request_ = 0;
         received_actions_ = 0;
+        received_actions_result_ = 0;
+        actions_feedback_uuid_ = UUID();
+        actions_goal_uuid_ = UUID();
+        received_actions_feedback_ = 0;
         current_test_instance_ = nullptr;
     }
 
@@ -111,6 +121,8 @@ public:
 
         eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
         action_callbacks.action_callback = test_action_callback;
+        action_callbacks.result_callback = test_action_result_callback;
+        action_callbacks.feedback_callback = test_action_feedback_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -466,6 +478,40 @@ public:
         }
     }
 
+    // eprosima::ddsenabler::participants::RosActionResultNotification result_callback;
+    static void test_action_result_callback(
+            const char* actionName,
+            const char* json,
+            const UUID& goalId,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+            current_test_instance_->actions_goal_uuid_ = goalId;
+            current_test_instance_->received_actions_result_++;
+            std::cout << "Action result callback received: " << actionName << ": " << json << ", Total actions: " <<
+                current_test_instance_->received_actions_result_ << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::RosActionFeedbackNotification feedback_callback;
+    static void test_action_feedback_callback(
+            const char* actionName,
+            const char* json,
+            const UUID& goalId,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+            current_test_instance_->actions_feedback_uuid_ = goalId;
+            current_test_instance_->received_actions_feedback_++;
+            std::cout << "Action feedback callback received: " << actionName << ": " << json << ", Total actions feedback: " <<
+                current_test_instance_->received_actions_feedback_ << std::endl;
+        }
+    }
+
     int get_received_types()
     {
         if (current_test_instance_)
@@ -564,6 +610,34 @@ public:
         }
     }
 
+    int get_received_actions_result(UUID& goal_id)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+            goal_id = current_test_instance_->actions_goal_uuid_;
+            return current_test_instance_->received_actions_result_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    int get_received_actions_feedback(UUID& feedback_id)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+            feedback_id = current_test_instance_->actions_feedback_uuid_;
+            return current_test_instance_->received_actions_feedback_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
 
     // Pointer to the current test instance (for use in the static callback)
     static DDSEnablerTester* current_test_instance_;
@@ -576,6 +650,10 @@ public:
     int received_services_ = 0;
     int received_services_request_ = 0;
     int received_actions_ = 0;
+    int received_actions_result_ = 0;
+    UUID actions_feedback_uuid_;
+    UUID actions_goal_uuid_;
+    int received_actions_feedback_ = 0;
     // Condition variable for synchronization
     std::condition_variable cv_;
 

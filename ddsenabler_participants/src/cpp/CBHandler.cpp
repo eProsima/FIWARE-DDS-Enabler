@@ -173,8 +173,14 @@ void CBHandler::add_data(
         case RpcUtils::RpcType::ACTION_RESULT_REPLY:
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            // TODO map this id to action id
-            UUID action_id_uuid;
+            if(send_goal_request_id_to_uuid_.find(action_id) == send_goal_request_id_to_uuid_.end())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Action ID not found in map.");
+                return;
+            }
+            auto action_id_uuid = send_goal_request_id_to_uuid_[action_id];
+            send_goal_request_id_to_uuid_.erase(action_id);
             write_action_result_(msg, dyn_type, action_id_uuid);
             break;
         }
@@ -183,12 +189,25 @@ void CBHandler::add_data(
             // No need to do anything
             break;
 
+        case RpcUtils::RpcType::ACTION_GOAL_REPLY:
+        {
+            // TODO: If it is accepted send directly the get_result_request, if it is not accepted send updated status. How to read the data without deserializing it?
+            // TODO: all the send_goal_responses have an "accepted" parameter?
+            // TODO for now we send the get_result_request directly when sending the goal
+            break;
+        }
+
         case RpcUtils::RpcType::ACTION_FEEDBACK:
         {
-            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            // TODO map this id to action id
+            // TODO strip the UUID from the type when adding the schema
             UUID action_id_uuid;
-            write_action_feedback_(msg, dyn_type, action_id_uuid);
+            write_action_feedback_(msg, dyn_type);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_STATUS:
+        {
+            // TODO
             break;
         }
 
@@ -323,10 +342,9 @@ void CBHandler::write_action_result_(
 
 void CBHandler::write_action_feedback_(
     const CBMessage& msg,
-    const fastdds::dds::DynamicType::_ref_type& dyn_type,
-    const UUID& action_id)
+    const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
-    cb_writer_->write_action_feedback(msg, dyn_type, action_id);
+    cb_writer_->write_action_feedback(msg, dyn_type);
 }
 
 bool CBHandler::register_type_nts_(
