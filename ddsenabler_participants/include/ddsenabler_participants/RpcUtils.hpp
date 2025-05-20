@@ -120,3 +120,5 @@ std::string make_send_goal_request_json(const std::string& goal_json, UUID& goal
 } // namespace participants
 } // namespace ddsenabler
 } // namespace eprosima
+
+std::ostream& operator<<(std::ostream& os, const eprosima::ddsenabler::participants::UUID& uuid);

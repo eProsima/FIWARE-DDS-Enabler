@@ -64,6 +64,15 @@ DDSEnabler::DDSEnabler(
         handler_config,
         payload_pool_);
 
+    cb_handler_->set_action_send_get_result_request_callback(
+        [this](const std::string& action_name, const UUID& action_id)
+        {
+            if (this->action_send_get_result_request(action_name, action_id))
+                return true;
+            this->cancel_action_goal(action_name, action_id);
+            return false;
+        });
+
     // Create Enabler Participant
     enabler_participant_ = std::make_shared<EnablerParticipant>(
         configuration_.enabler_configuration,
@@ -218,18 +227,23 @@ bool DDSEnabler::send_action_goal(
     std::string goal_json = RpcUtils::make_send_goal_request_json(json, action_id);
     uint64_t goal_request_id = 0;
     std::string goal_request_topic = action_name + "send_goal";
+
+    cb_handler_->store_action_request_UUID(
+        action_id,
+        sent_request_id_+1);
+    cb_handler_->store_action_UUID(action_id);
+
     if(send_service_request(
             goal_request_topic,
             goal_json,
             goal_request_id))
     {
-        // TODO wait for response
-        cb_handler_->store_action_request_UUID(
-            action_id,
-            goal_request_id);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        return action_send_get_result_request(action_name, action_id);
+        return true;
     }
+
+    UUID action_id_popped;
+    cb_handler_->pop_action_request_UUID(sent_request_id_ + 1, action_id_popped);
+    cb_handler_->erase_action_UUID(action_id);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action goal to action " << action_name);
@@ -254,16 +268,20 @@ bool DDSEnabler::action_send_get_result_request(
     std::string get_result_request_topic = action_name + "get_result";
     uint64_t get_result_request_id = 0;
 
+    cb_handler_->store_action_request_UUID(
+        action_id,
+        sent_request_id_+1);
+
     if(send_service_request(
             get_result_request_topic,
             json,
             get_result_request_id))
     {
-        cb_handler_->store_action_request_UUID(
-            action_id,
-            get_result_request_id);
         return true;
     }
+
+    UUID action_id_popped;
+    cb_handler_->pop_action_request_UUID(sent_request_id_ + 1, action_id_popped);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action get result request to action " << action_name);
@@ -274,6 +292,14 @@ bool DDSEnabler::cancel_action_goal(
     const std::string& action_name,
     const participants::UUID& goal_id)
 {
+    if (!cb_handler_->is_UUID_active(goal_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to cancel action goal to action " << action_name
+                << ": goal id not found.");
+        return false;
+    }
+
     // TODO should we check if the goal_id is already in use?
     // Get current time in seconds and nanoseconds
     auto now = std::chrono::system_clock::now();
@@ -290,16 +316,21 @@ bool DDSEnabler::cancel_action_goal(
 
     uint64_t cancel_request_id = 0;
     std::string cancel_request_topic = action_name + "cancel_goal";
+
+    cb_handler_->store_action_request_UUID(
+        goal_id,
+        sent_request_id_+1);
+
     if(send_service_request(
             cancel_request_topic,
             cancel_json,
             cancel_request_id))
     {
-        cb_handler_->store_action_request_UUID(
-            goal_id,
-            cancel_request_id);
         return true;
     }
+
+    UUID action_id_popped;
+    cb_handler_->pop_action_request_UUID(sent_request_id_+1, action_id_popped);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action cancel goal to action " << action_name);

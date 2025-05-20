@@ -157,6 +157,28 @@ public:
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const UUID& action_id);
 
+    void write_action_status(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void set_is_UUID_active_callback(
+            std::function<bool(const UUID&)> callback)
+    {
+        is_UUID_active_callback_ = callback;
+    }
+
+    void set_erase_action_UUID_callback(
+            std::function<void(const UUID&)> callback)
+    {
+        erase_action_UUID_callback_ = callback;
+    }
+
+    void set_action_send_get_result_request_callback(
+            std::function<bool(const std::string&, const participants::UUID&)> callback)
+    {
+        action_send_get_result_request_callback_ = callback;
+    }
+
 protected:
 
     /**
@@ -185,6 +207,10 @@ protected:
     RosActionResultNotification action_result_callback_;
     RosActionFeedbackNotification action_feedback_callback_;
     RosActionStatusNotification action_status_callback_;
+
+    std::function<bool(const UUID&)> is_UUID_active_callback_;
+    std::function<void(const UUID&)> erase_action_UUID_callback_;
+    std::function<bool(const std::string&, const participants::UUID&)> action_send_get_result_request_callback_;
 
 };
 

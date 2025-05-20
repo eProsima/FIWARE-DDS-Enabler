@@ -169,6 +169,8 @@ TEST_F(DDSEnablerTest, manual_action_client)
     }
     std::cout << "Action available" << std::endl;
 
+    ASSERT_FALSE(enabler->cancel_action_goal(action_name, UUID()));
+
     int sent_requests = 0;
     while(sent_requests < 3)
     {
@@ -179,25 +181,25 @@ TEST_F(DDSEnablerTest, manual_action_client)
         }
 
         eprosima::ddsenabler::participants::STATUS_CODE status;
-        ASSERT_TRUE(wait_for_status_update(action_id, status, sent_requests + 1));
-        ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED);
+        ASSERT_TRUE(wait_for_status_update(action_id, status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED));
 
         UUID received_action_id;
         int received_action_feedbacks = 0;
         do
         {
-            received_action_feedbacks = get_received_actions_feedback(received_action_id);
-            if(received_action_feedbacks > 0)
-                ASSERT_EQ(received_action_id, action_id);
+            ASSERT_TRUE(wait_for_feedback(received_action_feedbacks, received_action_id));
+            ASSERT_EQ(received_action_id, action_id);
             std::cout << "Waiting for all action feedbacks" << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            received_action_feedbacks++;
         } while(received_action_feedbacks < 3);
-        sent_requests++;
 
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        ASSERT_EQ(get_received_actions_result(received_action_id), sent_requests);
+        ASSERT_TRUE(wait_for_status_update(action_id, status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED));
+
+        ASSERT_TRUE(wait_for_result(action_id));
         ASSERT_EQ(received_action_id, action_id);
         action_id = UUID();
+        sent_requests++;
+        std::this_thread::sleep_for(std::chrono::seconds(2));
     }
 }
 
@@ -208,7 +210,7 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    std::string json = "{\"order\": 5}";
+    std::string json = "{\"order\": 10}";
     std::string action_name = "fibonacci/_action/";
     UUID action_id;
 
@@ -229,12 +231,15 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
     }
 
     eprosima::ddsenabler::participants::STATUS_CODE status;
-    ASSERT_TRUE(wait_for_status_update(action_id, status, 1));
-    ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED);
+    ASSERT_TRUE(wait_for_status_update(action_id, status, STATUS_CODE::STATUS_ACCEPTED));
+
+    int received_action_feedbacks = 0;
+    UUID received_action_id;
+    ASSERT_TRUE(wait_for_feedback(received_action_feedbacks, received_action_id));
+    ASSERT_EQ(received_action_id, action_id);
 
     ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id));
-    ASSERT_TRUE(wait_for_status_update(action_id, status, 2));
-    ASSERT_EQ(status, eprosima::ddsenabler::participants::STATUS_CODE::STATUS_CANCELED);
+    ASSERT_TRUE(wait_for_status_update(action_id, status, STATUS_CODE::STATUS_CANCELED));
 }
 
 TEST_F(DDSEnablerTest, send_type1)

@@ -64,7 +64,7 @@ public:
         received_services_ = 0;
         received_services_request_ = 0;
         received_actions_ = 0;
-        received_actions_result_ = 0;
+        received_actions_result_ = false;
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         received_actions_feedback_ = 0;
@@ -94,7 +94,7 @@ public:
         received_services_ = 0;
         received_services_request_ = 0;
         received_actions_ = 0;
-        received_actions_result_ = 0;
+        received_actions_result_ = false;
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         received_actions_feedback_ = 0;
@@ -319,13 +319,13 @@ public:
     bool wait_for_status_update(
             const UUID& action_id,
             eprosima::ddsenabler::participants::STATUS_CODE& status,
-            int min_received,
+            const eprosima::ddsenabler::participants::STATUS_CODE& expected_status,
             int timeout = 10)
     {
         std::unique_lock<std::mutex> lock(data_received_mutex_);
-        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this, action_id, min_received]()
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this, expected_status]()
                 {
-                    return received_actions_status_updates_ >= min_received;
+                    return last_status_ == expected_status;
                 }))
         {
             status = last_status_;
@@ -336,6 +336,49 @@ public:
         std::cout << "Timeout waiting for status update" << std::endl;
         status = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         return false;
+    }
+
+    bool wait_for_result(
+            UUID& action_id,
+            int timeout = 10)
+    {
+        std::unique_lock<std::mutex> lock(data_received_mutex_);
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this]()
+                {
+                    return received_actions_result_ == true;
+                }))
+        {
+            action_id = actions_goal_uuid_;
+            received_actions_result_ = false;
+            return true;
+        }
+        else
+        {
+            std::cout << "Timeout waiting for result callback" << std::endl;
+            return false;
+        }
+    }
+
+    bool wait_for_feedback(
+            int& feedbacks_prev,
+            UUID& action_id,
+            int timeout = 10)
+    {
+        std::unique_lock<std::mutex> lock(data_received_mutex_);
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this, feedbacks_prev]()
+                {
+                    return received_actions_feedback_ > feedbacks_prev;
+                }))
+        {
+            action_id = actions_feedback_uuid_;
+            feedbacks_prev = received_actions_feedback_;
+            return true;
+        }
+        else
+        {
+            std::cout << "Timeout waiting for feedback callback" << std::endl;
+            return false;
+        }
     }
 
     // eprosima::ddsenabler::participants::DdsNotification data_callback;
@@ -517,10 +560,12 @@ public:
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
             current_test_instance_->actions_goal_uuid_ = goalId;
-            current_test_instance_->received_actions_result_++;
-            std::cout << "Action result callback received: " << actionName << ": " << json << ", Total actions: " <<
-                current_test_instance_->received_actions_result_ << std::endl;
+            current_test_instance_->received_actions_result_ = true;
+            std::cout << "Action result callback received: " << actionName << ": " << json << std::endl;
+            current_test_instance_->received_actions_feedback_ = 0;
         }
+
+        current_test_instance_->cv_.notify_all();
     }
 
     // eprosima::ddsenabler::participants::RosActionFeedbackNotification feedback_callback;
@@ -535,9 +580,11 @@ public:
             std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
             current_test_instance_->actions_feedback_uuid_ = goalId;
             current_test_instance_->received_actions_feedback_++;
-            std::cout << "Action feedback callback received: " << actionName << ": " << json << ", Total actions feedback: " <<
+            std::cout << "Action feedback callback received with UUID: " << goalId << ", Total actions feedback: " <<
                 current_test_instance_->received_actions_feedback_ << std::endl;
         }
+
+        current_test_instance_->cv_.notify_all();
     }
 
     // eprosima::ddsenabler::participants::RosActionStatusNotification status_callback;
@@ -554,7 +601,7 @@ public:
 
             current_test_instance_->last_status_ = static_cast<eprosima::ddsenabler::participants::STATUS_CODE>(statusCode);
             current_test_instance_->received_actions_status_updates_++;
-            std::cout << "Action status callback received: " << actionName << ": " << statusMessage << ", Total status updates: " <<
+            std::cout << "Action status callback received: " << statusCode << ": " << statusMessage << ", Total status updates: " <<
                 current_test_instance_->received_actions_status_updates_ << std::endl;
 
             current_test_instance_->cv_.notify_all();
@@ -659,20 +706,6 @@ public:
         }
     }
 
-    int get_received_actions_result(UUID& goal_id)
-    {
-        if (current_test_instance_)
-        {
-            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
-            goal_id = current_test_instance_->actions_goal_uuid_;
-            return current_test_instance_->received_actions_result_;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-
     int get_received_actions_feedback(UUID& feedback_id)
     {
         if (current_test_instance_)
@@ -713,7 +746,7 @@ public:
     int received_services_ = 0;
     int received_services_request_ = 0;
     int received_actions_ = 0;
-    int received_actions_result_ = 0;
+    bool received_actions_result_ = false;
     UUID actions_feedback_uuid_;
     UUID actions_goal_uuid_;
     int received_actions_feedback_ = 0;

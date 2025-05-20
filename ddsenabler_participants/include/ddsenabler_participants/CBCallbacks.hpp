@@ -28,15 +28,16 @@ using UUID = std::array<uint8_t, 16>;
 
 enum STATUS_CODE {
         STATUS_UNKNOWN = 0,
-        STATUS_ACCEPTED = 1,
-        STATUS_EXECUTING = 2,
-        STATUS_SUCCEEDED = 3,
-        STATUS_ABORTED = 4,
-        STATUS_CANCELED = 5,
-        STATUS_REJECTED = 6,
-        STATUS_TIMEOUT = 7,
-        STATUS_FAILED = 8,
-        STATUS_CANCEL_REQUEST_FAILED = 9
+        STATUS_ACCEPTED,
+        STATUS_EXECUTING,
+        STATUS_CANCELING,
+        STATUS_SUCCEEDED,
+        STATUS_CANCELED,
+        STATUS_ABORTED,
+        STATUS_REJECTED,
+        STATUS_TIMEOUT,
+        STATUS_FAILED,
+        STATUS_CANCEL_REQUEST_FAILED
     };
 
 /**

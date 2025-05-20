@@ -46,6 +46,18 @@ CBHandler::CBHandler(
             "Creating CB handler instance.");
 
     cb_writer_ = std::make_unique<CBWriter>();
+
+    cb_writer_->set_is_UUID_active_callback(
+        [this](const UUID& uuid) {
+            return this->is_UUID_active(uuid);
+        }
+    );
+
+    cb_writer_->set_erase_action_UUID_callback(
+        [this](const UUID& uuid) {
+            return this->erase_action_UUID(uuid);
+        }
+    );
 }
 
 CBHandler::~CBHandler()
@@ -101,46 +113,48 @@ void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
-
-    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
-            "Adding data in topic: " << topic << ".");
-
-    fastdds::dds::DynamicType::_ref_type dyn_type;
-    auto it = schemas_.find(topic.type_name);
-    if (it == schemas_.end())
-    {
-        EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
-                "Schema for type " << topic.type_name << " not available.");
-        return;
-    }
-    dyn_type = it->second.second;
-
     CBMessage msg;
-    msg.sequence_number = unique_sequence_number_++;
-    msg.publish_time = data.source_timestamp;
-    if (data.payload.length > 0)
+    fastdds::dds::DynamicType::_ref_type dyn_type;
     {
-        msg.topic = topic;
-        msg.instanceHandle = data.instanceHandle;
-        msg.source_guid = data.source_guid;
+        std::lock_guard<std::mutex> lock(mtx_);
 
-        if (data.payload_owner != nullptr)
+        EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+                "Adding data in topic: " << topic << ".");
+
+        auto it = schemas_.find(topic.type_name);
+        if (it == schemas_.end())
         {
-            payload_pool_->get_payload(
-                data.payload,
-                msg.payload);
+            EPROSIMA_LOG_WARNING(DDSENABLER_CB_HANDLER,
+                    "Schema for type " << topic.type_name << " not available.");
+            return;
+        }
+        dyn_type = it->second.second;
 
-            msg.payload_owner = payload_pool_.get();
+        msg.sequence_number = unique_sequence_number_++;
+        msg.publish_time = data.source_timestamp;
+        if (data.payload.length > 0)
+        {
+            msg.topic = topic;
+            msg.instanceHandle = data.instanceHandle;
+            msg.source_guid = data.source_guid;
+
+            if (data.payload_owner != nullptr)
+            {
+                payload_pool_->get_payload(
+                    data.payload,
+                    msg.payload);
+
+                msg.payload_owner = payload_pool_.get();
+            }
+            else
+            {
+                throw utils::InconsistencyException(STR_ENTRY << "Payload owner not found in data received.");
+            }
         }
         else
         {
-            throw utils::InconsistencyException(STR_ENTRY << "Payload owner not found in data received.");
+            throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
         }
-    }
-    else
-    {
-        throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
 
     std::string rpc_name;
@@ -151,6 +165,7 @@ void CBHandler::add_data(
             write_sample_(msg, dyn_type);
             break;
 
+        // SERVICES
         case RpcUtils::RpcType::RPC_REQUEST:
         {
             received_requests_id_++;
@@ -170,70 +185,52 @@ void CBHandler::add_data(
             break;
         }
 
+        // ACTIONS: CB AS CLIENT
         case RpcUtils::RpcType::ACTION_RESULT_REPLY:
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
-            {
-                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                        "Action ID not found in map.");
-                return;
-            }
-            auto action_id_uuid = action_request_id_to_uuid_[action_id];
-            action_request_id_to_uuid_.erase(action_id);
-            write_action_result_(msg, dyn_type, action_id_uuid);
+            UUID action_id_uuid;
+            if (pop_action_request_UUID(action_id, action_id_uuid))
+                write_action_result_(msg, dyn_type, action_id_uuid);
             break;
         }
-
-        case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
-            // No need to do anything
-            break;
 
         case RpcUtils::RpcType::ACTION_GOAL_REPLY:
         {
             // TODO: If it is accepted send directly the get_result_request, if it is not accepted send updated status. How to read the data without deserializing it?
             // TODO: all the send_goal_responses have an "accepted" parameter?
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
-            {
-                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                        "Action ID not found in map.");
-                return;
-            }
-            auto action_id_uuid = action_request_id_to_uuid_[action_id];
-            action_request_id_to_uuid_.erase(action_id);
-            write_action_goal_reply_(msg, dyn_type, action_id_uuid);
+            UUID action_id_uuid;
+            if (pop_action_request_UUID(action_id, action_id_uuid))
+                write_action_goal_reply_(msg, dyn_type, action_id_uuid);
             break;
         }
 
         case RpcUtils::RpcType::ACTION_CANCEL_REPLY:
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            if(action_request_id_to_uuid_.find(action_id) == action_request_id_to_uuid_.end())
-            {
-                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                        "Action ID not found in map.");
-                return;
-            }
-            auto action_id_uuid = action_request_id_to_uuid_[action_id];
-            action_request_id_to_uuid_.erase(action_id);
-            write_action_cancel_reply_(msg, dyn_type, action_id_uuid);
+            UUID action_id_uuid;
+            if (pop_action_request_UUID(action_id, action_id_uuid))
+                write_action_cancel_reply_(msg, dyn_type, action_id_uuid);
             break;
         }
 
         case RpcUtils::RpcType::ACTION_FEEDBACK:
         {
             // TODO strip the UUID from the type when adding the schema
-            UUID action_id_uuid;
             write_action_feedback_(msg, dyn_type);
             break;
         }
 
         case RpcUtils::RpcType::ACTION_STATUS:
         {
-            // TODO
+            write_action_status_(msg, dyn_type);
             break;
         }
+
+        case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
+            // No need to do anything
+            break;
 
         default:
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
@@ -385,6 +382,13 @@ void CBHandler::write_action_cancel_reply_(
     const UUID& action_id)
 {
     cb_writer_->write_action_cancel_reply(msg, dyn_type, action_id);
+}
+
+void CBHandler::write_action_status_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
+    cb_writer_->write_action_status(msg, dyn_type);
 }
 
 bool CBHandler::register_type_nts_(

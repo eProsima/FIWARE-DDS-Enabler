@@ -251,7 +251,7 @@ ddspipe::core::types::DdsTopic new_schema(
     ddspipe::core::types::DdsTopic pipe_topic;
     pipe_topic.m_topic_name = topic->get_name();
     pipe_topic.type_name = topic->get_type_name();
-    
+
     eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
         topic->get_type_name(), type_id_pair);
     pipe_topic.type_identifiers = type_id_pair;
@@ -518,7 +518,7 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
     msg2.source_guid = data2->source_guid;
     payload_pool_->get_payload(data2->payload, msg2.payload);
     msg2.payload_owner = payload_pool_.get();
-    
+
     cb_handler_->cb_writer_->write_data(msg2, dynamic_type2);
     ASSERT_EQ(cb_handler_->data_called_, 2);
 }

@@ -24,11 +24,11 @@
 #include <fastdds/rtps/common/SerializedPayload.hpp>
 #include <fastdds/rtps/common/Types.hpp>
 
+#include <ddsenabler_participants/CBWriter.hpp>
 #include <ddsenabler_participants/serialization.hpp>
 #include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
-
-#include <ddsenabler_participants/CBWriter.hpp>
+#include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -41,7 +41,6 @@ using namespace eprosima::ddspipe::core::types;
 UUID json_to_uuid(const nlohmann::json& json)
 {
     UUID uuid;
-    std::cout << "UUID: " << json.dump(4) << std::endl;
     if (!json.contains("uuid") || !json["uuid"].is_array() || json["uuid"].size() != sizeof(UUID))
 
     {
@@ -377,7 +376,6 @@ void CBWriter::write_action_goal_reply(
         status_message = "Action goal rejected";
         status_code = ddsenabler::participants::STATUS_CODE::STATUS_REJECTED;
     }
-
     if (action_status_callback_)
     {
         action_status_callback_(
@@ -389,6 +387,24 @@ void CBWriter::write_action_goal_reply(
             );
     }
 
+    if (action_send_get_result_request_callback_ && !action_send_get_result_request_callback_(
+            action_name.c_str(),
+            action_id))
+    {
+        status_message = "Action goal rejected";
+        status_code = ddsenabler::participants::STATUS_CODE::STATUS_ABORTED;
+
+        if (action_status_callback_)
+        {
+            action_status_callback_(
+                action_name.c_str(),
+                action_id,
+                status_code,
+                status_message.c_str(),
+                msg.publish_time.to_ns()
+                );
+        }
+    }
 }
 
 void CBWriter::write_action_cancel_reply(
@@ -450,6 +466,90 @@ void CBWriter::write_action_cancel_reply(
             action_status_callback_(
                 action_name.c_str(),
                 action_id,
+                status_code,
+                status_message.c_str(),
+                msg.publish_time.to_ns()
+                );
+        }
+    }
+}
+
+void CBWriter::write_action_status(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    // Get the action name
+    std::string action_name;
+    RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
+
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
+
+    const auto& list = (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["status_list"];
+    for (const auto& status : list)
+    {
+        UUID uuid = json_to_uuid(status["goal_info"]["goal_id"]);
+        if(is_UUID_active_callback_ && !is_UUID_active_callback_(uuid))
+            continue;
+
+        ddsenabler::participants::STATUS_CODE status_code(status["status"]);
+        std::string status_message;
+
+        switch (status_code)
+        {
+            case ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN:
+                status_message = "The status has not been properly set";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED:
+                status_message = "The goal has been accepted and is awaiting execution";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING:
+                status_message = "The goal is currently being executed by the action server";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_CANCELING:
+                status_message = "The client has requested that the goal be canceled and the action server has accepted the cancel request";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
+                status_message = "The goal was achieved successfully by the action server";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_CANCELED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
+                status_message = "The goal was canceled after an external request from an action client";
+                break;
+
+            case ddsenabler::participants::STATUS_CODE::STATUS_ABORTED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
+                status_message = "The goal was terminated by the action server without an external request";
+                break;
+
+            default:
+                status_message = "Unknown status code";
+                break;
+        }
+
+        if (action_status_callback_)
+        {
+            action_status_callback_(
+                action_name.c_str(),
+                uuid,
                 status_code,
                 status_message.c_str(),
                 msg.publish_time.to_ns()

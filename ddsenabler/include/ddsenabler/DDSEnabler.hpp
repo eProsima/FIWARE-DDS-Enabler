@@ -324,8 +324,19 @@ public:
 
 protected:
 
-    // TODO this method is used automatically whenever a positivo send_goal_reply is received.
-    //         As that is received by the CBHandler it is needed to be able to call this method from there.
+    /**
+     * @brief Sends a request to get the result of an action.
+     *
+     * This function sends a request to get the result of an action identified by the given action name and goal ID.
+     * It returns a boolean indicating whether the operation was successful.
+     *
+     * It is invoked via lambda from the cb_writer_ when the send_goal_reply is received and positive.
+     *
+     * @param action_name The name of the action for which the result is being requested.
+     * @param goal_id The unique identifier of the action goal for which the result is being requested.
+     *
+     * @return true if the request to get the result was successfully sent, false otherwise.
+     */
     bool action_send_get_result_request(
         const std::string& action_name,
         const participants::UUID& goal_id);

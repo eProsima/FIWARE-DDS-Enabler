@@ -22,6 +22,7 @@
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
@@ -52,6 +53,17 @@ struct hash<eprosima::fastdds::dds::xtypes::TypeIdentifier>
                (static_cast<size_t>(k.equivalence_hash()[2]));
     }
 
+};
+
+template<>
+struct hash<eprosima::ddsenabler::participants::UUID> {
+    std::size_t operator()(const eprosima::ddsenabler::participants::UUID& uuid) const noexcept {
+        std::size_t hash = 0;
+        for (uint8_t byte : uuid) {
+            hash ^= std::hash<uint8_t>{}(byte) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+        }
+        return hash;
+    }
 };
 
 } // std
@@ -177,8 +189,52 @@ public:
             const UUID& action_id,
             const uint64_t request_id)
     {
-        std::lock_guard<std::mutex> lock(mtx_);
+        std::lock_guard<std::mutex> lock(mtx_action_);
         action_request_id_to_uuid_[request_id] = action_id;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool pop_action_request_UUID(
+                const uint64_t request_id,
+                UUID& action_id)
+    {
+        std::lock_guard<std::mutex> lock(mtx_action_);
+        auto it = action_request_id_to_uuid_.find(request_id);
+        if (it != action_request_id_to_uuid_.end())
+        {
+            action_id = it->second;
+            action_request_id_to_uuid_.erase(it);
+            return true;
+        }
+        return false;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void store_action_UUID(
+            const UUID& action_id)
+    {
+        std::lock_guard<std::mutex> lock(mtx_action_);
+        action_uuid_vector_.insert(action_id);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void erase_action_UUID(
+            const UUID& action_id)
+    {
+        std::lock_guard<std::mutex> lock(mtx_action_);
+        action_uuid_vector_.erase(action_id);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool is_UUID_active(
+            const UUID& action_id)
+    {
+        std::lock_guard<std::mutex> lock(mtx_action_);
+        auto it = action_uuid_vector_.find(action_id);
+        if (it != action_uuid_vector_.end())
+            return true;
+
+        return false;
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -258,6 +314,14 @@ public:
         cb_writer_->set_action_status_callback(callback);
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_send_get_result_request_callback(
+            std::function<bool(const std::string&, const participants::UUID&)> callback)
+    {
+        action_send_get_result_request_callback_ = callback;
+        cb_writer_->set_action_send_get_result_request_callback(callback);
+    }
+
 protected:
 
     void write_schema_(
@@ -308,7 +372,7 @@ protected:
 
     void write_action_status_(
             const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type){/* TODO */};
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
     bool register_type_nts_(
             const std::string& type_name,
@@ -334,6 +398,9 @@ protected:
     //! Mutex synchronizing access to object's data structures
     std::mutex mtx_;
 
+    //! Mutex synchronizing access to action related data structures
+    std::mutex mtx_action_;
+
     DdsTypeRequest type_req_callback_;
 
     //! Counter of received requests
@@ -344,6 +411,10 @@ protected:
 
     //! Map of any action services to the action's UUID
     std::unordered_map<uint64_t, participants::UUID> action_request_id_to_uuid_;
+
+    std::unordered_set<participants::UUID> action_uuid_vector_;
+
+    std::function<bool(const std::string&, const participants::UUID&)> action_send_get_result_request_callback_;
 };
 
 } /* namespace participants */
