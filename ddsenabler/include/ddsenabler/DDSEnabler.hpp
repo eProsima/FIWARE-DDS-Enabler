@@ -20,6 +20,8 @@
 
 #include <memory>
 
+#include <fastdds/dds/domain/DomainParticipantFactory.hpp>
+
 #include <cpp_utils/event/FileWatcherHandler.hpp>
 #include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/ReturnCode.hpp>
@@ -130,6 +132,9 @@ protected:
      */
     void load_internal_topics_(
             yaml::EnablerConfiguration& configuration);
+
+    //! Store reference to DomainParticipantFactory to avoid Fast-DDS singletons being destroyed before they should
+    std::shared_ptr<eprosima::fastdds::dds::DomainParticipantFactory> part_factory_ =  eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
 
     //! Configuration of the DDS Enabler
     yaml::EnablerConfiguration configuration_;
