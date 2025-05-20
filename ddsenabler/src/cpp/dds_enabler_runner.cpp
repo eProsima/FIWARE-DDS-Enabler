@@ -40,13 +40,14 @@ bool create_dds_enabler(
         participants::DdsTypeRequest type_req_callback,
         participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler)
+        std::shared_ptr<DDSEnabler>& enabler)
 {
     std::string dds_enabler_config_file = "";
     if (ddsEnablerConfigFile != NULL)
     {
         dds_enabler_config_file = ddsEnablerConfigFile;
     }
+
     // Load configuration from file
     eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
 
@@ -85,7 +86,7 @@ bool create_dds_enabler(
         participants::DdsTypeRequest type_req_callback,
         participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler)
+        std::shared_ptr<DDSEnabler>& enabler)
 {
     // Encapsulating execution in block to erase all memory correctly before closing process
     try

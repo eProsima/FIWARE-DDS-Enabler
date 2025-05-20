@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include <cpp_utils/event/FileWatcherHandler.hpp>
@@ -49,7 +50,7 @@ bool create_dds_enabler(
         participants::DdsTypeRequest type_req_callback,
         participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler);
+        std::shared_ptr<DDSEnabler>& enabler);
 
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
@@ -59,7 +60,7 @@ bool create_dds_enabler(
         participants::DdsTypeRequest type_req_callback,
         participants::DdsTopicRequest topic_req_callback,
         participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler);
+        std::shared_ptr<DDSEnabler>& enabler);
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */

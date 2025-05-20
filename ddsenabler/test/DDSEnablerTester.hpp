@@ -72,7 +72,7 @@ public:
     }
 
     // Create the DDSEnabler and bind the static callbacks
-    std::unique_ptr<DDSEnabler> create_ddsenabler()
+    std::shared_ptr<DDSEnabler> create_ddsenabler()
     {
         YAML::Node yml;
 
@@ -80,14 +80,14 @@ public:
         configuration.simple_configuration->domain = DOMAIN_;
 
         // Create DDS Enabler
-        std::unique_ptr<DDSEnabler> enabler;
+        std::shared_ptr<DDSEnabler> enabler;
         bool result = create_dds_enabler(configuration, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler);
 
         return enabler;
     }
 
     // Create the DDSEnabler and bind the static callbacks
-    std::unique_ptr<DDSEnabler> create_ddsenabler_w_history()
+    std::shared_ptr<DDSEnabler> create_ddsenabler_w_history()
     {
         const char* yml_str =
                 R"(
@@ -110,7 +110,7 @@ public:
 
         auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
 
-        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
+        auto enabler = std::make_shared<DDSEnabler>(configuration, close_handler);
 
         // Bind the static callbacks (no captures allowed)
         enabler->set_data_callback(test_data_callback);

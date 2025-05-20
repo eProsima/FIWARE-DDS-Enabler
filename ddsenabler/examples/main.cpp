@@ -111,7 +111,7 @@ int main(
 
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
-    std::unique_ptr<DDSEnabler> enabler;
+    std::shared_ptr<DDSEnabler> enabler;
     create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, test_topic_callback, nullptr, nullptr, nullptr, enabler);
 
     signal(SIGINT, signal_handler);

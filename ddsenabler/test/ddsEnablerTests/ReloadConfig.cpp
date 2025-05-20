@@ -174,7 +174,7 @@ TEST(ReloadConfig, json)
     write_json_file(configfile, false);
 
     // Create DDS Enabler
-    std::unique_ptr<DDSEnabler> enabler;
+    std::shared_ptr<DDSEnabler> enabler;
     ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
@@ -205,7 +205,7 @@ TEST(ReloadConfig, yaml)
     write_yaml_file(configfile, 0);
 
     // Create DDS Enabler
-    std::unique_ptr<DDSEnabler> enabler;
+    std::shared_ptr<DDSEnabler> enabler;
     ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
