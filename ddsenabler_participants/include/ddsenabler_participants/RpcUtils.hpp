@@ -116,6 +116,33 @@ UUID generate_UUID();
  */
 std::string make_send_goal_request_json(const std::string& goal_json, UUID& goal_id);
 
+void save_type_to_file(
+    const std::string& directory,
+    const char* typeName,
+    const unsigned char*& serializedTypeInternal,
+    const uint32_t& serializedTypeInternalSize);
+
+bool load_type_from_file(
+    const std::string& directory,
+    const char* typeName,
+    unsigned char*& serializedTypeInternal,
+    uint32_t& serializedTypeInternalSize);
+
+void save_service_to_file(const char* serviceName,
+    const char* requestTypeName,
+    const char* replyTypeName,
+    const char* requestSerializedQos,
+    const char* replySerializedQos,
+    const std::string& filename);
+
+bool load_service_from_file(
+    const char* serviceName,
+    char*& requestTypeName,
+    char*& replyTypeName,
+    char*& requestSerializedQos,
+    char*& replySerializedQos,
+    const std::string& filename);
+
 } // namespace RpcUtils
 } // namespace participants
 } // namespace ddsenabler

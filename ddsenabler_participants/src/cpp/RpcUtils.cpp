@@ -18,6 +18,9 @@
 
 #include <ddsenabler_participants/RpcUtils.hpp>
 
+#include <nlohmann/json.hpp>
+#include <fstream>
+
 
 namespace eprosima {
 namespace ddsenabler {
@@ -190,6 +193,150 @@ std::string make_send_goal_request_json(const std::string& goal_json, UUID& goal
     }
     json += "]}, \"goal\": " + goal_json + "}";
     return json;
+}
+
+void save_type_to_file(
+    const std::string& directory,
+    const char* typeName,
+    const unsigned char*& serializedTypeInternal,
+    const uint32_t& serializedTypeInternalSize)
+{
+    // Sanitize the typeName for file usage (basic version: replace ':' and '/' if any)
+    std::string safeTypeName = typeName;
+    for (auto& c : safeTypeName)
+    {
+        if (c == ':' || c == '/' || c == '\\') {
+            c = '_';
+        }
+    }
+
+    // Construct full file path
+    std::string filePath = directory + "/" + safeTypeName + ".bin";
+
+    // Open file in binary mode
+    std::ofstream ofs(filePath, std::ios::binary);
+    if (!ofs)
+    {
+        std::cerr << "Error opening file for writing: " << filePath << std::endl;
+        return;
+    }
+
+    // Write the binary data
+    ofs.write(reinterpret_cast<const char*>(serializedTypeInternal), serializedTypeInternalSize);
+
+    if (!ofs.good())
+    {
+        std::cerr << "Error writing to file: " << filePath << std::endl;
+    }
+
+    ofs.close();
+}
+
+
+bool load_type_from_file(
+    const std::string& directory,
+    const char* typeName,
+    unsigned char*& serializedTypeInternal,
+    uint32_t& serializedTypeInternalSize)
+{
+    // Sanitize the type name (replace ':' and '/' with '_')
+    std::string safeTypeName = typeName;
+    for (auto& c : safeTypeName)
+    {
+        if (c == ':' || c == '/' || c == '\\') {
+            c = '_';
+        }
+    }
+
+    // Build file path
+    std::string filePath = directory + safeTypeName + ".bin";
+
+    // Open file in binary mode, position at end to get size
+    std::ifstream ifs(filePath, std::ios::binary | std::ios::ate);
+    if (!ifs)
+    {
+        std::cerr << "Error opening file for reading: " << filePath << std::endl;
+        return false;
+    }
+
+    // Get file size
+    std::streamsize size = ifs.tellg();
+    if (size <= 0)
+    {
+        std::cerr << "File is empty or invalid: " << filePath << std::endl;
+        return false;
+    }
+    serializedTypeInternalSize = static_cast<uint32_t>(size);
+
+    // Allocate memory
+    serializedTypeInternal = new unsigned char[serializedTypeInternalSize];
+
+    // Read the data
+    ifs.seekg(0, std::ios::beg);
+    if (!ifs.read(reinterpret_cast<char*>(serializedTypeInternal), serializedTypeInternalSize))
+    {
+        std::cerr << "Error reading file: " << filePath << std::endl;
+        delete[] serializedTypeInternal;
+        serializedTypeInternal = nullptr;
+        serializedTypeInternalSize = 0;
+        return false;
+    }
+
+    return true;
+}
+
+void save_service_to_file(const char* serviceName,
+        const char* requestTypeName,
+        const char* replyTypeName,
+        const char* requestSerializedQos,
+        const char* replySerializedQos,
+        const std::string& filename)
+{
+    nlohmann::json j;
+    j["serviceName"] = serviceName;
+    j["requestTypeName"] = requestTypeName;
+    j["replyTypeName"] = replyTypeName;
+    j["requestSerializedQos"] = requestSerializedQos;
+    j["replySerializedQos"] = replySerializedQos;
+
+    std::ofstream ofs(filename);
+    if (ofs.is_open()) {
+    ofs << j.dump(4);  // Pretty-print with 4-space indentation
+    }
+}
+
+bool load_service_from_file(
+        const char* serviceName,
+        char*& requestTypeName,
+        char*& replyTypeName,
+        char*& requestSerializedQos,
+        char*& replySerializedQos,
+        const std::string& filename)
+{
+    std::ifstream ifs(filename);
+    if (!ifs.is_open()) {
+        return false;
+    }
+
+    nlohmann::json j;
+    ifs >> j;
+
+    std::string file_serviceName = j["serviceName"].get<std::string>();
+    if (file_serviceName != std::string(serviceName)) {
+        return false;  // Service name does not match
+    }
+
+    std::string _requestTypeName = j["requestTypeName"].get<std::string>();
+    requestTypeName = strdup(_requestTypeName.c_str());
+    std::string _replyTypeName = j["replyTypeName"].get<std::string>();
+    replyTypeName = strdup(_replyTypeName.c_str());
+    std::string _requestSerializedQos = j["requestSerializedQos"].get<std::string>();
+    requestSerializedQos = strdup(_requestSerializedQos.c_str());
+    std::string _replySerializedQos = j["replySerializedQos"].get<std::string>();
+    replySerializedQos = strdup(_replySerializedQos.c_str());
+    ifs.close();
+
+    return true;
 }
 
 } // namespace RpcUtils
