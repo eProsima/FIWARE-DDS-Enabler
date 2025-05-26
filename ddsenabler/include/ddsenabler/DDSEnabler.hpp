@@ -144,6 +144,18 @@ public:
         cb_handler_->set_action_status_callback(callback);
     }
 
+    void set_action_request_callback(
+            participants::RosActionTypeRequest callback)
+    {
+        enabler_participant_->set_action_request_callback(callback);
+    }
+
+    void set_action_goal_request_notification_callback(
+            participants::RosActionGoalRequestNotification callback)
+    {
+        cb_handler_->set_action_goal_request_notification_callback(callback);
+    }
+
     /**
      * Associate the file watcher to the configuration file and stablish the callback to reload the configuration.
      *
@@ -284,7 +296,7 @@ public:
      * @return true if the action was successfully announced, false otherwise.
      */
     bool announce_action(
-            const std::string& action_name){/*TODO*/ return false;};
+            const std::string& action_name);
 
     /**
      * @brief Send feedback for the specified goal_id action.

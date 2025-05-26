@@ -131,6 +131,9 @@ bool create_dds_enabler(
         enabler->set_action_result_callback(action_callbacks.result_callback);
         enabler->set_action_feedback_callback(action_callbacks.feedback_callback);
         enabler->set_action_status_callback(action_callbacks.status_callback);
+        enabler->set_action_request_callback(action_callbacks.type_req_callback);
+        // TODO rename the notifications when rebased
+        enabler->set_action_goal_request_notification_callback(action_callbacks.goal_request_callback);
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");

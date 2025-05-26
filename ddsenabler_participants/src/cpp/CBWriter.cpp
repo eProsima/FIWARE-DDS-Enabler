@@ -170,8 +170,8 @@ void CBWriter::write_service(
         std::string reply_serialized_qos = serialize_qos(service.reply_topic().topic_qos);
         service_callback_(
             service.service_name().c_str(),
-            service.request_topic().topic_name().c_str(),
-            service.reply_topic().topic_name().c_str(),
+            service.request_topic().type_name.c_str(),
+            service.reply_topic().type_name.c_str(),
             request_serialized_qos.c_str(),
             reply_serialized_qos.c_str()
             );
@@ -263,23 +263,26 @@ void CBWriter::write_action(
         std::string result_request_serialized_qos = serialize_qos(action.result.request_topic().topic_qos);
         std::string result_reply_serialized_qos = serialize_qos(action.result.reply_topic().topic_qos);
         std::string feedback_serialized_qos = serialize_qos(action.feedback.topic_qos);
+        std::string status_serialized_qos = serialize_qos(action.status.topic_qos);
 
         action_callback_(
             action.action_name.c_str(),
-            action.goal.request_topic().topic_name().c_str(),
-            action.goal.reply_topic().topic_name().c_str(),
-            action.cancel.request_topic().topic_name().c_str(),
-            action.cancel.reply_topic().topic_name().c_str(),
-            action.result.request_topic().topic_name().c_str(),
-            action.result.reply_topic().topic_name().c_str(),
-            action.feedback.topic_name().c_str(),
+            action.goal.request_topic().type_name.c_str(),
+            action.goal.reply_topic().type_name.c_str(),
+            action.cancel.request_topic().type_name.c_str(),
+            action.cancel.reply_topic().type_name.c_str(),
+            action.result.request_topic().type_name.c_str(),
+            action.result.reply_topic().type_name.c_str(),
+            action.feedback.type_name.c_str(),
+            action.status.type_name.c_str(),
             goal_request_serialized_qos.c_str(),
             goal_reply_serialized_qos.c_str(),
             cancel_request_serialized_qos.c_str(),
             cancel_reply_serialized_qos.c_str(),
             result_request_serialized_qos.c_str(),
             result_reply_serialized_qos.c_str(),
-            feedback_serialized_qos.c_str()
+            feedback_serialized_qos.c_str(),
+            status_serialized_qos.c_str()
             );
     }
 }
@@ -553,6 +556,45 @@ void CBWriter::write_action_status(
                 status_code,
                 status_message.c_str(),
                 msg.publish_time.to_ns()
+                );
+        }
+    }
+}
+
+void CBWriter::write_action_request(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return;
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    // Get the action name
+    std::string action_name;
+    RpcUtils::RpcType rpc_type = RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
+
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
+    // TODO global store status code for later use
+    // TODO do not read directly from json without failure handling
+    std::cout << "json_output: " << json_output->dump(4) << std::endl;
+    STATUS_CODE status_code;
+    if(RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
+    {
+        if (action_goal_request_notification_callback_)
+        {
+            action_goal_request_notification_callback_(
+                action_name.c_str(),
+                json_output->dump(4).c_str(),
+                json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
+                msg.publish_time.to_ns(),
+                status_code
                 );
         }
     }

@@ -322,6 +322,13 @@ public:
         cb_writer_->set_action_send_get_result_request_callback(callback);
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_goal_request_notification_callback(
+            participants::RosActionGoalRequestNotification callback)
+    {
+        cb_writer_->set_action_goal_request_notification_callback(callback);
+    }
+
 protected:
 
     void write_schema_(
@@ -373,6 +380,11 @@ protected:
     void write_action_status_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void write_action_request_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
 
     bool register_type_nts_(
             const std::string& type_name,

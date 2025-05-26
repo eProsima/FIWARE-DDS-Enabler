@@ -66,7 +66,6 @@ TEST_F(DDSEnablerTest, manual_reply)
 {
     auto enabler = create_ddsenabler();
     ASSERT_TRUE(enabler != nullptr);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
 
     // Get time for later timeout
     auto start_time = std::chrono::steady_clock::now();
@@ -74,12 +73,7 @@ TEST_F(DDSEnablerTest, manual_reply)
 
     ASSERT_FALSE(enabler->revoke_service(service_name));
 
-    while(!enabler->announce_service(service_name))
-    {
-        ASSERT_FALSE(enabler->revoke_service(service_name));
-        std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS CLIENT)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    ASSERT_TRUE(enabler->announce_service(service_name));
 
     ASSERT_TRUE(get_received_services_request() > 0);
     std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -87,12 +81,19 @@ TEST_F(DDSEnablerTest, manual_reply)
 
     std::string json = "{\"sum\": 3}";
     uint64_t request_id = 0;
-    // TODO fix only first request is accepted
+    std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS CLIENT)..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     while(request_id < 3)
     {
-        request_id = wait_for_request(service_name, 10);
+        ASSERT_TRUE(wait_for_request(service_name, request_id, 100));
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         if(request_id > 0)
+        {
+            std::cout << "Sending reply for request id: " << request_id << std::endl;
             ASSERT_TRUE(enabler->send_service_reply(service_name, json, request_id));
+        }
+
     }
 
     ASSERT_TRUE(enabler->revoke_service(service_name));
@@ -240,6 +241,25 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
 
     ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id));
     ASSERT_TRUE(wait_for_status_update(action_id, status, STATUS_CODE::STATUS_CANCELED));
+}
+
+TEST_F(DDSEnablerTest, manual_action_server)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    std::string action_name = "fibonacci/_action/";
+
+    // ASSERT_FALSE(enabler->revoke_action(action_name));
+
+    ASSERT_TRUE(enabler->announce_action(action_name));
+
+    ASSERT_TRUE(get_received_services_request() > 0);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    ASSERT_FALSE(enabler->announce_action(action_name));
+    std::this_thread::sleep_for(std::chrono::seconds(10000));
 }
 
 TEST_F(DDSEnablerTest, send_type1)

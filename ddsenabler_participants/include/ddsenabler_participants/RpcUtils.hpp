@@ -83,12 +83,14 @@ enum ActionType
 };
 
 /**
- * @brief Extracts the service name from a given topic name.
+ * @brief Extracts the service/action name from a given topic name.
  *
- * @param [in] topic_name Topic name to extract the service name from
+ * @param [in] topic_name Topic name to extract the service/action name from
  * @return Extracted service name
  */
-RpcType get_rpc_name(const std::string& topic_name, std::string& service_name);
+RpcType get_rpc_name(const std::string& topic_name, std::string& rpc_name);
+
+RpcType get_service_name(const std::string& topic_name, std::string& service_name);
 
 /**
  * @brief Returns the service direction (request or reply) based on the RPC type.
@@ -128,7 +130,8 @@ bool load_type_from_file(
     unsigned char*& serializedTypeInternal,
     uint32_t& serializedTypeInternalSize);
 
-void save_service_to_file(const char* serviceName,
+void save_service_to_file(
+    const char* serviceName,
     const char* requestTypeName,
     const char* replyTypeName,
     const char* requestSerializedQos,
@@ -141,6 +144,46 @@ bool load_service_from_file(
     char*& replyTypeName,
     char*& requestSerializedQos,
     char*& replySerializedQos,
+    const std::string& filename);
+
+void save_action_to_file(
+    const char* action_name,
+    const char* goal_request_action_type,
+    const char* goal_reply_action_type,
+    const char* cancel_request_action_type,
+    const char* cancel_reply_action_type,
+    const char* result_request_action_type,
+    const char* result_reply_action_type,
+    const char* feedback_action_type,
+    const char* status_action_type,
+    const char* goal_request_action_serialized_qos,
+    const char* goal_reply_action_serialized_qos,
+    const char* cancel_request_action_serialized_qos,
+    const char* cancel_reply_action_serialized_qos,
+    const char* result_request_action_serialized_qos,
+    const char* result_reply_action_serialized_qos,
+    const char* feedback_action_serialized_qos,
+    const char* status_action_serialized_qos,
+    const std::string& filename);
+
+bool load_action_from_file(
+    const char* action_name,
+    char*& goal_request_action_type,
+    char*& goal_reply_action_type,
+    char*& cancel_request_action_type,
+    char*& cancel_reply_action_type,
+    char*& result_request_action_type,
+    char*& result_reply_action_type,
+    char*& feedback_action_type,
+    char*& status_action_type,
+    char*& goal_request_action_serialized_qos,
+    char*& goal_reply_action_serialized_qos,
+    char*& cancel_request_action_serialized_qos,
+    char*& cancel_reply_action_serialized_qos,
+    char*& result_request_action_serialized_qos,
+    char*& result_reply_action_serialized_qos,
+    char*& feedback_action_serialized_qos,
+    char*& status_action_serialized_qos,
     const std::string& filename);
 
 } // namespace RpcUtils

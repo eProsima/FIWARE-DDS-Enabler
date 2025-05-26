@@ -35,10 +35,10 @@ namespace RpcUtils {
  */
 RpcType get_rpc_name(const std::string& topic_name, std::string& rpc_name)
 {
+    std::string original_topic_name = topic_name;
     rpc_name = topic_name;
 
     bool is_request = false;
-    bool is_reply = false;
 
     // Detect and remove prefix
     if (rpc_name.rfind("rq/", 0) == 0)
@@ -48,12 +48,30 @@ RpcType get_rpc_name(const std::string& topic_name, std::string& rpc_name)
     }
     else if (rpc_name.rfind("rr/", 0) == 0)
     {
-        is_reply = true;
         rpc_name = rpc_name.substr(3);
+    }
+    else
+    {
+        // TODO what if is a regular topic that ends with "/feedback" or "/status"? Maybe also check for "action" in the name?
+        // Check for action feedback/status topics
+        if (rpc_name.size() >= 9 && rpc_name.substr(rpc_name.size() - 9) == "/feedback")
+        {
+            rpc_name = rpc_name.substr(0, rpc_name.size() - 8);
+            rpc_name = rpc_name.substr(3);
+            return ACTION_FEEDBACK;
+        }
+        else if (rpc_name.size() >= 7 && rpc_name.substr(rpc_name.size() - 7) == "/status")
+        {
+            rpc_name = rpc_name.substr(0, rpc_name.size() - 6);
+            rpc_name = rpc_name.substr(3);
+            return ACTION_STATUS;
+        }
+
+        return RPC_NONE;
     }
 
     // Check for action-related services
-    if (is_request || is_reply)
+    if (is_request)
     {
         if (rpc_name.size() >= 7 && rpc_name.substr(rpc_name.size() - 7) == "Request")
         {
@@ -62,62 +80,75 @@ RpcType get_rpc_name(const std::string& topic_name, std::string& rpc_name)
             if (base.size() >= 9 && base.substr(base.size() - 9) == "send_goal")
             {
                 rpc_name = base.substr(0, base.size() - 9);
-                return is_request ? ACTION_GOAL_REQUEST : ACTION_GOAL_REPLY;
+                return ACTION_GOAL_REQUEST;
             }
             else if (base.size() >= 10 && base.substr(base.size() - 10) == "get_result")
             {
                 rpc_name = base.substr(0, base.size() - 10);
-                return is_request ? ACTION_RESULT_REQUEST : ACTION_RESULT_REPLY;
+                return ACTION_RESULT_REQUEST;
             }
             else if (base.size() >= 11 && base.substr(base.size() - 11) == "cancel_goal")
             {
                 rpc_name = base.substr(0, base.size() - 11);
-                return is_request ? ACTION_CANCEL_REQUEST : ACTION_CANCEL_REPLY;
+                return ACTION_CANCEL_REQUEST;
             }
 
             rpc_name = base;
             return RPC_REQUEST;
         }
-        else if (rpc_name.size() >= 5 && rpc_name.substr(rpc_name.size() - 5) == "Reply")
+    }
+    else if (rpc_name.size() >= 5 && rpc_name.substr(rpc_name.size() - 5) == "Reply")
+    {
+        std::string base = rpc_name.substr(0, rpc_name.size() - 5);
+
+        if (base.size() >= 9 && base.substr(base.size() - 9) == "send_goal")
         {
-            std::string base = rpc_name.substr(0, rpc_name.size() - 5);
-
-            if (base.size() >= 9 && base.substr(base.size() - 9) == "send_goal")
-            {
-                rpc_name = base.substr(0, base.size() - 9);
-                return is_request ? ACTION_GOAL_REQUEST : ACTION_GOAL_REPLY;
-            }
-            else if (base.size() >= 10 && base.substr(base.size() - 10) == "get_result")
-            {
-                rpc_name = base.substr(0, base.size() - 10);
-                return is_request ? ACTION_RESULT_REQUEST : ACTION_RESULT_REPLY;
-            }
-            else if (base.size() >= 11 && base.substr(base.size() - 11) == "cancel_goal")
-            {
-                rpc_name = base.substr(0, base.size() - 11);
-                return is_request ? ACTION_CANCEL_REQUEST : ACTION_CANCEL_REPLY;
-            }
-
-            rpc_name = base;
-            return RPC_REPLY;
+            rpc_name = base.substr(0, base.size() - 9);
+            return ACTION_GOAL_REPLY;
+        }
+        else if (base.size() >= 10 && base.substr(base.size() - 10) == "get_result")
+        {
+            rpc_name = base.substr(0, base.size() - 10);
+            return ACTION_RESULT_REPLY;
+        }
+        else if (base.size() >= 11 && base.substr(base.size() - 11) == "cancel_goal")
+        {
+            rpc_name = base.substr(0, base.size() - 11);
+            return ACTION_CANCEL_REPLY;
         }
 
-        return RPC_NONE;
+        rpc_name = base;
+        return RPC_REPLY;
     }
 
-    // TODO what if is a regular topic that ends with "/feedback" or "/status"? Maybe also check for "action" in the name?
-    // Check for action feedback/status topics
-    if (rpc_name.size() >= 9 && rpc_name.substr(rpc_name.size() - 9) == "/feedback")
+    rpc_name = original_topic_name; // Restore original topic name if no suffix matched
+    EPROSIMA_LOG_ERROR(DDSENABLER_RPC_UTILS,
+            "Invalid topic name for service: " << original_topic_name << ". Expected suffix 'Request' or 'Reply'.");
+    return RPC_NONE;
+}
+
+RpcType get_service_name(const std::string& topic_name, std::string& service_name)
+{
+    service_name = topic_name;
+
+    // Detect and remove prefix
+    if (service_name.rfind("rq/", 0) == 0)
     {
-        rpc_name = rpc_name.substr(0, rpc_name.size() - 8);
-        rpc_name = rpc_name.substr(3);
-        return ACTION_FEEDBACK;
+        service_name = service_name.substr(3);
+        if (service_name.size() >= 7 && service_name.substr(service_name.size() - 7) == "Request")
+        {
+            service_name = service_name.substr(0, service_name.size() - 7);
+            return RPC_REQUEST;
+        }
     }
-    else if (rpc_name.size() >= 7 && rpc_name.substr(rpc_name.size() - 7) == "/status")
+    else if (service_name.rfind("rr/", 0) == 0)
     {
-        rpc_name = rpc_name.substr(0, rpc_name.size() - 6);
-        rpc_name = rpc_name.substr(3);
-        return ACTION_STATUS;
+        service_name = service_name.substr(3);
+        if (service_name.size() >= 5 && service_name.substr(service_name.size() - 5) == "Reply")
+        {
+            service_name = service_name.substr(0, service_name.size() - 5);
+            return RPC_REPLY;
+        }
     }
 
     return RPC_NONE;
@@ -301,7 +332,7 @@ void save_service_to_file(const char* serviceName,
 
     std::ofstream ofs(filename);
     if (ofs.is_open()) {
-    ofs << j.dump(4);  // Pretty-print with 4-space indentation
+    ofs << j.dump(4);
     }
 }
 
@@ -336,6 +367,120 @@ bool load_service_from_file(
     replySerializedQos = strdup(_replySerializedQos.c_str());
     ifs.close();
 
+    return true;
+}
+
+void save_action_to_file(
+    const char* action_name,
+    const char* goal_request_action_type,
+    const char* goal_reply_action_type,
+    const char* cancel_request_action_type,
+    const char* cancel_reply_action_type,
+    const char* result_request_action_type,
+    const char* result_reply_action_type,
+    const char* feedback_action_type,
+    const char* status_action_type,
+    const char* goal_request_action_serialized_qos,
+    const char* goal_reply_action_serialized_qos,
+    const char* cancel_request_action_serialized_qos,
+    const char* cancel_reply_action_serialized_qos,
+    const char* result_request_action_serialized_qos,
+    const char* result_reply_action_serialized_qos,
+    const char* feedback_action_serialized_qos,
+    const char* status_action_serialized_qos,
+    const std::string& filename)
+{
+    nlohmann::json j;
+    j["action_name"] = action_name;
+    j["goal_request_action_type"] = goal_request_action_type;
+    j["goal_reply_action_type"] = goal_reply_action_type;
+    j["cancel_request_action_type"] = cancel_request_action_type;
+    j["cancel_reply_action_type"] = cancel_reply_action_type;
+    j["result_request_action_type"] = result_request_action_type;
+    j["result_reply_action_type"] = result_reply_action_type;
+    j["feedback_action_type"] = feedback_action_type;
+    j["status_action_type"] = status_action_type;
+    j["goal_request_action_serialized_qos"] = goal_request_action_serialized_qos;
+    j["goal_reply_action_serialized_qos"] = goal_reply_action_serialized_qos;
+    j["cancel_request_action_serialized_qos"] = cancel_request_action_serialized_qos;
+    j["cancel_reply_action_serialized_qos"] = cancel_reply_action_serialized_qos;
+    j["result_request_action_serialized_qos"] = result_request_action_serialized_qos;
+    j["result_reply_action_serialized_qos"] = result_reply_action_serialized_qos;
+    j["feedback_action_serialized_qos"] = feedback_action_serialized_qos;
+    j["status_action_serialized_qos"] = status_action_serialized_qos;
+
+    std::ofstream ofs(filename);
+    if (ofs.is_open()) {
+        ofs << j.dump(4);
+        ofs.close();
+    }
+}
+
+bool load_action_from_file(
+    const char* action_name,
+    char*& goal_request_action_type,
+    char*& goal_reply_action_type,
+    char*& cancel_request_action_type,
+    char*& cancel_reply_action_type,
+    char*& result_request_action_type,
+    char*& result_reply_action_type,
+    char*& feedback_action_type,
+    char*& status_action_type,
+    char*& goal_request_action_serialized_qos,
+    char*& goal_reply_action_serialized_qos,
+    char*& cancel_request_action_serialized_qos,
+    char*& cancel_reply_action_serialized_qos,
+    char*& result_request_action_serialized_qos,
+    char*& result_reply_action_serialized_qos,
+    char*& feedback_action_serialized_qos,
+    char*& status_action_serialized_qos,
+    const std::string& filename)
+{
+    std::ifstream ifs(filename);
+    if (!ifs.is_open()) {
+        return false;
+    }
+
+    nlohmann::json j;
+    ifs >> j;
+
+    std::string file_action_name = j["action_name"].get<std::string>();
+    if (file_action_name != std::string(action_name)) {
+        return false;  // Action name does not match
+    }
+    std::string _goal_request_action_type = j["goal_request_action_type"].get<std::string>();
+    goal_request_action_type = strdup(_goal_request_action_type.c_str());
+    std::string _goal_reply_action_type = j["goal_reply_action_type"].get<std::string>();
+    goal_reply_action_type = strdup(_goal_reply_action_type.c_str());
+    std::string _cancel_request_action_type = j["cancel_request_action_type"].get<std::string>();
+    cancel_request_action_type = strdup(_cancel_request_action_type.c_str());
+    std::string _cancel_reply_action_type = j["cancel_reply_action_type"].get<std::string>();
+    cancel_reply_action_type = strdup(_cancel_reply_action_type.c_str());
+    std::string _result_request_action_type = j["result_request_action_type"].get<std::string>();
+    result_request_action_type = strdup(_result_request_action_type.c_str());
+    std::string _result_reply_action_type = j["result_reply_action_type"].get<std::string>();
+    result_reply_action_type = strdup(_result_reply_action_type.c_str());
+    std::string _feedback_action_type = j["feedback_action_type"].get<std::string>();
+    feedback_action_type = strdup(_feedback_action_type.c_str());
+    std::string _status_action_type = j["status_action_type"].get<std::string>();
+    status_action_type = strdup(_status_action_type.c_str());
+    std::string _goal_request_action_serialized_qos = j["goal_request_action_serialized_qos"].get<std::string>();
+    goal_request_action_serialized_qos = strdup(_goal_request_action_serialized_qos.c_str());
+    std::string _goal_reply_action_serialized_qos = j["goal_reply_action_serialized_qos"].get<std::string>();
+    goal_reply_action_serialized_qos = strdup(_goal_reply_action_serialized_qos.c_str());
+    std::string _cancel_request_action_serialized_qos = j["cancel_request_action_serialized_qos"].get<std::string>();
+    cancel_request_action_serialized_qos = strdup(_cancel_request_action_serialized_qos.c_str());
+    std::string _cancel_reply_action_serialized_qos = j["cancel_reply_action_serialized_qos"].get<std::string>();
+    cancel_reply_action_serialized_qos = strdup(_cancel_reply_action_serialized_qos.c_str());
+    std::string _result_request_action_serialized_qos = j["result_request_action_serialized_qos"].get<std::string>();
+    result_request_action_serialized_qos = strdup(_result_request_action_serialized_qos.c_str());
+    std::string _result_reply_action_serialized_qos = j["result_reply_action_serialized_qos"].get<std::string>();
+    result_reply_action_serialized_qos = strdup(_result_reply_action_serialized_qos.c_str());
+    std::string _feedback_action_serialized_qos = j["feedback_action_serialized_qos"].get<std::string>();
+    feedback_action_serialized_qos = strdup(_feedback_action_serialized_qos.c_str());
+    std::string _status_action_serialized_qos = j["status_action_serialized_qos"].get<std::string>();
+    status_action_serialized_qos = strdup(_status_action_serialized_qos.c_str());
+    ifs.close();
     return true;
 }
 

@@ -30,11 +30,19 @@
 #include <fastdds/dds/subscriber/Subscriber.hpp>
 
 #include "ddsenabler/dds_enabler_runner.hpp"
+#include "ddsenabler_participants/RpcUtils.hpp"
 
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
 using namespace eprosima::ddsenabler::participants;
 using namespace eprosima::fastdds::dds;
+
+#define TEST_SERVICE_NAME "add_two_ints"
+#define TEST_ACTION_NAME "fibonacci/_action/"
+
+#define TEST_FILE_DIRECTORY "/home/eugenio/Documents/enabler_suite/fast_suite/src/FIWARE-DDS-Enabler/ddsenabler/test/test_files/"
+#define TEST_SERVICE_FILE "test_service.json"
+#define TEST_ACTION_FILE "test_action.json"
 
 namespace ddsenablertester {
 
@@ -110,6 +118,11 @@ public:
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
 
+        // TODO study why it gets stuck in RTPSDomainImpl::createParticipant when setting the domain
+        // configuration.simple_configuration->domain = eprosima::ddspipe::core::types::DomainId(49u);
+        // configuration.simple_configuration->transport = eprosima::ddspipe::core::types::TransportDescriptors::udp_only;
+
+
         eprosima::ddsenabler::participants::ddsCallbacks dds_callbacks;
         dds_callbacks.data_callback = test_data_callback;
         dds_callbacks.type_callback = test_type_callback;
@@ -122,13 +135,14 @@ public:
         service_callbacks.service_callback = test_service_callback;
         service_callbacks.reply_callback = test_reply_callback;
         service_callbacks.request_callback = test_request_callback;
-        service_callbacks.type_req_callback = test_service_request_callback;
+        service_callbacks.type_req_callback = test_service_type_request_callback;
 
         eprosima::ddsenabler::participants::actionCallbacks action_callbacks;
         action_callbacks.action_callback = test_action_callback;
         action_callbacks.result_callback = test_action_result_callback;
         action_callbacks.feedback_callback = test_action_feedback_callback;
         action_callbacks.status_callback = test_action_status_callback;
+        action_callbacks.type_req_callback = test_action_type_request_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -297,6 +311,7 @@ public:
 
     uint64_t wait_for_request(
             const std::string& service_name,
+            uint64_t& request_id,
             int timeout = 10)
     {
         std::unique_lock<std::mutex> lock(data_received_mutex_);
@@ -305,14 +320,14 @@ public:
                     return received_request_id_ > 0;
                 }))
         {
-            auto request_id = received_request_id_;
+            request_id = received_request_id_;
             received_request_id_ = 0; // Reset the request ID after receiving it
-            return request_id;
+            return true;
         }
         else
         {
             std::cout << "Timeout waiting for request callback" << std::endl;
-            return 0;
+            return false;
         }
     }
 
@@ -412,6 +427,12 @@ public:
             current_test_instance_->received_types_++;
             std::cout << "Type callback received: " << typeName << ", Total types: " <<
                 current_test_instance_->received_types_ << std::endl;
+
+            // eprosima::ddsenabler::participants::RpcUtils::save_type_to_file(
+            //     TEST_FILE_DIRECTORY,
+            //     typeName,
+            //     serializedTypeInternal,
+            //     serializedTypeInternalSize);
         }
     }
 
@@ -424,19 +445,25 @@ public:
     }
 
     // eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
-    static void test_topic_request_callback(
+    static bool test_topic_request_callback(
             const char* topicName,
             char*& typeName,
             char*& serializedQos)
     {
+        return false;
     }
 
     // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-    static void test_type_request_callback(
+    static bool test_type_request_callback(
             const char* typeName,
             unsigned char*& serializedTypeInternal,
             uint32_t& serializedTypeInternalSize)
     {
+        return eprosima::ddsenabler::participants::RpcUtils::load_type_from_file(
+            TEST_FILE_DIRECTORY,
+            typeName,
+            serializedTypeInternal,
+            serializedTypeInternalSize);
     }
 
 
@@ -458,13 +485,17 @@ public:
             const char* requestSerializedQos,
             const char* replySerializedQos)
     {
-        if (current_test_instance_)
+        if (current_test_instance_ && TEST_SERVICE_NAME == std::string(serviceName))
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
 
             current_test_instance_->received_services_++;
             std::cout << "Service callback received: " << serviceName << ", Total services: " <<
                 current_test_instance_->received_services_ << std::endl;
+
+            // std::string service_file = TEST_FILE_DIRECTORY + std::string(TEST_SERVICE_FILE);
+            // eprosima::ddsenabler::participants::RpcUtils::save_service_to_file(serviceName, requestTypeName, replyTypeName,
+            //         requestSerializedQos, replySerializedQos, service_file);
         }
     }
 
@@ -502,7 +533,7 @@ public:
     }
 
     // eprosima::ddsenabler::participants::ServiceTypeRequest type_req_callback;
-    static void test_service_request_callback(
+    static bool test_service_type_request_callback(
             const char* serviceName,
             char*& requestTypeName,
             char*& requestSerializedQos,
@@ -517,8 +548,20 @@ public:
             std::cout << "Service type request callback received: " << serviceName << ", Total services request: " <<
                 current_test_instance_->received_services_request_ << std::endl;
 
-            requestTypeName = const_cast<char*>("Test");
+            std::string service_file = TEST_FILE_DIRECTORY + std::string(TEST_SERVICE_FILE);
+            if (eprosima::ddsenabler::participants::RpcUtils::load_service_from_file(
+                        serviceName,
+                        requestTypeName,
+                        replyTypeName,
+                        requestSerializedQos,
+                        replySerializedQos,
+                        service_file))
+            {
+                return true;
+            }
+            std::cout << "ERROR DDSEnablerTester: fail to load service from file: " << service_file << std::endl;
         }
+        return false;
     }
 
     // eprosima::ddsenabler::participants::RosActionNotification action_callback;
@@ -531,21 +574,33 @@ public:
             const char* resultRequestActionType,
             const char* resultReplyActionType,
             const char* feedbackActionType,
+            const char* statusActionType,
             const char* goalRequestActionSerializedQos,
             const char* goalReplyActionSerializedQos,
             const char* cancelRequestActionSerializedQos,
             const char* cancelReplyActionSerializedQos,
             const char* resultRequestActionSerializedQos,
             const char* resultReplyActionSerializedQos,
-            const char* feedbackActionSerializedQos)
+            const char* feedbackActionSerializedQos,
+            const char* statusActionSerializedQos)
     {
-        if (current_test_instance_)
+        if (current_test_instance_ && TEST_ACTION_NAME == std::string(actionName))
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
 
             current_test_instance_->received_actions_++;
             std::cout << "Action callback received: " << actionName << ", Total actions request: " <<
                 current_test_instance_->received_actions_ << std::endl;
+
+            std::string action_file = TEST_FILE_DIRECTORY + std::string(TEST_ACTION_FILE);
+            eprosima::ddsenabler::participants::RpcUtils::save_action_to_file(actionName,
+                    goalRequestActionType, goalReplyActionType, cancelRequestActionType, cancelReplyActionType,
+                    resultRequestActionType, resultReplyActionType, feedbackActionType, statusActionType,
+                    goalRequestActionSerializedQos, goalReplyActionSerializedQos,
+                    cancelRequestActionSerializedQos, cancelReplyActionSerializedQos,
+                    resultRequestActionSerializedQos, resultReplyActionSerializedQos,
+                    feedbackActionSerializedQos, statusActionSerializedQos, action_file);
+            std::cout << "Action file saved: " << action_file << std::endl;
         }
     }
 
@@ -606,6 +661,46 @@ public:
 
             current_test_instance_->cv_.notify_all();
         }
+    }
+
+    // eprosima::ddsenabler::participants::RosActionTypeRequest action_type_req_callback;
+    static bool test_action_type_request_callback(
+            const char* actionName,
+            char*& goalRequestActionType,
+            char*& goalReplyActionType,
+            char*& cancelRequestActionType,
+            char*& cancelReplyActionType,
+            char*& resultRequestActionType,
+            char*& resultReplyActionType,
+            char*& feedbackActionType,
+            char*& statusActionType,
+            char*& goalRequestActionSerializedQos,
+            char*& goalReplyActionSerializedQos,
+            char*& cancelRequestActionSerializedQos,
+            char*& cancelReplyActionSerializedQos,
+            char*& resultRequestActionSerializedQos,
+            char*& resultReplyActionSerializedQos,
+            char*& feedbackActionSerializedQos,
+            char*& statusActionSerializedQos)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            std::string action_file = TEST_FILE_DIRECTORY + std::string(TEST_ACTION_FILE);
+            if (eprosima::ddsenabler::participants::RpcUtils::load_action_from_file(
+                        actionName, goalRequestActionType, goalReplyActionType, cancelRequestActionType, cancelReplyActionType,
+                        resultRequestActionType, resultReplyActionType, feedbackActionType, statusActionType,
+                        goalRequestActionSerializedQos, goalReplyActionSerializedQos,
+                        cancelRequestActionSerializedQos, cancelReplyActionSerializedQos,
+                        resultRequestActionSerializedQos, resultReplyActionSerializedQos,
+                        feedbackActionSerializedQos, statusActionSerializedQos, action_file))
+            {
+                return true;
+            }
+            std::cout << "ERROR DDSEnablerTester: fail to load action from file: " << action_file << std::endl;
+        }
+        return false;
     }
 
     int get_received_types()
@@ -761,6 +856,5 @@ public:
     std::mutex service_mutex_;
     std::mutex action_mutex_;
 };
-
 
 } // namespace ddsenablertester

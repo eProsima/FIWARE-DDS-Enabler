@@ -71,19 +71,21 @@ void test_topic_notification_callback(
 }
 
 // eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
-void test_topic_request_callback(
+bool test_topic_request_callback(
         const char* topicName,
         char*& typeName,
         char*& serializedQos)
 {
+    return true;
 }
 
 // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-void test_type_request_callback(
+bool test_type_request_callback(
         const char* typeName,
         unsigned char*& serializedTypeInternal,
         uint32_t& serializedTypeInternalSize)
 {
+    return true;
 }
 
 

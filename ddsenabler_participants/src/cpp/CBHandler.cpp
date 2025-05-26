@@ -228,6 +228,19 @@ void CBHandler::add_data(
             break;
         }
 
+        // ACTIONS: CB AS SERVER
+        case RpcUtils::RpcType::ACTION_GOAL_REQUEST:
+        {
+            received_requests_id_++;
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
+            RequestInfo request_info(
+                topic.m_topic_name,
+                request_id);
+            request_id_map_.emplace(received_requests_id_, request_info);
+            write_action_request_(msg, dyn_type, received_requests_id_);
+            break;
+        }
+
         case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
             // No need to do anything
             break;
@@ -261,7 +274,12 @@ bool CBHandler::get_type_identifier(
 
     unsigned char* serialized_type;
     uint32_t serialized_type_size;
-    type_req_callback_(type_name.c_str(), serialized_type, serialized_type_size);
+    if(!type_req_callback_(type_name.c_str(), serialized_type, serialized_type_size))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                "Failed to get type " << type_name << " : callback failed.");
+        return false;
+    }
     // TODO: handle fail case
     // TODO: free resources allocated by user (serialized_type), or redesign interaction
 
@@ -389,6 +407,14 @@ void CBHandler::write_action_status_(
     const fastdds::dds::DynamicType::_ref_type& dyn_type)
 {
     cb_writer_->write_action_status(msg, dyn_type);
+}
+
+void CBHandler::write_action_request_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_action_request(msg, dyn_type, request_id);
 }
 
 bool CBHandler::register_type_nts_(

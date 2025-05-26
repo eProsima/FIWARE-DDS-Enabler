@@ -337,6 +337,12 @@ bool DDSEnabler::cancel_action_goal(
     return false;
 }
 
+bool DDSEnabler::announce_action(
+    const std::string& action_name)
+{
+    return enabler_participant_->announce_action(action_name);
+}
+
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */

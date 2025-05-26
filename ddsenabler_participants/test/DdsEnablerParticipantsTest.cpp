@@ -98,15 +98,16 @@ public:
     using participants::CBHandler::unique_sequence_number_;
 
     // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-    static void test_type_request_callback(
+    static bool test_type_request_callback(
             const char* typeName,
             unsigned char*& serializedTypeInternal,
             uint32_t& serializedTypeInternalSize)
     {
         if(current_test_instance_ == nullptr)
-            return;
+            return false;
 
         current_test_instance_->type_request_called++;
+        return true;
     }
 
     // eprosima::ddsenabler::participants::DdsNotification data_callback;

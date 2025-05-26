@@ -78,13 +78,12 @@ typedef void (*DdsNotification)(
         const char* json,
         int64_t publishTime);
 
-// TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
-typedef void (*DdsTopicRequest)(
+typedef bool (*DdsTopicRequest)(
         const char* topicName,
         char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
         char*& serializedQos);
 
-typedef void (*DdsTypeRequest)(
+typedef bool (*DdsTypeRequest)(
         const char* typeName,
         unsigned char*& serializedTypeInternal,
         uint32_t& serializedTypeInternalSize);
@@ -169,7 +168,7 @@ typedef void (*ServiceRequestNotification)(
  * @param replyTypeName The name of the reply type associated with the service.
  * @param replySerializedQos The serialized Quality of Service (QoS) settings for the reply type.
  */
-typedef void (*ServiceTypeRequest)(
+ typedef bool (*ServiceTypeRequest)(
         const char* serviceName,
         char*& requestTypeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
         char*& requestSerializedQos,
@@ -219,13 +218,15 @@ typedef void (*RosActionNotification)(
         const char* result_request_action_type,
         const char* result_reply_action_type,
         const char* feedback_action_type,
+        const char* status_action_type,
         const char* goal_request_action_serialized_qos,
         const char* goal_reply_action_serialized_qos,
         const char* cancel_request_action_serialized_qos,
         const char* cancel_reply_action_serialized_qos,
         const char* result_request_action_serialized_qos,
         const char* result_reply_action_serialized_qos,
-        const char* feedback_action_serialized_qos);
+        const char* feedback_action_serialized_qos,
+        const char* status_action_serialized_qos);
 
 /**
  * @brief Callback for notification of action result.
@@ -316,22 +317,24 @@ typedef void (*RosActionGoalRequestNotification)(
  * @param result_reply_action_serialized_qos The serialized Quality of Service (QoS) settings for the get result reply action.
  * @param feedback_action_serialized_qos The serialized Quality of Service (QoS) settings for the feedback action.
  */
-typedef void (*RosActionTypeRequest)(
+typedef bool (*RosActionTypeRequest)(
     const char* action_name,
-    const char* goal_request_action_type,
-    const char* goal_reply_action_type,
-    const char* cancel_request_action_type,
-    const char* cancel_reply_action_type,
-    const char* result_request_action_type,
-    const char* result_reply_action_type,
-    const char* feedback_action_type,
-    const char* goal_request_action_serialized_qos,
-    const char* goal_reply_action_serialized_qos,
-    const char* cancel_request_action_serialized_qos,
-    const char* cancel_reply_action_serialized_qos,
-    const char* result_request_action_serialized_qos,
-    const char* result_reply_action_serialized_qos,
-    const char* feedback_action_serialized_qos);
+    char*& goal_request_action_type,
+    char*& goal_reply_action_type,
+    char*& cancel_request_action_type,
+    char*& cancel_reply_action_type,
+    char*& result_request_action_type,
+    char*& result_reply_action_type,
+    char*& feedback_action_type,
+    char*& status_action_type,
+    char*& goal_request_action_serialized_qos,
+    char*& goal_reply_action_serialized_qos,
+    char*& cancel_request_action_serialized_qos,
+    char*& cancel_reply_action_serialized_qos,
+    char*& result_request_action_serialized_qos,
+    char*& result_reply_action_serialized_qos,
+    char*& feedback_action_serialized_qos,
+    char*& status_action_serialized_qos);
 
 /**
  * @brief Callback for notification of an action cancel request.

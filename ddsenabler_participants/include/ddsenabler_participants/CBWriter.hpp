@@ -105,6 +105,12 @@ public:
         action_status_callback_ = callback;
     }
 
+    void set_action_goal_request_notification_callback(
+            RosActionGoalRequestNotification callback)
+    {
+        action_goal_request_notification_callback_ = callback;
+    }
+
     void write_schema(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
@@ -161,6 +167,11 @@ public:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    void write_action_request(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
     void set_is_UUID_active_callback(
             std::function<bool(const UUID&)> callback)
     {
@@ -207,6 +218,7 @@ protected:
     RosActionResultNotification action_result_callback_;
     RosActionFeedbackNotification action_feedback_callback_;
     RosActionStatusNotification action_status_callback_;
+    RosActionGoalRequestNotification action_goal_request_notification_callback_;
 
     std::function<bool(const UUID&)> is_UUID_active_callback_;
     std::function<void(const UUID&)> erase_action_UUID_callback_;

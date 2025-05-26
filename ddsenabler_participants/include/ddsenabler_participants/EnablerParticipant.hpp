@@ -38,6 +38,14 @@ namespace participants {
 
 struct ServiceDiscovered
 {
+
+    ServiceDiscovered(const std::string& service_name)
+        : service_name(service_name)
+    {
+    }
+
+    std::string service_name;
+
     ddspipe::core::types::DdsTopic topic_request;
     bool request_discovered{false};
 
@@ -68,9 +76,14 @@ struct ServiceDiscovered
 
         if(request_discovered && reply_discovered)
         {
+                if (service_name.empty())
+                {
+                        // TODO handle error
+                        return false;
+                }
                 fully_discovered = true;
                 rpc_topic = std::make_optional<ddspipe::core::types::RpcTopic>(
-                    topic_request.topic_name(),
+                    service_name,
                     topic_request,
                     topic_reply);
                 return true;
@@ -85,10 +98,40 @@ struct ServiceDiscovered
             throw std::runtime_error("Service not fully discovered");
         return rpc_topic.value();
     }
+
+    bool get_topic(
+            const RpcUtils::RpcType& rpc_type,
+            ddspipe::core::types::DdsTopic& topic)
+    {
+        if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+        {
+            if(!request_discovered)
+                return false;
+            topic = topic_request;
+            return true;
+        }
+        if (rpc_type == RpcUtils::RpcType::RPC_REPLY)
+        {
+            if(!reply_discovered)
+                return false;
+            topic = topic_reply;
+            return true;
+        }
+        return false;
+    }
 };
 
 struct ActionDiscovered
 {
+        ActionDiscovered(const std::string& action_name)
+            : action_name(action_name)
+            , goal(action_name + "send_goal")
+            , result(action_name + "get_result")
+            , cancel(action_name + "cancel_goal")
+        {
+        }
+
+        std::string action_name;
         ServiceDiscovered goal;
         ServiceDiscovered result;
         ServiceDiscovered cancel;
@@ -119,6 +162,7 @@ struct ActionDiscovered
             RpcUtils::RpcType action_direction = RpcUtils::get_service_direction(rpc_type);
             RpcUtils::ActionType action_type = RpcUtils::get_action_type(rpc_type);
             ServiceDiscovered* service = nullptr;
+            std::string action_service_name;
             switch (action_type)
             {
                 case RpcUtils::ActionType::GOAL:
@@ -141,7 +185,7 @@ struct ActionDiscovered
                 default:
                     return false;
             }
-            if(action_direction != RpcUtils::RpcType::RPC_NONE)
+            if (action_direction != RpcUtils::RpcType::RPC_NONE)
                 service->add_topic(topic, action_direction);
 
             return check_fully_discovered();
@@ -203,6 +247,13 @@ public:
         service_req_callback_ = callback;
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_request_callback(
+            participants::RosActionTypeRequest callback)
+    {
+        action_req_callback_ = callback;
+    }
+
 
     DDSENABLER_PARTICIPANTS_DllAPI
     bool announce_service(
@@ -212,14 +263,43 @@ public:
     bool revoke_service(
             const std::string& service_name);
 
-protected:
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool announce_action(
+            const std::string& action_name);
 
+protected:
+    // TODO unify name criteria for ending with _
     bool request_topic(
             const std::string& topic_name,
             ddspipe::core::types::DdsTopic& topic);
 
     bool request_service(
-            const std::string& service_name,
+            ServiceDiscovered& service);
+
+    bool request_action(
+            ActionDiscovered& action);
+
+    ddspipe::core::types::Endpoint create_topic_writer_nts_(
+            const ddspipe::core::types::DdsTopic& topic,
+            std::shared_ptr<eprosima::ddspipe::core::IReader>& reader,
+            std::unique_lock<std::mutex>& lck);
+
+    bool create_service_writer_nts_(
+            const RpcUtils::RpcType& rpc_type,
+            ServiceDiscovered& service,
+            std::unique_lock<std::mutex>& lck);
+
+    bool fullfill_topic_type(
+        const std::string& topic_name,
+        const char* _type_name,
+        const char* serialized_qos_content,
+        ddspipe::core::types::DdsTopic& topic);
+
+    bool fullfill_service_type(
+            const char* _request_type_name,
+            const char* serialized_request_qos_content,
+            const char* _reply_type_name,
+            const char* serialized_reply_qos_content,
             ServiceDiscovered& service);
 
     std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
@@ -252,6 +332,8 @@ protected:
     DdsTopicRequest topic_req_callback_;
 
     ServiceTypeRequest service_req_callback_;
+
+    RosActionTypeRequest action_req_callback_;
 
     // Store for a given service server its corresponding endpoint
     std::map<std::string, ddspipe::core::types::Endpoint> server_endpoint_;
