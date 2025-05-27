@@ -329,11 +329,11 @@ public:
 
     //eprosima::ddsenabler::participants::DdsLogFunc log_callback;
     static void test_log_callback(
-        const char* fileName,
-        int lineNo,
-        const char* funcName,
-        int category,
-        const char* msg)
+            const char* fileName,
+            int lineNo,
+            const char* funcName,
+            int category,
+            const char* msg)
     {
     }
 

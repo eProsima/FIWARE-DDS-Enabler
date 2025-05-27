@@ -45,7 +45,9 @@ public:
     static void print_help(
             uint8_t return_code)
     {
-        std::cout << "Usage: ddsenabler_example <expected_types> <expected_topics> <expected_data> <timeout> <path/to/config/file>"   <<
+        std::cout <<
+            "Usage: ddsenabler_example <expected_types> <expected_topics> <expected_data> <timeout> <path/to/config/file>"
+                  <<
             std::endl;
         std::cout << ""                                                                                             <<
             std::endl;

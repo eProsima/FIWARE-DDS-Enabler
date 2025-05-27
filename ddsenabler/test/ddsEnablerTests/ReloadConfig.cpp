@@ -70,21 +70,24 @@ bool test_type_request_callback(
     return true;
 }
 
-
 //eprosima::ddsenabler::participants::DdsLogFunc log_callback;
 void test_log_callback(
-    const char* file_name,
-    int line_no,
-    const char* func_name,
-    int category,
-    const char* msg)
+        const char* file_name,
+        int line_no,
+        const char* func_name,
+        int category,
+        const char* msg)
 {
 }
 
-void write_json_file(const std::string filePath, bool block) {
+void write_json_file(
+        const std::string filePath,
+        bool block)
+{
 
     // The JSON template with a placeholder for the domain
-    std::string jsonTemplate = R"({
+    std::string jsonTemplate =
+            R"({
   "dds": {
     "ddsmodule": {
       "dds": {
@@ -110,22 +113,31 @@ void write_json_file(const std::string filePath, bool block) {
 
     // Replace the %d placeholder with the provided domain
     char buffer[1024];
-    snprintf(buffer, sizeof(buffer), jsonTemplate.c_str(), block ? "\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]," : "");
+    snprintf(buffer, sizeof(buffer),
+            jsonTemplate.c_str(),
+            block ? "\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]," : "");
 
     // Write the formatted JSON to the file
     std::ofstream outFile(filePath);
-    if (outFile.is_open()) {
+    if (outFile.is_open())
+    {
         outFile << buffer;
         outFile.close();
-    } else {
+    }
+    else
+    {
         throw std::ios_base::failure("Failed to open the file for writing.");
     }
 }
 
-void write_yaml_file(const std::string filePath, bool block) {
+void write_yaml_file(
+        const std::string filePath,
+        bool block)
+{
 
     // The JSON template with a placeholder for the domain
-    std::string Template = R"(
+    std::string Template =
+            R"(
 dds:
     domain: 0
 
@@ -144,10 +156,13 @@ topics:
 
     // Write the formatted YAML to the file
     std::ofstream outFile(filePath);
-    if (outFile.is_open()) {
+    if (outFile.is_open())
+    {
         outFile << buffer;
         outFile.close();
-    } else {
+    }
+    else
+    {
         throw std::ios_base::failure("Failed to open the file for writing.");
     }
 }
@@ -158,15 +173,20 @@ namespace eprosima {
 namespace ddsenabler {
 
 // Class that exposes the protected attribute configuration_
-class DDSEnablerAccessor : public DDSEnabler {
+class DDSEnablerAccessor : public DDSEnabler
+{
 public:
+
     using DDSEnabler::DDSEnabler;
-    const void get_allowed_topics(std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const {
+    const void get_allowed_topics(
+            std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const
+    {
         std::lock_guard<std::mutex> lock(mutex_);
         ptr = std::make_shared<ddspipe::core::AllowedTopicList>(
             this->configuration_.ddspipe_configuration.allowlist,
             this->configuration_.ddspipe_configuration.blocklist);
     }
+
 };
 
 // Test the configuration reload when the json configuration file is modified

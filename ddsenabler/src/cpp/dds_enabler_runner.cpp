@@ -47,9 +47,9 @@ bool create_dds_enabler(
 
     // Create DDS Enabler instance
     if (!create_dds_enabler(
-        configuration,
-        callbacks,
-        enabler))
+                configuration,
+                callbacks,
+                enabler))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Failed to create DDS Enabler from configuration file: " << dds_enabler_config_file);

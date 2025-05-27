@@ -102,7 +102,9 @@ public:
             uint32_t& serialized_type_internal_size)
     {
         if (current_test_instance_ == nullptr)
+        {
             return false;
+        }
 
         current_test_instance_->type_request_called++;
         return true;
@@ -115,7 +117,9 @@ public:
             int64_t publish_time)
     {
         if (current_test_instance_ == nullptr)
+        {
             return;
+        }
 
         current_test_instance_->data_called_++;
     }
@@ -129,7 +133,9 @@ public:
             const char* data_placeholder)
     {
         if (current_test_instance_ == nullptr)
+        {
             return;
+        }
 
         current_test_instance_->type_called_++;
     }
@@ -141,7 +147,9 @@ public:
             const char* serialized_qos)
     {
         if (current_test_instance_ == nullptr)
+        {
             return;
+        }
 
         current_test_instance_->topic_called_++;
     }
@@ -166,9 +174,9 @@ struct KnownType
 };
 
 bool test_create_publisher(
-            KnownType& a_type,
-            Topic** topic,
-            std::string topic_name_suffix = "topic_name")
+        KnownType& a_type,
+        Topic** topic,
+        std::string topic_name_suffix = "topic_name")
 {
     DomainParticipant* participant = DomainParticipantFactory::get_instance()
                     ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
@@ -217,12 +225,12 @@ bool test_create_publisher(
 }
 
 ddspipe::core::types::DdsTopic new_schema(
-    int num_type,
-    DynamicType::_ref_type& dynamic_type,
-    xtypes::TypeIdentifierPair& type_id_pair)
+        int num_type,
+        DynamicType::_ref_type& dynamic_type,
+        xtypes::TypeIdentifierPair& type_id_pair)
 {
     KnownType k_type;
-    switch(num_type)
+    switch (num_type)
     {
         case 3:
         {

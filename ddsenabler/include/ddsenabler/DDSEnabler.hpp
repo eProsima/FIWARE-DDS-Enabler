@@ -117,7 +117,8 @@ protected:
             const CallbackSet& callbacks);
 
     //! Store reference to DomainParticipantFactory to avoid Fast-DDS singletons being destroyed before they should
-    std::shared_ptr<eprosima::fastdds::dds::DomainParticipantFactory> part_factory_ =  eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
+    std::shared_ptr<eprosima::fastdds::dds::DomainParticipantFactory> part_factory_ =
+            eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
 
     //! Configuration of the DDS Enabler
     yaml::EnablerConfiguration configuration_;

@@ -270,7 +270,7 @@ void CBHandler::add_schema_nts_(
 }
 
 bool CBHandler::add_schema_nts_(
-    const fastdds::dds::xtypes::TypeIdentifier& type_id,
+        const fastdds::dds::xtypes::TypeIdentifier& type_id,
         const fastdds::dds::xtypes::TypeObject& type_obj,
         bool write_schema)
 {
@@ -357,7 +357,7 @@ bool CBHandler::register_type_nts_(
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                 "Unexpected dynamic types collection format: " << type_name << " expected to be last item, found " << _type_name <<
-                            " instead.");
+                " instead.");
         return false;
     }
 

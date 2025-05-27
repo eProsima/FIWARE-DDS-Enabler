@@ -84,7 +84,7 @@ bool EnablerParticipant::publish(
         {
             EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                     "Failed to publish data in topic " << topic_name <<
-                                " : topic is unknown and topic request callback not set.");
+                    " : topic is unknown and topic request callback not set.");
             return false;
         }
 

@@ -29,7 +29,7 @@ namespace participants {
 /**
  * DdsLogFunc - callback executed when consuming log messages
  */
-typedef void (*DdsLogFunc)(
+typedef void (* DdsLogFunc)(
         const char* file_name,
         int line_no,
         const char* func_name,
@@ -39,7 +39,7 @@ typedef void (*DdsLogFunc)(
 /**
  * DdsTypeNotification - callback for notifying the reception of DDS types
  */
-typedef void (*DdsTypeNotification)(
+typedef void (* DdsTypeNotification)(
         const char* type_name,
         const char* serialized_type,
         const unsigned char* serialized_type_internal,
@@ -49,7 +49,7 @@ typedef void (*DdsTypeNotification)(
 /**
  * DdsTopicNotification - callback for notifying the reception of DDS topics
  */
-typedef void (*DdsTopicNotification)(
+typedef void (* DdsTopicNotification)(
         const char* topic_name,
         const char* type_name,
         const char* serialized_qos);
@@ -57,7 +57,7 @@ typedef void (*DdsTopicNotification)(
 /**
  * DdsDataNotification - callback for notifying the reception of DDS data
  */
-typedef void (*DdsDataNotification)(
+typedef void (* DdsDataNotification)(
         const char* topic_name,
         const char* json,
         int64_t publish_time);
@@ -65,7 +65,7 @@ typedef void (*DdsDataNotification)(
 /**
  * DdsTopicRequest - callback for requesting information (type and QoS) of a DDS topic
  */
-typedef bool (*DdsTopicRequest)(
+typedef bool (* DdsTopicRequest)(
         const char* topic_name,
         std::string& type_name,
         std::string& serialized_qos);
@@ -73,7 +73,7 @@ typedef bool (*DdsTopicRequest)(
 /**
  * DdsTypeRequest - callback for requesting information (serialized description and size) of a DDS type
  */
-typedef bool (*DdsTypeRequest)(
+typedef bool (* DdsTypeRequest)(
         const char* type_name,
         std::unique_ptr<const unsigned char []>& serialized_type_internal,
         uint32_t& serialized_type_internal_size);

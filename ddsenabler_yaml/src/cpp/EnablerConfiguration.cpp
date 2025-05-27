@@ -130,7 +130,8 @@ EnablerConfiguration::EnablerConfiguration(
     if (is_json(file_path))
     {
         load_ddsenabler_configuration_from_json_file_(file_path);
-    } else
+    }
+    else
     {
         if (file_path.size() >= 5 &&
                 (file_path.substr(file_path.size() - 5) == ".json" ||
@@ -241,7 +242,8 @@ void EnablerConfiguration::load_enabler_configuration_(
     // Get initial publish wait
     if (YamlReader::is_tag_present(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG))
     {
-        enabler_configuration->initial_publish_wait = YamlReader::get_nonnegative_int(yml, ENABLER_INITIAL_PUBLISH_WAIT_TAG);
+        enabler_configuration->initial_publish_wait = YamlReader::get_nonnegative_int(yml,
+                        ENABLER_INITIAL_PUBLISH_WAIT_TAG);
     }
 }
 
@@ -376,7 +378,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_json_file_(
             if (!file.is_open())
             {
                 throw eprosima::utils::ConfigurationException(
-                        utils::Formatter() << "Could not open JSON file");
+                          utils::Formatter() << "Could not open JSON file");
             }
 
             // Parse the JSON file
@@ -397,22 +399,22 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_json_file_(
                 else
                 {
                     throw eprosima::utils::ConfigurationException(
-                            utils::Formatter() <<
-                                "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
+                              utils::Formatter() <<
+                                  "\"ddsmodule\" not found or is not an object within \"dds\" in the JSON file");
                 }
             }
             else
             {
                 throw eprosima::utils::ConfigurationException(
-                        utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
+                          utils::Formatter() << "\"dds\" not found or is not an object in the JSON file");
             }
 
         }
         catch (const std::exception& e)
         {
             throw eprosima::utils::ConfigurationException(
-                    utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
-                        "> :\n " << e.what());
+                      utils::Formatter() << "Error loading DDS Enabler configuration from file: <" << file_path <<
+                          "> :\n " << e.what());
         }
     }
     else

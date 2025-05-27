@@ -125,7 +125,7 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_json)
 TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_json)
 {
     const char* path_str = "./resources/correct_config.json";
-    
+
     ASSERT_TRUE(std::filesystem::exists(path_str));
 
     EnablerConfiguration configuration(path_str);
@@ -148,7 +148,7 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_json)
 TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_n_threads_configuration_json)
 {
     const char* path_str = "./resources/incorrect_threads_config.json";
-    
+
     ASSERT_TRUE(std::filesystem::exists(path_str));
 
     EXPECT_THROW({EnablerConfiguration configuration(path_str);}, std::exception);
@@ -178,7 +178,7 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_incorrect_path_configuration_yaml)
 TEST(DdsEnablerYamlTest, get_ddsenabler_full_configuration_json)
 {
     const char* path_str = "./resources/correct_config.json";
-    
+
     ASSERT_TRUE(std::filesystem::exists(path_str));
 
     EnablerConfiguration configuration(path_str);

@@ -275,7 +275,8 @@ protected:
     std::unique_ptr<CBWriter> cb_writer_;
 
     //! Schemas map
-    std::map<std::string, std::pair<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type>> schemas_;
+    std::map<std::string,
+            std::pair<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type>> schemas_;
 
     //! Unique sequence number assigned to received messages. It is incremented with every sample added
     unsigned int unique_sequence_number_{0};

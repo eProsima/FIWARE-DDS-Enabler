@@ -96,7 +96,7 @@ DDSEnabler::DDSEnabler(
     if (pipe_->enable() != utils::ReturnCode::RETCODE_OK)
     {
         throw utils::InitializationException(
-                utils::Formatter() << "Failed to enable DDS Pipe.");
+                  utils::Formatter() << "Failed to enable DDS Pipe.");
     }
 }
 
@@ -128,11 +128,13 @@ bool DDSEnabler::set_file_watcher(
                     }
                     else if (ret == utils::ReturnCode::RETCODE_NO_DATA)
                     {
-                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "No relevant changes in configuration file " << file_path);
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
+                                "No relevant changes in configuration file " << file_path);
                     }
                     else
                     {
-                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Failed to reload configuration from file " << file_path);
+                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
+                                "Failed to reload configuration from file " << file_path);
                     }
                 }
                 catch (const std::exception& e)
@@ -143,7 +145,8 @@ bool DDSEnabler::set_file_watcher(
             };
 
     // Creating FileWatcher event handler
-    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback, file_path);
+    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback,
+                    file_path);
 
     return true;
 }
