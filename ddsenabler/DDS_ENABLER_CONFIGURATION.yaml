@@ -13,6 +13,7 @@ dds:
 
 # DDS Enabler configuration
 ddsenabler:
+  initial-publish-wait: 500
 
 #Specs configuration
 specs:

@@ -44,7 +44,7 @@ void CBWriter::write_schema(
 
     const std::string& type_name = dyn_type->get_name().to_string();
 
-    //Schema has not been registered
+    // Schema has not been registered
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writing schema: " << type_name << ".");
 
@@ -85,13 +85,13 @@ void CBWriter::write_schema(
         return;
     }
 
-    //STORE SCHEMA
-    if (type_callback_)
+    // Notify type reception
+    if (type_notification_callback_)
     {
-        type_callback_(
+        type_notification_callback_(
             type_name.c_str(),
             ss_idl.str().c_str(),
-            (unsigned char*)types_collection_payload->data,
+            types_collection_payload->data,
             types_collection_payload->length,
             ss_data_holder.str().c_str()
             );
@@ -104,10 +104,11 @@ void CBWriter::write_topic(
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writting topic: " << topic.topic_name() << ".");
 
-    if (topic_callback_)
+    // Notify topic reception
+    if (topic_notification_callback_)
     {
         std::string serialized_qos = serialize_qos(topic.topic_qos);
-        topic_callback_(
+        topic_notification_callback_(
             topic.topic_name().c_str(),
             topic.type_name.c_str(),
             serialized_qos.c_str()
@@ -124,7 +125,7 @@ void CBWriter::write_data(
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
             "Writing message from topic: " << msg.topic.topic_name() << ".");
 
-    // Get the data as JSON
+    // Get the dynamic data to be serialized into JSON
     fastdds::dds::DynamicData::_ref_type dyn_data = get_dynamic_data_(msg, dyn_type);
 
     if (nullptr == dyn_data)
@@ -144,28 +145,14 @@ void CBWriter::write_data(
         return;
     }
 
-    // Create the base JSON structure
+    // Fill JSON object with the data
     nlohmann::json json_output;
+    fill_json_(json_output, msg, ss_dyn_data.str());
 
-    // TODO: encapsulate and/or have tags in a constants header??
-    std::stringstream ss_source_guid_prefix;
-    ss_source_guid_prefix << msg.source_guid.guid_prefix();
-    json_output["id"] = ss_source_guid_prefix.str();
-    json_output["type"] = "fastdds";
-    json_output[msg.topic.topic_name()] = {
-        {"type", msg.topic.type_name},
-        {"data", nlohmann::json::object()}
-    };
-
-    std::stringstream ss_instanceHandle;
-    ss_instanceHandle << msg.instanceHandle;
-    nlohmann::json parsed_dyn_data = nlohmann::json::parse(ss_dyn_data.str());
-    json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = parsed_dyn_data;
-
-    //STORE DATA
-    if (data_callback_)
+    // Notify data reception
+    if (data_notification_callback_)
     {
-        data_callback_(
+        data_notification_callback_(
             msg.topic.topic_name().c_str(),
             json_output.dump(4).c_str(),
             msg.publish_time.to_ns()
@@ -180,15 +167,61 @@ fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
     // TODO fast this should not be done, but dyn types API is like it is.
     auto& data_no_const = const_cast<eprosima::fastdds::rtps::SerializedPayload_t&>(msg.payload);
 
-    // Create PubSub Type
-    // TODO: avoid creating this object each time -> store in a map
-    fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
+    // Create a DynamicData object using the DynamicType
     fastdds::dds::DynamicData::_ref_type dyn_data(
         fastdds::dds::DynamicDataFactory::get_instance()->create_data(dyn_type));
 
-    pubsub_type.deserialize(data_no_const, &dyn_data);
+    // Deserialize data into the DynamicData object
+    if (!(get_pubsub_type_(dyn_type).deserialize(data_no_const, &dyn_data)))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Failed to deserialize data for topic: " << msg.topic.topic_name());
+        return nullptr;
+    }
 
     return dyn_data;
+}
+
+fastdds::dds::DynamicPubSubType CBWriter::get_pubsub_type_(
+        const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept
+{
+    // Check if we already have this pubsub type
+    auto it = dynamic_pubsub_types_.find(dyn_type);
+    if (it != dynamic_pubsub_types_.end())
+    {
+        return it->second;
+    }
+
+    // Create a new pubsub type
+    fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
+    dynamic_pubsub_types_[dyn_type] = pubsub_type;
+
+    return pubsub_type;
+}
+
+void CBWriter::fill_json_(
+        nlohmann::json& json,
+        const CBMessage& msg,
+        const std::string& serialized_data) noexcept
+{
+    // Set id to be the source guid prefix
+    std::stringstream ss_source_guid_prefix;
+    ss_source_guid_prefix << msg.source_guid.guid_prefix();
+    json["id"] = ss_source_guid_prefix.str();
+
+    // Set type to be fastdds
+    json["type"] = "fastdds";
+
+    // Insert type and data (to be filled below) with topic name as key
+    json[msg.topic.topic_name()] = {
+        {"type", msg.topic.type_name},
+        {"data", nlohmann::json::object()}
+    };
+
+    // Insert data with instance handle as key
+    std::stringstream ss_instanceHandle;
+    ss_instanceHandle << msg.instanceHandle;
+    json[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = nlohmann::json::parse(serialized_data);
 }
 
 } /* namespace participants */

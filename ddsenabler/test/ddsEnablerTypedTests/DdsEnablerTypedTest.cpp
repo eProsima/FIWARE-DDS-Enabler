@@ -48,6 +48,7 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
         ASSERT_TRUE(create_publisher(a_type)); \
 \
         ASSERT_EQ(get_received_types(), 1); \
+        ASSERT_EQ(get_received_topics(), 1); \
         ASSERT_EQ(get_received_data(), 0); \
 \
         /* Send data */ \
@@ -57,6 +58,7 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_publication_ms)); \
 \
         ASSERT_EQ(get_received_types(), 1); \
+        ASSERT_EQ(get_received_topics(), 1); \
         ASSERT_EQ(get_received_data(), num_samples_); \
     }
 

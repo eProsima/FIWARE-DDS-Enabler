@@ -23,7 +23,9 @@
           }
         ]
       },
-      "ddsenabler": null,
+      "ddsenabler": {
+        "initial-publish-wait": 500
+      },
       "specs": {
         "threads": 12,
         "logging": {

@@ -47,6 +47,7 @@ public:
     {
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_log_callback(
             DdsLogFunc callback)
     {

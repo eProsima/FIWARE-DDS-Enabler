@@ -19,57 +19,64 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+#include <string>
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
 /**
- * DdsLogFunc - callback for reception of DDS types
+ * DdsLogFunc - callback executed when consuming log messages
  */
 typedef void (*DdsLogFunc)(
-        const char* fileName,
-        int lineNo,
-        const char* funcName,
+        const char* file_name,
+        int line_no,
+        const char* func_name,
         int category,
         const char* msg);
 
 /**
- * DdsTypeNotification - callback for reception of DDS types
+ * DdsTypeNotification - callback for notifying the reception of DDS types
  */
 typedef void (*DdsTypeNotification)(
-        const char* typeName,
-        const char* serializedType,
-        const unsigned char* serializedTypeInternal,
-        uint32_t serializedTypeInternalSize,
-        const char* dataPlaceholder);
+        const char* type_name,
+        const char* serialized_type,
+        const unsigned char* serialized_type_internal,
+        uint32_t serialized_type_internal_size,
+        const char* data_placeholder);
 
 /**
- * DdsTopicNotification - callback for reception of DDS topics
+ * DdsTopicNotification - callback for notifying the reception of DDS topics
  */
 typedef void (*DdsTopicNotification)(
-        const char* topicName,
-        const char* typeName,
-        const char* serializedQos);
+        const char* topic_name,
+        const char* type_name,
+        const char* serialized_qos);
 
 /**
- * DdsNotification - callback for reception of DDS data
+ * DdsDataNotification - callback for notifying the reception of DDS data
  */
-typedef void (*DdsNotification)(
-        const char* topicName,
+typedef void (*DdsDataNotification)(
+        const char* topic_name,
         const char* json,
-        int64_t publishTime);
+        int64_t publish_time);
 
-// TODO: return a boolean in request callbacks? should nevertheless handle malformed strings passed by user
-typedef void (*DdsTopicRequest)(
-        const char* topicName,
-        char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
-        char*& serializedQos);
+/**
+ * DdsTopicRequest - callback for requesting information (type and QoS) of a DDS topic
+ */
+typedef bool (*DdsTopicRequest)(
+        const char* topic_name,
+        std::string& type_name,
+        std::string& serialized_qos);
 
-typedef void (*DdsTypeRequest)(
-        const char* typeName,
-        unsigned char*& serializedTypeInternal,
-        uint32_t& serializedTypeInternalSize);
+/**
+ * DdsTypeRequest - callback for requesting information (serialized description and size) of a DDS type
+ */
+typedef bool (*DdsTypeRequest)(
+        const char* type_name,
+        std::unique_ptr<const unsigned char []>& serialized_type_internal,
+        uint32_t& serialized_type_internal_size);
 
 } /* namespace participants */
 } /* namespace ddsenabler */

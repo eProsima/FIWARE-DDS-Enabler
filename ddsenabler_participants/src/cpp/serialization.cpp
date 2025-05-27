@@ -188,7 +188,7 @@ bool serialize_dynamic_type(
                 type_info,
                 true))
     {
-        EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION,
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION,
                 "Error getting TypeInformation for type " << type_name);
         return false;
     }
@@ -207,7 +207,7 @@ bool serialize_dynamic_type(
                     dependency_type_identifier,
                     dependency_type_object))
         {
-            EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION,
+            EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION,
                     "Error getting TypeObject of dependency " << "for type " << type_name);
             return false;
         }
@@ -227,7 +227,7 @@ bool serialize_dynamic_type(
                 type_identifier,
                 type_object))
     {
-        EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION, "Error getting TypeObject for type " << type_name);
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION, "Error getting TypeObject for type " << type_name);
         return false;
     }
 
@@ -251,7 +251,7 @@ bool serialize_dynamic_type(
     }
     catch (const utils::InconsistencyException& e)
     {
-        EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION, "Error serializing DynamicType. Error message:\n " << e.what());
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION, "Error serializing DynamicType. Error message:\n " << e.what());
         return false;
     }
 
@@ -278,7 +278,7 @@ bool deserialize_dynamic_type(
     }
     catch (const utils::InconsistencyException& e)
     {
-        EPROSIMA_LOG_WARNING(DDSENABLER_SERIALIZATION,
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION,
                 "Failed to deserialize " << dynamic_type.type_name() << " DynamicType: " << e.what());
         return false;
     }
@@ -501,7 +501,12 @@ std::unique_ptr<fastdds::rtps::SerializedPayload_t> serialize_dynamic_types(
     fastdds::dds::TypeSupport type_support(new DynamicTypesCollectionPubSubType());
     auto serialized_payload = std::make_unique<fastdds::rtps::SerializedPayload_t>(
         type_support.calculate_serialized_size(&dynamic_types, fastdds::dds::DEFAULT_DATA_REPRESENTATION));
-    type_support.serialize(&dynamic_types, *serialized_payload, fastdds::dds::DEFAULT_DATA_REPRESENTATION);
+    if (!type_support.serialize(&dynamic_types, *serialized_payload, fastdds::dds::DEFAULT_DATA_REPRESENTATION))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION,
+                "Failed to serialize dynamic types collection.");
+        return nullptr;
+    }
 
     return serialized_payload;
 }
@@ -519,9 +524,14 @@ bool deserialize_dynamic_types(
         serialized_payload.data,
         dynamic_types_payload,
         dynamic_types_payload_size);
-    type_support.deserialize(serialized_payload, &dynamic_types);
 
-    // TODO: catch exception and return false
+    if (!type_support.deserialize(serialized_payload, &dynamic_types))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_SERIALIZATION,
+                "Failed to deserialize dynamic types collection.");
+        return false;
+    }
+
     return true;
 }
 

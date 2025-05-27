@@ -129,7 +129,7 @@ EnablerConfiguration::EnablerConfiguration(
 {
     if (is_json(file_path))
     {
-        load_ddsenabler_configuration_from_json_file(file_path);
+        load_ddsenabler_configuration_from_json_file_(file_path);
     } else
     {
         if (file_path.size() >= 5 &&
@@ -139,14 +139,14 @@ EnablerConfiguration::EnablerConfiguration(
             EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                     "Failed to parse JSON configuration, treating as YAML.");
         }
-        load_ddsenabler_configuration_from_yaml_file(file_path);
+        load_ddsenabler_configuration_from_yaml_file_(file_path);
     }
 }
 
 EnablerConfiguration::EnablerConfiguration(
         const Yaml& yml)
 {
-    load_ddsenabler_configuration(yml);
+    load_ddsenabler_configuration_(yml);
 }
 
 bool EnablerConfiguration::is_valid(
@@ -155,7 +155,7 @@ bool EnablerConfiguration::is_valid(
     return true;
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration(
+void EnablerConfiguration::load_ddsenabler_configuration_(
         const Yaml& yml)
 {
     try
@@ -171,24 +171,19 @@ void EnablerConfiguration::load_ddsenabler_configuration(
         simple_configuration = std::make_shared<SimpleParticipantConfiguration>();
         simple_configuration->id = "SimpleEnablerParticipant";
         simple_configuration->app_id = "DDS_ENABLER";
-        simple_configuration->app_metadata = "";
-        simple_configuration->is_repeater = false;
 
         /////
         // Create Enabler Participant Configuration
         enabler_configuration = std::make_shared<participants::EnablerParticipantConfiguration>();
         enabler_configuration->id = "EnablerEnablerParticipant";
         enabler_configuration->app_id = "DDS_ENABLER";
-        // TODO: fill metadata field once its content has been defined.
-        enabler_configuration->app_metadata = "";
-        enabler_configuration->is_repeater = false;
 
         /////
         // Get optional Enabler configuration options
         if (YamlReader::is_tag_present(yml, ENABLER_ENABLER_TAG))
         {
             auto enabler_yml = YamlReader::get_value_in_tag(yml, ENABLER_ENABLER_TAG);
-            load_enabler_configuration(enabler_yml, version);
+            load_enabler_configuration_(enabler_yml, version);
         }
 
         /////
@@ -197,7 +192,7 @@ void EnablerConfiguration::load_ddsenabler_configuration(
         if (YamlReader::is_tag_present(yml, SPECS_TAG))
         {
             auto specs_yml = YamlReader::get_value_in_tag(yml, SPECS_TAG);
-            load_specs_configuration(specs_yml, version);
+            load_specs_configuration_(specs_yml, version);
         }
 
         /////
@@ -205,7 +200,7 @@ void EnablerConfiguration::load_ddsenabler_configuration(
         if (YamlReader::is_tag_present(yml, ENABLER_DDS_TAG))
         {
             auto dds_yml = YamlReader::get_value_in_tag(yml, ENABLER_DDS_TAG);
-            load_dds_configuration(dds_yml, version);
+            load_dds_configuration_(dds_yml, version);
         }
 
         // Block ROS 2 services (RPC) topics
@@ -225,8 +220,10 @@ void EnablerConfiguration::load_ddsenabler_configuration(
         ddspipe_configuration.blocklist.insert(
             utils::Heritable<WildcardDdsFilterTopic>::make_heritable(rpc_response_topic));
 
-        ddspipe_configuration.init_enabled = true;
+        // Enable manually after all callbacks are set to avoid missing notifications
+        ddspipe_configuration.init_enabled = false;
 
+        // NOTE: Trigger discovery also with readers to enable publish feature in their associated topics
         ddspipe_configuration.discovery_trigger = DiscoveryTrigger::ANY;
     }
     catch (const std::exception& e)
@@ -237,7 +234,7 @@ void EnablerConfiguration::load_ddsenabler_configuration(
 
 }
 
-void EnablerConfiguration::load_enabler_configuration(
+void EnablerConfiguration::load_enabler_configuration_(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -248,7 +245,7 @@ void EnablerConfiguration::load_enabler_configuration(
     }
 }
 
-void EnablerConfiguration::load_specs_configuration(
+void EnablerConfiguration::load_specs_configuration_(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -267,7 +264,7 @@ void EnablerConfiguration::load_specs_configuration(
     }
 }
 
-void EnablerConfiguration::load_dds_configuration(
+void EnablerConfiguration::load_dds_configuration_(
         const Yaml& yml,
         const YamlReaderVersion& version)
 {
@@ -340,7 +337,7 @@ void EnablerConfiguration::load_dds_configuration(
     }
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_from_yaml_file(
+void EnablerConfiguration::load_ddsenabler_configuration_from_yaml_file_(
         const std::string& file_path)
 {
     Yaml yml;
@@ -363,10 +360,10 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_yaml_file(
         EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                 "No configuration file specified, using default values.");
     }
-    EnablerConfiguration::load_ddsenabler_configuration(yml);
+    EnablerConfiguration::load_ddsenabler_configuration_(yml);
 }
 
-void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
+void EnablerConfiguration::load_ddsenabler_configuration_from_json_file_(
         const std::string& file_path)
 {
     Yaml yml;
@@ -423,7 +420,7 @@ void EnablerConfiguration::load_ddsenabler_configuration_from_json_file(
         EPROSIMA_LOG_WARNING(DDSENABLER_YAML,
                 "No configuration file specified, using default values.");
     }
-    EnablerConfiguration::load_ddsenabler_configuration(yml);
+    EnablerConfiguration::load_ddsenabler_configuration_(yml);
 }
 
 } /* namespace yaml */

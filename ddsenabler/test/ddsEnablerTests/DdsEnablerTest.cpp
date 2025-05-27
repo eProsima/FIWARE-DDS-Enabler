@@ -60,12 +60,14 @@ TEST_F(DDSEnablerTest, send_type1)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 }
 
@@ -82,12 +84,14 @@ TEST_F(DDSEnablerTest, send_many_type1)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 }
 
@@ -104,12 +108,14 @@ TEST_F(DDSEnablerTest, send_type2)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 }
 
@@ -126,18 +132,21 @@ TEST_F(DDSEnablerTest, send_type3)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 }
 
@@ -154,12 +163,14 @@ TEST_F(DDSEnablerTest, send_type4)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 }
 
@@ -176,12 +187,14 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_TRUE(create_publisher(a_type1));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type1));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     KnownType a_type2;
@@ -190,12 +203,14 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_TRUE(create_publisher(a_type2));
 
     ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_topics(), 2);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type2));
 
     ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_topics(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     KnownType a_type3;
@@ -204,12 +219,14 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_TRUE(create_publisher(a_type3));
 
     ASSERT_EQ(get_received_types(), 3);
+    ASSERT_EQ(get_received_topics(), 3);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type3));
 
     ASSERT_EQ(get_received_types(), 3);
+    ASSERT_EQ(get_received_topics(), 3);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 
     KnownType a_type4;
@@ -218,12 +235,14 @@ TEST_F(DDSEnablerTest, send_multiple_types)
     ASSERT_TRUE(create_publisher(a_type4));
 
     ASSERT_EQ(get_received_types(), 4);
+    ASSERT_EQ(get_received_topics(), 4);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type4));
 
     ASSERT_EQ(get_received_types(), 4);
+    ASSERT_EQ(get_received_topics(), 4);
     ASSERT_EQ(get_received_data(), num_samples_ * 4);
 }
 
@@ -240,12 +259,14 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     ASSERT_TRUE(create_publisher(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), 0);
 
     // Send data
     ASSERT_TRUE(send_samples(a_type));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), num_samples_);
 
     KnownType another_type;
@@ -257,20 +278,23 @@ TEST_F(DDSEnablerTest, send_repeated_type)
     ASSERT_TRUE(send_samples(another_type));
 
     ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_topics(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     KnownType same_type;
     same_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
 
-    ASSERT_TRUE(create_publisher(same_type));
+    ASSERT_TRUE(create_publisher(same_type)); // and topic
 
     ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_topics(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 2);
 
     // Send data
     ASSERT_TRUE(send_samples(same_type));
 
     ASSERT_EQ(get_received_types(), 2);
+    ASSERT_EQ(get_received_topics(), 2);
     ASSERT_EQ(get_received_data(), num_samples_ * 3);
 }
 
@@ -313,6 +337,7 @@ TEST_F(DDSEnablerTest, send_history_smaller_than_writer)
     std::this_thread::sleep_for(std::chrono::milliseconds(history_depth * 100));
 
     ASSERT_EQ(get_received_types(), 1);
+    ASSERT_EQ(get_received_topics(), 1);
     ASSERT_EQ(get_received_data(), history_depth);
 }
 
@@ -356,6 +381,7 @@ TEST_F(DDSEnablerTest, send_history_multiple_types)
     std::this_thread::sleep_for(std::chrono::milliseconds(types * history_depth * 100));
 
     ASSERT_EQ(get_received_types(), types);
+    ASSERT_EQ(get_received_topics(), types);
     ASSERT_EQ(get_received_data(), types * history_depth);
 }
 

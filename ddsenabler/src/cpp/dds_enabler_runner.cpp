@@ -22,10 +22,9 @@
 #include <cpp_utils/Log.hpp>
 #include <cpp_utils/logging/StdLogConsumer.hpp>
 
-#include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
-#include "ddsenabler/dds_enabler_runner.hpp"
+#include <ddsenabler/dds_enabler_runner.hpp>
 
 using namespace eprosima::ddspipe;
 
@@ -34,12 +33,7 @@ namespace ddsenabler {
 
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler)
 {
     std::string dds_enabler_config_file = "";
@@ -54,12 +48,7 @@ bool create_dds_enabler(
     // Create DDS Enabler instance
     if (!create_dds_enabler(
         configuration,
-        data_callback,
-        type_callback,
-        topic_callback,
-        type_req_callback,
-        topic_req_callback,
-        log_callback,
+        callbacks,
         enabler))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
@@ -80,12 +69,7 @@ bool create_dds_enabler(
 
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler)
 {
     // Encapsulating execution in block to erase all memory correctly before closing process
@@ -106,11 +90,11 @@ bool create_dds_enabler(
             eprosima::utils::Log::ClearConsumers();
             eprosima::utils::Log::SetVerbosity(log_configuration.verbosity);
 
-            if (log_callback)
+            if (callbacks.log)
             {
                 // User callback Log Consumer
                 auto* log_consumer = new eprosima::ddsenabler::participants::DDSEnablerLogConsumer(&log_configuration);
-                log_consumer->set_log_callback(log_callback);
+                log_consumer->set_log_callback(callbacks.log);
 
                 eprosima::utils::Log::RegisterConsumer(
                     std::unique_ptr<eprosima::ddsenabler::participants::DDSEnablerLogConsumer>(log_consumer));
@@ -135,18 +119,8 @@ bool create_dds_enabler(
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "Starting DDS Enabler execution.");
 
-        // Create a multiple event handler that handles all events that make the enabler stop
-        auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
-
-        // Create DDSEnabler and set the context broker callbacks
-        enabler.reset(new DDSEnabler(configuration, close_handler));
-
-        // TODO: avoid setting callback after having created "enabled" enabler (e.g. pass and set in construction)
-        enabler->set_data_callback(data_callback);
-        enabler->set_type_callback(type_callback);
-        enabler->set_topic_callback(topic_callback);
-        enabler->set_type_request_callback(type_req_callback);
-        enabler->set_topic_request_callback(topic_req_callback);
+        // Create DDSEnabler
+        enabler.reset(new DDSEnabler(configuration, callbacks));
 
         EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
                 "DDS Enabler running.");

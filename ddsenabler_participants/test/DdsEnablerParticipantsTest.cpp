@@ -84,12 +84,10 @@ public:
         cb_writer_ = std::make_unique<CBWriterTest>();
 
         // Set the callbacks
-        set_data_callback(test_data_callback);
-        set_type_callback(test_type_callback);
-        set_topic_callback(test_topic_notification_callback);
+        set_data_notification_callback(test_data_notification_callback);
+        set_type_notification_callback(test_type_notification_callback);
+        set_topic_notification_callback(test_topic_notification_callback);
         set_type_request_callback(test_type_request_callback);
-
-
     }
 
     // Expose protected members
@@ -98,38 +96,39 @@ public:
     using participants::CBHandler::unique_sequence_number_;
 
     // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-    static void test_type_request_callback(
-            const char* typeName,
-            unsigned char*& serializedTypeInternal,
-            uint32_t& serializedTypeInternalSize)
+    static bool test_type_request_callback(
+            const char* type_name,
+            std::unique_ptr<const unsigned char []>& serialized_type_internal,
+            uint32_t& serialized_type_internal_size)
     {
-        if(current_test_instance_ == nullptr)
-            return;
+        if (current_test_instance_ == nullptr)
+            return false;
 
         current_test_instance_->type_request_called++;
+        return true;
     }
 
-    // eprosima::ddsenabler::participants::DdsNotification data_callback;
-    static void test_data_callback(
-            const char* topicName,
+    // eprosima::ddsenabler::participants::DdsDataNotification data_callback;
+    static void test_data_notification_callback(
+            const char* topic_name,
             const char* json,
-            int64_t publishTime)
+            int64_t publish_time)
     {
-        if(current_test_instance_ == nullptr)
+        if (current_test_instance_ == nullptr)
             return;
 
         current_test_instance_->data_called_++;
     }
 
     // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
-    static void test_type_callback(
-            const char* typeName,
-            const char* serializedType,
-            const unsigned char* serializedTypeInternal,
-            uint32_t serializedTypeInternalSize,
-            const char* dataPlaceholder)
+    static void test_type_notification_callback(
+            const char* type_name,
+            const char* serialized_type,
+            const unsigned char* serialized_type_internal,
+            uint32_t serialized_type_internal_size,
+            const char* data_placeholder)
     {
-        if(current_test_instance_ == nullptr)
+        if (current_test_instance_ == nullptr)
             return;
 
         current_test_instance_->type_called_++;
@@ -137,11 +136,11 @@ public:
 
     // eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
     static void test_topic_notification_callback(
-            const char* topicName,
-            const char* typeName,
-            const char* serializedQos)
+            const char* topic_name,
+            const char* type_name,
+            const char* serialized_qos)
     {
-        if(current_test_instance_ == nullptr)
+        if (current_test_instance_ == nullptr)
             return;
 
         current_test_instance_->topic_called_++;

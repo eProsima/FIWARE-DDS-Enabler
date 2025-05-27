@@ -76,25 +76,25 @@ public:
 
 protected:
 
-    void load_ddsenabler_configuration(
+    void load_ddsenabler_configuration_(
             const Yaml& yml);
 
-    void load_enabler_configuration(
+    void load_enabler_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_specs_configuration(
+    void load_specs_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_dds_configuration(
+    void load_dds_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_ddsenabler_configuration_from_yaml_file(
+    void load_ddsenabler_configuration_from_yaml_file_(
             const std::string& file_path);
 
-    void load_ddsenabler_configuration_from_json_file(
+    void load_ddsenabler_configuration_from_json_file_(
             const std::string& file_path);
 };
 

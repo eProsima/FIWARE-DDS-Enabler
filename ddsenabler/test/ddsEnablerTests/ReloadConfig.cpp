@@ -26,54 +26,56 @@ static uint32_t data_callback_count = 0;
 
 // Empty callbacks just to create the enabler being tested
 
-// eprosima::ddsenabler::participants::DdsNotification data_callback;
-void test_data_callback(
-        const char* topicName,
+// eprosima::ddsenabler::participants::DdsDataNotification data_callback;
+void test_data_notification_callback(
+        const char* topic_name,
         const char* json,
-        int64_t publishTime)
+        int64_t publish_time)
 {
 }
 
 // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
-void test_type_callback(
-        const char* typeName,
-        const char* serializedType,
-        const unsigned char* serializedTypeInternal,
-        uint32_t serializedTypeInternalSize,
-        const char* dataPlaceholder)
+void test_type_notification_callback(
+        const char* type_name,
+        const char* serialized_type,
+        const unsigned char* serialized_type_internal,
+        uint32_t serialized_type_internal_size,
+        const char* data_placeholder)
 {
 }
 
 // eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
 void test_topic_notification_callback(
-        const char* topicName,
-        const char* typeName,
-        const char* serializedQos)
+        const char* topic_name,
+        const char* type_name,
+        const char* serialized_qos)
 {
 }
 
 // eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
-void test_topic_request_callback(
-        const char* topicName,
-        char*& typeName,
-        char*& serializedQos)
+bool test_topic_request_callback(
+        const char* topic_name,
+        std::string& type_name,
+        std::string& serialized_qos)
 {
+    return true;
 }
 
 // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-void test_type_request_callback(
-        const char* typeName,
-        unsigned char*& serializedTypeInternal,
-        uint32_t& serializedTypeInternalSize)
+bool test_type_request_callback(
+        const char* type_name,
+        std::unique_ptr<const unsigned char []>& serialized_type_internal,
+        uint32_t& serialized_type_internal_size)
 {
+    return true;
 }
 
 
 //eprosima::ddsenabler::participants::DdsLogFunc log_callback;
 void test_log_callback(
-    const char* fileName,
-    int lineNo,
-    const char* funcName,
+    const char* file_name,
+    int line_no,
+    const char* func_name,
     int category,
     const char* msg)
 {
@@ -173,9 +175,20 @@ TEST(ReloadConfig, json)
     auto configfile = "./file_watcher_test.json";
     write_json_file(configfile, false);
 
+    CallbackSet callbacks{
+        .log = test_log_callback,
+        .dds = {
+            .type_notification = test_type_notification_callback,
+            .topic_notification = test_topic_notification_callback,
+            .data_notification = test_data_notification_callback,
+            .type_request = test_type_request_callback,
+            .topic_request = test_topic_request_callback
+        }
+    };
+
     // Create DDS Enabler
     std::shared_ptr<DDSEnabler> enabler;
-    ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
+    ASSERT_TRUE(create_dds_enabler(configfile, callbacks, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
@@ -204,9 +217,20 @@ TEST(ReloadConfig, yaml)
     auto configfile = "./file_watcher_test.yaml";
     write_yaml_file(configfile, 0);
 
+    CallbackSet callbacks{
+        .log = test_log_callback,
+        .dds = {
+            .type_notification = test_type_notification_callback,
+            .topic_notification = test_topic_notification_callback,
+            .data_notification = test_data_notification_callback,
+            .type_request = test_type_request_callback,
+            .topic_request = test_topic_request_callback
+        }
+    };
+
     // Create DDS Enabler
     std::shared_ptr<DDSEnabler> enabler;
-    ASSERT_TRUE(create_dds_enabler(configfile, test_data_callback, test_type_callback, test_topic_notification_callback, test_type_request_callback, test_topic_request_callback, test_log_callback, enabler));
+    ASSERT_TRUE(create_dds_enabler(configfile, callbacks, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());

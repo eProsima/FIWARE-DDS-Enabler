@@ -23,7 +23,6 @@
 #include <fastdds/dds/domain/DomainParticipantFactory.hpp>
 
 #include <cpp_utils/event/FileWatcherHandler.hpp>
-#include <cpp_utils/event/MultipleEventHandler.hpp>
 #include <cpp_utils/ReturnCode.hpp>
 #include <cpp_utils/thread_pool/pool/SlotThreadPool.hpp>
 
@@ -42,6 +41,7 @@
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
+#include <ddsenabler/CallbackSet.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -54,47 +54,16 @@ class DDSEnabler
 public:
 
     /**
-     * DDSEnabler constructor by required values and event handler reference.
+     * DDSEnabler constructor by required values.
      *
      * Creates DDSEnabler instance with given configuration.
      *
      * @param configuration: Structure encapsulating all enabler configuration options.
-     * @param event_handler: Reference to event handler used for thread synchronization in main application.
+     * @param callbacks: Set of callbacks to be used by the enabler.
      */
     DDSEnabler(
             const yaml::EnablerConfiguration& configuration,
-            std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler);
-
-
-    void set_data_callback(
-            participants::DdsNotification callback)
-    {
-        cb_handler_->set_data_callback(callback);
-    }
-
-    void set_type_callback(
-            participants::DdsTypeNotification callback)
-    {
-        cb_handler_->set_type_callback(callback);
-    }
-
-    void set_topic_callback(
-            participants::DdsTopicNotification callback)
-    {
-        cb_handler_->set_topic_callback(callback);
-    }
-
-    void set_topic_request_callback(
-            participants::DdsTopicRequest callback)
-    {
-        enabler_participant_->set_topic_request_callback(callback);
-    }
-
-    void set_type_request_callback(
-            participants::DdsTypeRequest callback)
-    {
-        cb_handler_->set_type_request_callback(callback);
-    }
+            const CallbackSet& callbacks);
 
     /**
      * Associate the file watcher to the configuration file and establish the callback to reload the configuration.
@@ -118,7 +87,13 @@ public:
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
 
-    // TODO
+    /**
+     * Publish a JSON message to the specified topic.
+     *
+     * @param topic_name: The name of the topic to publish to.
+     * @param json: The JSON message to publish.
+     * @return \c true if the message was published successfully, \c false otherwise.
+     */
     bool publish(
             const std::string& topic_name,
             const std::string& json);
@@ -132,6 +107,14 @@ protected:
      */
     void load_internal_topics_(
             yaml::EnablerConfiguration& configuration);
+
+    /**
+     * Set the internal callbacks used by the enabler.
+     *
+     * @param callbacks: The set of callbacks to be used by the enabler.
+     */
+    void set_internal_callbacks_(
+            const CallbackSet& callbacks);
 
     //! Store reference to DomainParticipantFactory to avoid Fast-DDS singletons being destroyed before they should
     std::shared_ptr<eprosima::fastdds::dds::DomainParticipantFactory> part_factory_ =  eprosima::fastdds::dds::DomainParticipantFactory::get_shared_instance();
@@ -162,9 +145,6 @@ protected:
 
     //! DDS Pipe
     std::unique_ptr<ddspipe::core::DdsPipe> pipe_;
-
-    //! Reference to event handler used for thread synchronization in main application
-    std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler_;
 
     //! Config File watcher handler
     std::unique_ptr<eprosima::utils::event::FileWatcherHandler> file_watcher_handler_;

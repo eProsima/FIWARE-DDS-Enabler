@@ -59,9 +59,13 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
         reader = std::make_shared<InternalReader>(id());
         auto dds_topic = dynamic_cast<const DdsTopic&>(topic);
         readers_[dds_topic] = reader;
-        std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
+        // Only notify the discovery of topics that do not originate from a topic request callback
+        if (dds_topic.topic_discoverer() != this->id())
+        {
+            std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
+        }
     }
-    cv_.notify_one();
+    cv_.notify_all();
     return reader;
 }
 
@@ -84,13 +88,29 @@ bool EnablerParticipant::publish(
             return false;
         }
 
-        char* _type_name;
-        char* serialized_qos_content;
-        topic_req_callback_(topic_name.c_str(), _type_name, serialized_qos_content); // TODO: allow the user not to provide QoS + handle fail case
-        type_name = std::string(_type_name); // TODO: free resources allocated by user, or redesign interaction (same for serialized_qos_content)
-        std::string serialized_qos(serialized_qos_content);
+        std::string serialized_qos;
+        if (!topic_req_callback_(topic_name.c_str(), type_name, serialized_qos))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Failed to publish data in topic " << topic_name << " : topic request callback failed.");
+            return false;
+        }
 
-        TopicQoS qos = serialization::deserialize_qos(serialized_qos); // TODO: handle fail case (try-catch?)
+        // Deserialize QoS if provided by the user (otherwise use default one)
+        TopicQoS qos;
+        if (!serialized_qos.empty())
+        {
+            try
+            {
+                qos = serialization::deserialize_qos(serialized_qos);
+            }
+            catch (const std::exception& e)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                        "Failed to deserialize QoS for topic " << topic_name << ": " << e.what());
+                return false;
+            }
+        }
 
         fastdds::dds::xtypes::TypeIdentifier type_identifier;
         if (!std::static_pointer_cast<CBHandler>(schema_handler_)->get_type_identifier(type_name, type_identifier))
@@ -108,10 +128,18 @@ bool EnablerParticipant::publish(
         this->discovery_database_->add_endpoint(rtps::CommonParticipant::simulate_endpoint(topic, this->id()));
 
         // Wait for reader to be created from discovery thread
-        cv_.wait(lck, [&]
+        // NOTE: Set a timeout to avoid a deadlock in case the reader is never created for some reason (e.g. the topic
+        // is blocked or the underlying DDS Pipe object is disabled/destroyed before the reader is created).
+        if (!cv_.wait_for(lck, std::chrono::seconds(5), [&]
                 {
                     return nullptr != (reader = lookup_reader_nts_(topic_name));
-                });                                                                          // TODO: handle case when stopped before processing queue item
+                }))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Failed to create internal reader for topic " << topic_name <<
+                    " , please verify that the topic is allowed.");
+            return false;
+        }
 
         // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
         // message when not using transient durability

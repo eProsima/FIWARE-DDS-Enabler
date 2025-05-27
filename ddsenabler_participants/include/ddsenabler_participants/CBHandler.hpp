@@ -21,7 +21,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
+#include <map>
 #include <utility>
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
@@ -89,8 +89,7 @@ public:
     ~CBHandler();
 
     /**
-     * @brief Create and store in \c schemas_ an OMG IDL (.idl format) schema.
-     * Any samples following this schema that were received before the schema itself are moved to the memory buffer.
+     * @brief Add a type schema, associated to the given \c dyn_type and \c type_id.
      *
      * @param [in] dyn_type DynamicType containing the type information required to generate the schema.
      * @param [in] type_id TypeIdentifier of the type.
@@ -100,15 +99,17 @@ public:
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id) override;
 
-    // TODO
+    /**
+     * @brief Add a topic, associated to the given \c topic.
+     *
+     * @param [in] topic DDS topic to be added.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void add_topic(
             const ddspipe::core::types::DdsTopic& topic);
 
     /**
      * @brief Add a data sample, associated to the given \c topic.
-     *
-     * The sample is added to buffer without schema.
      *
      * @param [in] topic DDS topic associated to this sample.
      * @param [in] data payload data to be added.
@@ -118,38 +119,73 @@ public:
             const ddspipe::core::types::DdsTopic& topic,
             ddspipe::core::types::RtpsPayloadData& data) override;
 
+    /**
+     * @brief Get the TypeIdentifier associated to the given type name.
+     *
+     * @param [in] type_name Name of the type to be retrieved.
+     * @param [out] type_identifier TypeIdentifier of the type.
+     * @return \c true if the type was found, \c false otherwise.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     bool get_type_identifier(
             const std::string& type_name,
             fastdds::dds::xtypes::TypeIdentifier& type_identifier);
 
+    /**
+     * @brief Get the serialized data (payload) associated to the given type name from a JSON string.
+     *
+     * @param [in] type_name Name of the type of the data to be serialized.
+     * @param [in] json JSON string containing the data to be serialized.
+     * @param [out] payload Payload reference where the serialized data will be stored.
+     * @return \c true if the data was successfully serialized, \c false otherwise.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     bool get_serialized_data(
             const std::string& type_name,
             const std::string& json,
             ddspipe::core::types::Payload& payload);
 
+    /**
+     * @brief Set the data notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_data_callback(
-            participants::DdsNotification callback)
+    void set_data_notification_callback(
+            participants::DdsDataNotification callback)
     {
-        cb_writer_->set_data_callback(callback);
+        cb_writer_->set_data_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the topic notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_topic_callback(
+    void set_topic_notification_callback(
             participants::DdsTopicNotification callback)
     {
-        cb_writer_->set_topic_callback(callback);
+        cb_writer_->set_topic_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the type notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_type_callback(
+    void set_type_notification_callback(
             participants::DdsTypeNotification callback)
     {
-        cb_writer_->set_type_callback(callback);
+        cb_writer_->set_type_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the type request callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_request_callback(
             participants::DdsTypeRequest callback)
@@ -159,11 +195,47 @@ public:
 
 protected:
 
-    void write_schema_(
+    /**
+     * @brief Add a schema, associated to the given \c dyn_type and \c type_id.
+     *
+     * @param [in] dyn_type DynamicType containing the type information required to generate the schema.
+     * @param [in] type_id TypeIdentifier of the type.
+     * @param [in] write_schema Whether to write the schema to CB or not.
+     */
+    void add_schema_nts_(
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const fastdds::dds::xtypes::TypeIdentifier& type_id,
+            bool write_schema = true);
+
+    /**
+     * @brief Add a schema, associated to the given \c type_id and \c type_obj.
+     *
+     * @param [in] type_id TypeIdentifier of the type.
+     * @param [in] type_obj TypeObject of the type.
+     * @param [in] write_schema Whether to write the schema to CB or not.
+     * @return \c true if the schema was added successfully, \c false otherwise.
+     */
+    bool add_schema_nts_(
+            const fastdds::dds::xtypes::TypeIdentifier& type_id,
+            const fastdds::dds::xtypes::TypeObject& type_obj,
+            bool write_schema = true);
+
+    /**
+     * @brief Write the schema to CB.
+     *
+     * @param [in] dyn_type DynamicType containing the type information required to generate the schema.
+     * @param [in] type_id TypeIdentifier of the type.
+     */
+    void write_schema_nts_(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
 
-    void write_topic_(
+    /**
+     * @brief Write the topic to CB.
+     *
+     * @param [in] topic DDS topic to be added.
+     */
+    void write_topic_nts_(
             const ddspipe::core::types::DdsTopic& topic);
 
     /**
@@ -172,15 +244,26 @@ protected:
      * @param [in] msg CBMessage to be added
      * @param [in] dyn_type DynamicType containing the type information required.
      */
-    void write_sample_(
+    void write_sample_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    /**
+     * @brief Register a type using the given serialized type data.
+     *
+     * @param [in] type_name Name of the type to be registered.
+     * @param [in] serialized_type Pointer to the serialized type data.
+     * @param [in] serialized_type_size Size of the serialized type data.
+     * @param [out] type_identifier TypeIdentifier of the registered type.
+     * @param [out] type_object TypeObject of the registered type.
+     * @return \c true if the type was registered successfully, \c false otherwise.
+     */
     bool register_type_nts_(
             const std::string& type_name,
             const unsigned char* serialized_type,
             uint32_t serialized_type_size,
-            fastdds::dds::xtypes::TypeIdentifier& type_identifier);
+            fastdds::dds::xtypes::TypeIdentifier& type_identifier,
+            fastdds::dds::xtypes::TypeObject& type_object);
 
     //! Handler configuration
     CBHandlerConfiguration configuration_;
@@ -192,7 +275,7 @@ protected:
     std::unique_ptr<CBWriter> cb_writer_;
 
     //! Schemas map
-    std::unordered_map<std::string, std::pair<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type>> schemas_;
+    std::map<std::string, std::pair<fastdds::dds::xtypes::TypeIdentifier, fastdds::dds::DynamicType::_ref_type>> schemas_;
 
     //! Unique sequence number assigned to received messages. It is incremented with every sample added
     unsigned int unique_sequence_number_{0};
@@ -200,6 +283,7 @@ protected:
     //! Mutex synchronizing access to object's data structures
     std::mutex mtx_;
 
+    //! Callback to request types from the user
     DdsTypeRequest type_req_callback_;
 };
 

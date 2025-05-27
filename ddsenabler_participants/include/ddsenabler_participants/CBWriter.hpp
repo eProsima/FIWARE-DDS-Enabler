@@ -18,8 +18,13 @@
 
 #pragma once
 
-#include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
+#include <map>
+
+#include <nlohmann/json.hpp>
+
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
+#include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
 
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
@@ -42,29 +47,43 @@ public:
     ~CBWriter() = default;
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_data_callback(
-            DdsNotification callback)
+    void set_data_notification_callback(
+            DdsDataNotification callback)
     {
-        data_callback_ = callback;
+        data_notification_callback_ = callback;
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_type_callback(
+    void set_type_notification_callback(
             DdsTypeNotification callback)
     {
-        type_callback_ = callback;
+        type_notification_callback_ = callback;
     }
 
-    void set_topic_callback(
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_topic_notification_callback(
             DdsTopicNotification callback)
     {
-        topic_callback_ = callback;
+        topic_notification_callback_ = callback;
     }
 
+    /**
+     * @brief Writes the schema of a DynamicType to CB.
+     *
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] type_id TypeIdentifier of the DynamicType.
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
     void write_schema(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const fastdds::dds::xtypes::TypeIdentifier& type_id);
 
+    /**
+     * @brief Writes the topic to CB.
+     *
+     * @param [in] topic DDS topic to be added.
+     */
+    DDSENABLER_PARTICIPANTS_DllAPI
     void write_topic(
             const ddspipe::core::types::DdsTopic& topic);
 
@@ -101,10 +120,35 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
 
+    /**
+     * @brief Returns the pubsub type of a dyn_type.
+     *
+     * @param [in] dyn_type DynamicType from which to get the pubsub type.
+     * @return The pubsub type associated to the given dyn_type.
+     * @note If the pubsub type is not already created, it will be created and stored in the map.
+     */
+    fastdds::dds::DynamicPubSubType get_pubsub_type_(
+            const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
+
+    /**
+     * @brief Fills a JSON object with the data from a CBMessage.
+     *
+     * @param [in,out] json JSON object to be filled.
+     * @param [in] msg CBMessage containing the data used to fill the JSON object.
+     * @param [in] serialized_data Serialized data to be added to the JSON object.
+     */
+    void fill_json_(
+            nlohmann::json& json,
+            const CBMessage& msg,
+            const std::string& serialized_data) noexcept;
+
     // Callbacks to notify the CB
-    DdsNotification data_callback_;
-    DdsTypeNotification type_callback_;
-    DdsTopicNotification topic_callback_;
+    DdsDataNotification data_notification_callback_;
+    DdsTypeNotification type_notification_callback_;
+    DdsTopicNotification topic_notification_callback_;
+
+    // Map to store the pubsub types associated to dynamic types so they can be reused
+    std::map<fastdds::dds::DynamicType::_ref_type, fastdds::dds::DynamicPubSubType> dynamic_pubsub_types_;
 };
 
 } /* namespace participants */

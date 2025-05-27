@@ -15,7 +15,7 @@ during the initialization process of the ``DDS Enabler`` by using the ``init_dds
 
     int init_dds_enabler(
             const char* ddsEnablerConfigFile,
-            participants::DdsNotification data_callback,
+            participants::DdsDataNotification data_callback,
             participants::DdsTypeNotification type_callback,
             participants::DdsLogFunc log_callback);
 

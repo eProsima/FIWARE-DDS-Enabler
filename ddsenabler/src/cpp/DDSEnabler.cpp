@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/types/dynamic_types/types.hpp>
@@ -30,9 +31,8 @@ using namespace eprosima::utils;
 
 DDSEnabler::DDSEnabler(
         const yaml::EnablerConfiguration& configuration,
-        std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler)
+        const CallbackSet& callbacks)
     : configuration_(configuration)
-    , event_handler_(event_handler)
 {
     // Load the Enabler's internal topics from a configuration object.
     load_internal_topics_(configuration_);
@@ -81,12 +81,23 @@ DDSEnabler::DDSEnabler(
         enabler_participant_);
 
     // Create DDS Pipe
+    // NOTE: Create disabled, and enable after all callbacks are set to avoid missing notifications
     pipe_ = std::make_unique<DdsPipe>(
         configuration_.ddspipe_configuration,
         discovery_database_,
         payload_pool_,
         participants_database_,
         thread_pool_);
+
+    // Set user defined callbacks in all internal entities requiring it
+    set_internal_callbacks_(callbacks);
+
+    // Enable DDS Pipe after having set all callbacks
+    if (pipe_->enable() != utils::ReturnCode::RETCODE_OK)
+    {
+        throw utils::InitializationException(
+                utils::Formatter() << "Failed to enable DDS Pipe.");
+    }
 }
 
 bool DDSEnabler::set_file_watcher(
@@ -169,6 +180,31 @@ void DDSEnabler::load_internal_topics_(
 
         configuration.ddspipe_configuration.allowlist.insert(
             utils::Heritable<WildcardDdsFilterTopic>::make_heritable(internal_topic));
+    }
+}
+
+void DDSEnabler::set_internal_callbacks_(
+        const CallbackSet& callbacks)
+{
+    if (callbacks.dds.type_notification)
+    {
+        cb_handler_->set_type_notification_callback(callbacks.dds.type_notification);
+    }
+    if (callbacks.dds.topic_notification)
+    {
+        cb_handler_->set_topic_notification_callback(callbacks.dds.topic_notification);
+    }
+    if (callbacks.dds.data_notification)
+    {
+        cb_handler_->set_data_notification_callback(callbacks.dds.data_notification);
+    }
+    if (callbacks.dds.type_request)
+    {
+        cb_handler_->set_type_request_callback(callbacks.dds.type_request);
+    }
+    if (callbacks.dds.topic_request)
+    {
+        enabler_participant_->set_topic_request_callback(callbacks.dds.topic_request);
     }
 }
 

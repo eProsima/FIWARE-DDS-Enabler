@@ -31,35 +31,24 @@
 #include <cpp_utils/ReturnCode.hpp>
 #include <cpp_utils/time/time_utils.hpp>
 
-#include <ddsenabler_participants/CBCallbacks.hpp>
-
 #include <ddspipe_core/logging/DdsLogConsumer.hpp>
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
-#include "ddsenabler/DDSEnabler.hpp"
+#include <ddsenabler/CallbackSet.hpp>
+#include <ddsenabler/DDSEnabler.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
 
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler);
 
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsTopicNotification topic_callback,
-        participants::DdsTypeRequest type_req_callback,
-        participants::DdsTopicRequest topic_req_callback,
-        participants::DdsLogFunc log_callback,
+        const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler);
 
 } /* namespace ddsenabler */
