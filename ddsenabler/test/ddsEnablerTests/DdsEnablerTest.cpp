@@ -256,10 +256,42 @@ TEST_F(DDSEnablerTest, manual_action_server)
 
     ASSERT_TRUE(enabler->announce_action(action_name));
 
-    ASSERT_TRUE(get_received_services_request() > 0);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
     ASSERT_FALSE(enabler->announce_action(action_name));
-    std::this_thread::sleep_for(std::chrono::seconds(10000));
+
+    std::vector<uint64_t> fibonacci_sequence = {0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610};
+    uint16_t received_requests = 0;
+    UUID request_uuid;
+    std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF FIBONACCI CLIENT)..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    while(received_requests < 3)
+    {
+        uint64_t fibonacci_number = 0;
+        ASSERT_TRUE(wait_for_action_request_notification(fibonacci_number, request_uuid, 100));
+        std::string json = "{\"sequence\": [";
+        for (size_t i = 0; i < fibonacci_number; ++i)
+        {
+            json += std::to_string(fibonacci_sequence[i]);
+            if (i != fibonacci_number - 1)
+            {
+                json += ", ";
+            }
+            // TODO send feedback
+        }
+        json += "]}";
+        // std::this_thread::sleep_for(std::chrono::seconds(1));
+        ASSERT_TRUE(enabler->action_send_result(
+            action_name.c_str(),
+            request_uuid,
+            eprosima::ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED,
+            json.c_str()));
+        received_requests++;
+    }
+
+    // TODO ASSERT_TRUE(enabler->revoke_action(service_name));
+    // ASSERT_FALSE(enabler->revoke_service(service_name));
+    // std::cout << "Action stopped, waiting for 10 seconds to manually test no requests are accepted." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 TEST_F(DDSEnablerTest, send_type1)

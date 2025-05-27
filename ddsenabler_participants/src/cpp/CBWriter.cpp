@@ -526,14 +526,10 @@ void CBWriter::write_action_status(
                 break;
 
             case ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
                 status_message = "The goal was achieved successfully by the action server";
                 break;
 
             case ddsenabler::participants::STATUS_CODE::STATUS_CANCELED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
                 status_message = "The goal was canceled after an external request from an action client";
                 break;
 
@@ -542,7 +538,11 @@ void CBWriter::write_action_status(
                     erase_action_UUID_callback_(uuid);
                 status_message = "The goal was terminated by the action server without an external request";
                 break;
-
+            case ddsenabler::participants::STATUS_CODE::STATUS_REJECTED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
+                status_message = "The goal was rejected by the action server, it will not be executed";
+                break;
             default:
                 status_message = "Unknown status code";
                 break;
@@ -581,23 +581,43 @@ void CBWriter::write_action_request(
 
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
-    // TODO global store status code for later use
     // TODO do not read directly from json without failure handling
-    std::cout << "json_output: " << json_output->dump(4) << std::endl;
-    STATUS_CODE status_code;
     if(RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
     {
+        bool accepted;
         if (action_goal_request_notification_callback_)
-        {
-            action_goal_request_notification_callback_(
-                action_name.c_str(),
-                json_output->dump(4).c_str(),
-                json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
-                msg.publish_time.to_ns(),
-                status_code
-                );
-        }
+            accepted = action_goal_request_notification_callback_(
+                    action_name.c_str(),
+                    json_output->dump(4).c_str(),
+                    json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
+                    msg.publish_time.to_ns()
+                    );
+
+        action_send_send_goal_reply_callback_(
+            action_name.c_str(),
+            request_id,
+            accepted);
+
+        return;
     }
+}
+
+UUID CBWriter::uuid_from_request_json(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
+    std::shared_ptr<void> json_ptr = prepare_json_data(msg, dyn_type);
+    if (nullptr == json_ptr)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return UUID();
+    }
+    std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
+
+    std::stringstream instanceHandle;
+    instanceHandle << msg.instanceHandle;
+    return json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]);
 }
 
 std::shared_ptr<void> CBWriter::prepare_json_data(

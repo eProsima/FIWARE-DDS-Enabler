@@ -169,11 +169,8 @@ void CBHandler::add_data(
         case RpcUtils::RpcType::RPC_REQUEST:
         {
             received_requests_id_++;
-            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
-            RequestInfo request_info(
-                topic.m_topic_name,
-                request_id);
-            request_id_map_.emplace(received_requests_id_, request_info);
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
             write_request_(msg, dyn_type, received_requests_id_);
             break;
         }
@@ -190,8 +187,9 @@ void CBHandler::add_data(
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
             UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, action_id_uuid))
+            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::RESULT, action_id_uuid))
                 write_action_result_(msg, dyn_type, action_id_uuid);
+            erase_action_UUID(action_id_uuid);
             break;
         }
 
@@ -201,7 +199,7 @@ void CBHandler::add_data(
             // TODO: all the send_goal_responses have an "accepted" parameter?
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
             UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, action_id_uuid))
+            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::GOAL, action_id_uuid))
                 write_action_goal_reply_(msg, dyn_type, action_id_uuid);
             break;
         }
@@ -210,8 +208,9 @@ void CBHandler::add_data(
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
             UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, action_id_uuid))
+            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::CANCEL, action_id_uuid))
                 write_action_cancel_reply_(msg, dyn_type, action_id_uuid);
+            erase_action_UUID(action_id_uuid);
             break;
         }
 
@@ -232,18 +231,61 @@ void CBHandler::add_data(
         case RpcUtils::RpcType::ACTION_GOAL_REQUEST:
         {
             received_requests_id_++;
-            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).sent_sequence_number.to64long();
-            RequestInfo request_info(
-                topic.m_topic_name,
-                request_id);
-            request_id_map_.emplace(received_requests_id_, request_info);
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
+            auto uuid = cb_writer_->uuid_from_request_json(
+                msg,
+                dyn_type);
+            if (uuid == UUID())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to extract UUID from send_goal_request JSON.");
+                return;
+            }
+            store_action_request(
+                uuid,
+                received_requests_id_,
+                RpcUtils::ActionType::GOAL);
+
             write_action_request_(msg, dyn_type, received_requests_id_);
             break;
         }
 
         case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
-            // No need to do anything
+        {
+            auto uuid = cb_writer_->uuid_from_request_json(
+                msg,
+                dyn_type);
+            if (uuid == UUID())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to extract UUID from get_result_request JSON.");
+                return;
+            }
+
+            received_requests_id_++;
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
+            store_action_request(
+                uuid,
+                received_requests_id_,
+                RpcUtils::ActionType::RESULT);
+            std::string result;
+            if (get_action_result(uuid, result))
+            {
+                if (action_send_result_reply_callback_)
+                {
+                    action_send_result_reply_callback_(
+                        rpc_name,
+                        uuid,
+                        result,
+                        received_requests_id_);
+                }
+            }
             break;
+        }
+
+        // TODO case RpcUtils::RpcType::ACTION_CANCEL_REQUEST:
 
         default:
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,

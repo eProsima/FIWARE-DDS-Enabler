@@ -190,6 +190,16 @@ public:
         action_send_get_result_request_callback_ = callback;
     }
 
+    void set_action_send_send_goal_reply_callback(
+            std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
+    {
+        action_send_send_goal_reply_callback_ = callback;
+    }
+
+    UUID uuid_from_request_json(
+        const CBMessage& msg,
+        const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
 protected:
 
     /**
@@ -223,6 +233,7 @@ protected:
     std::function<bool(const UUID&)> is_UUID_active_callback_;
     std::function<void(const UUID&)> erase_action_UUID_callback_;
     std::function<bool(const std::string&, const participants::UUID&)> action_send_get_result_request_callback_;
+    std::function<void(const std::string&, const uint64_t, bool accepted)> action_send_send_goal_reply_callback_;
 
 };
 

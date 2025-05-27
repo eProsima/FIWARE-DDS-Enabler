@@ -332,7 +332,7 @@ public:
         const char* action_name,
         const participants::UUID& goal_id,
         const participants::STATUS_CODE& status_code,
-        const char* json){/*TODO*/ return false;};
+        const char* json);
 
 protected:
 
@@ -352,6 +352,38 @@ protected:
     bool action_send_get_result_request(
         const std::string& action_name,
         const participants::UUID& goal_id);
+
+    /**
+     * @brief Sends a reply to an action goal request.
+     *
+     * This function sends a reply to an action goal request, indicating whether the goal was accepted or not.
+     *
+     * It is invoked via lambda from the cb_writer_ when request is notified.action_send_feedback
+     *
+     * @param action_name The name of the action for which the goal reply is being sent.
+     * @param goal_id The unique identifier of the action goal for which the reply is being sent.
+     * @param accepted A boolean indicating whether the goal was accepted (true) or rejected (false).
+     */
+    void action_send_send_goal_reply(
+        const std::string& action_name,
+        const uint64_t goal_id,
+        bool accepted);
+
+    /**
+     * @brief Actually sends the result reply for an action.
+     *
+     * This function is only called when all the conditions are met to send the result reply.
+     *
+     * @param action_name The name of the action for which the result reply is being sent.
+     * @param goal_id The unique identifier of the action goal for which the result reply is being sent.
+     * @param reply_json The JSON data to be sent as the result reply.
+     * @param request_id The unique identifier of the request to which this reply corresponds.
+     */
+    bool action_send_result_reply(
+        const std::string& action_name,
+        const participants::UUID& goal_id,
+        const std::string& reply_json,
+        const uint64_t request_id);
 
     /**
      * Load the Enabler's internal topics into a configuration object.

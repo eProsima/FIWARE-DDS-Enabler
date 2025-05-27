@@ -73,6 +73,18 @@ DDSEnabler::DDSEnabler(
             return false;
         });
 
+    cb_handler_->set_action_send_send_goal_reply_callback(
+        [this](const std::string& action_name, const uint64_t goal_id, bool accepted)
+        {
+            return this->action_send_send_goal_reply(action_name, goal_id, accepted);
+        });
+
+    cb_handler_->set_action_send_result_reply_callback(
+        [this](const std::string& action_name, const UUID& goal_id, const std::string& reply_json, const uint64_t request_id)
+        {
+            return this->action_send_result_reply(action_name, goal_id, reply_json, request_id);
+        });
+
     // Create Enabler Participant
     enabler_participant_ = std::make_shared<EnablerParticipant>(
         configuration_.enabler_configuration,
@@ -206,17 +218,7 @@ bool DDSEnabler::send_service_reply(
     const std::string& json,
     const uint64_t request_id)
 {
-    // Get the request info and check if the service name is the same as the one in the request
-    RequestInfo request_info;
-    if ( !cb_handler_->get_request_info(request_id, request_info) || (request_info.request_topic != "rq/" + service_name + "Request") )
-    {
-        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Failed to send reply to service " << service_name << " with id " << request_id
-                << ": request id not found for that service.");
-        return false;
-    }
-
-    return enabler_participant_->publish_rpc("rr/" + service_name + "Reply", json, request_info.request_id);
+    return enabler_participant_->publish_rpc("rr/" + service_name + "Reply", json, request_id);
 }
 
 bool DDSEnabler::send_action_goal(
@@ -228,10 +230,10 @@ bool DDSEnabler::send_action_goal(
     uint64_t goal_request_id = 0;
     std::string goal_request_topic = action_name + "send_goal";
 
-    cb_handler_->store_action_request_UUID(
+    cb_handler_->store_action_request(
         action_id,
-        sent_request_id_+1);
-    cb_handler_->store_action_UUID(action_id);
+        sent_request_id_+1,
+        RpcUtils::ActionType::GOAL);
 
     if(send_service_request(
             goal_request_topic,
@@ -241,8 +243,6 @@ bool DDSEnabler::send_action_goal(
         return true;
     }
 
-    UUID action_id_popped;
-    cb_handler_->pop_action_request_UUID(sent_request_id_ + 1, action_id_popped);
     cb_handler_->erase_action_UUID(action_id);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
@@ -268,9 +268,10 @@ bool DDSEnabler::action_send_get_result_request(
     std::string get_result_request_topic = action_name + "get_result";
     uint64_t get_result_request_id = 0;
 
-    cb_handler_->store_action_request_UUID(
+    cb_handler_->store_action_request(
         action_id,
-        sent_request_id_+1);
+        sent_request_id_+1,
+        RpcUtils::ActionType::RESULT);
 
     if(send_service_request(
             get_result_request_topic,
@@ -280,8 +281,7 @@ bool DDSEnabler::action_send_get_result_request(
         return true;
     }
 
-    UUID action_id_popped;
-    cb_handler_->pop_action_request_UUID(sent_request_id_ + 1, action_id_popped);
+    // TODO cancel?
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action get result request to action " << action_name);
@@ -317,9 +317,10 @@ bool DDSEnabler::cancel_action_goal(
     uint64_t cancel_request_id = 0;
     std::string cancel_request_topic = action_name + "cancel_goal";
 
-    cb_handler_->store_action_request_UUID(
+    cb_handler_->store_action_request(
         goal_id,
-        sent_request_id_+1);
+        sent_request_id_+1,
+        RpcUtils::ActionType::CANCEL);
 
     if(send_service_request(
             cancel_request_topic,
@@ -328,9 +329,6 @@ bool DDSEnabler::cancel_action_goal(
     {
         return true;
     }
-
-    UUID action_id_popped;
-    cb_handler_->pop_action_request_UUID(sent_request_id_+1, action_id_popped);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action cancel goal to action " << action_name);
@@ -341,6 +339,72 @@ bool DDSEnabler::announce_action(
     const std::string& action_name)
 {
     return enabler_participant_->announce_action(action_name);
+}
+
+void DDSEnabler::action_send_send_goal_reply(
+    const std::string& action_name,
+    const uint64_t goal_id,
+    bool accepted)
+{
+    // Get current time in seconds and nanoseconds
+    auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
+    auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
+
+    // Create JSON object
+    nlohmann::json j;
+    j["accepted"] = accepted;
+    j["stamp"]["sec"] = static_cast<int64_t>(sec);
+    j["stamp"]["nanosec"] = static_cast<uint32_t>(nanosec);
+    std::string reply_json = j.dump(4);
+
+    if (!send_service_reply(
+            action_name + "send_goal",
+            reply_json,
+            goal_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send action goal reply to action " << action_name
+                << ": goal id not found.");
+    }
+    return;
+}
+
+bool DDSEnabler::action_send_result(
+    const char* action_name,
+    const participants::UUID& goal_id,
+    const participants::STATUS_CODE& status_code,
+    const char* json)
+{
+    // Create JSON object
+    nlohmann::json j;
+    j["status"] = status_code;
+    j["result"] = nlohmann::json::parse(json);
+    std::string reply_json = j.dump(4);
+
+    return cb_handler_->store_action_result(goal_id, reply_json, action_name);
+}
+
+bool DDSEnabler::action_send_result_reply(
+    const std::string& action_name,
+    const participants::UUID& goal_id,
+    const std::string& reply_json,
+    const uint64_t request_id)
+
+{
+    std::string result_topic = action_name + "get_result";
+
+    if (send_service_reply(
+        result_topic,
+        reply_json,
+        request_id))
+    {
+        cb_handler_->erase_action_UUID(goal_id);
+        return true;
+    }
+
+    return false;
 }
 
 

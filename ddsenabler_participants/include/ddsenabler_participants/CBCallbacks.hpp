@@ -289,12 +289,11 @@ typedef void (*RosActionStatusNotification)(
  * @param publish_time The time at which the goal request was published.
  * @param status_code The status code as a place holder for the current state of the action.
  */
-typedef void (*RosActionGoalRequestNotification)(
+typedef bool (*RosActionGoalRequestNotification)(
     const char* action_name,
     const char* json,
     const UUID& goal_id,
-    int64_t publish_time,
-    STATUS_CODE& status_code);
+    int64_t publish_time);
 
 /**
  * @brief Callback for requesting the action types.

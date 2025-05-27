@@ -32,6 +32,8 @@
 #include "ddsenabler/dds_enabler_runner.hpp"
 #include "ddsenabler_participants/RpcUtils.hpp"
 
+#include <nlohmann/json.hpp>
+
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
 using namespace eprosima::ddsenabler::participants;
@@ -75,6 +77,7 @@ public:
         received_actions_result_ = false;
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
+        action_goal_requests_.clear();
         received_actions_feedback_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
@@ -105,6 +108,7 @@ public:
         received_actions_result_ = false;
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
+        action_goal_requests_.clear();
         received_actions_feedback_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
@@ -143,6 +147,7 @@ public:
         action_callbacks.feedback_callback = test_action_feedback_callback;
         action_callbacks.status_callback = test_action_status_callback;
         action_callbacks.type_req_callback = test_action_type_request_callback;
+        action_callbacks.goal_request_callback = test_action_goal_request_notification_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -392,6 +397,30 @@ public:
         else
         {
             std::cout << "Timeout waiting for feedback callback" << std::endl;
+            return false;
+        }
+    }
+
+    bool wait_for_action_request_notification(
+            uint64_t& fibonacci_number,
+            UUID& action_id,
+            int timeout = 10)
+    {
+        std::unique_lock<std::mutex> lock(action_mutex_);
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this]()
+                {
+                    return action_goal_requests_.size() > 0;
+                }))
+        {
+            auto request = action_goal_requests_.back();
+            action_id = request.first;
+            fibonacci_number = request.second;
+            action_goal_requests_.pop_back();
+            return true;
+        }
+        else
+        {
+            std::cout << "Timeout waiting for action request callback" << std::endl;
             return false;
         }
     }
@@ -687,6 +716,7 @@ public:
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
 
+
             std::string action_file = TEST_FILE_DIRECTORY + std::string(TEST_ACTION_FILE);
             if (eprosima::ddsenabler::participants::RpcUtils::load_action_from_file(
                         actionName, goalRequestActionType, goalReplyActionType, cancelRequestActionType, cancelReplyActionType,
@@ -699,6 +729,38 @@ public:
                 return true;
             }
             std::cout << "ERROR DDSEnablerTester: fail to load action from file: " << action_file << std::endl;
+        }
+        return false;
+    }
+
+    static bool test_action_goal_request_notification_callback(
+            const char* action_name,
+            const char* json,
+            const UUID& goal_id,
+            int64_t publish_time)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            nlohmann::json json_data = nlohmann::json::parse(json);
+
+            uint64_t fibonacci_number = 5;
+            const auto& data = json_data["rq/fibonacci/_action/send_goalRequest"]["data"];
+            if (!data.empty()) {
+                const auto& first_entry = data.begin().value();
+                if (first_entry.contains("goal") && first_entry["goal"].contains("order")) {
+                    fibonacci_number = first_entry["goal"]["order"].get<int>();
+                }
+            }
+
+            current_test_instance_->action_goal_requests_.push_back(std::make_pair(goal_id, fibonacci_number));
+            std::cout << "Action goal request callback received with UUID: " << goal_id << " and order: " << fibonacci_number << std::endl;
+
+            // Notify that the action goal request has been received
+            current_test_instance_->cv_.notify_all();
+
+            return true;
         }
         return false;
     }
@@ -844,6 +906,7 @@ public:
     bool received_actions_result_ = false;
     UUID actions_feedback_uuid_;
     UUID actions_goal_uuid_;
+    std::vector<std::pair<UUID, uint64_t>> action_goal_requests_;
     int received_actions_feedback_ = 0;
     eprosima::ddsenabler::participants::STATUS_CODE last_status_;
     int received_actions_status_updates_ = 0;
