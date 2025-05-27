@@ -40,7 +40,6 @@ public:
     // VARIABLES
     /////////////////////////
 
-    DDSENABLER_PARTICIPANTS_DllAPI
     unsigned int initial_publish_wait {0u};
 };
 
