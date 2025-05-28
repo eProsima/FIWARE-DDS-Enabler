@@ -92,6 +92,25 @@ struct ServiceDiscovered
         return false;
     }
 
+    bool remove_topic(RpcUtils::RpcType rpc_type)
+    {
+        if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+        {
+            request_discovered = false;
+            topic_request = ddspipe::core::types::DdsTopic();
+        }
+        else
+        {
+            reply_discovered = false;
+            topic_reply = ddspipe::core::types::DdsTopic();
+        }
+
+        fully_discovered = false;
+        rpc_topic = std::nullopt;
+
+        return true;
+    }
+
     ddspipe::core::types::RpcTopic get_service()
     {
         if(!fully_discovered || rpc_topic == std::nullopt)
@@ -132,6 +151,7 @@ struct ActionDiscovered
         }
 
         std::string action_name;
+        // TODO this services should be ptrs to services_
         ServiceDiscovered goal;
         ServiceDiscovered result;
         ServiceDiscovered cancel;
@@ -267,6 +287,10 @@ public:
     bool announce_action(
             const std::string& action_name);
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool revoke_action(
+            const std::string& action_name);
+
 protected:
     // TODO unify name criteria for ending with _
     bool request_topic(
@@ -318,6 +342,9 @@ protected:
             const std::string& action_name,
             const ddspipe::core::types::DdsTopic& topic,
             RpcUtils::RpcType rpc_type);
+
+    bool revoke_service_nts(
+            const std::string& service_name);
 
     std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::core::IReader>> readers_;
 

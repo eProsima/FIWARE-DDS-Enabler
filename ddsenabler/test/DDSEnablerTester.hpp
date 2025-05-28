@@ -78,6 +78,7 @@ public:
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         action_goal_requests_.clear();
+        action_goal_requests_total_ = 0;
         received_actions_feedback_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
@@ -109,6 +110,7 @@ public:
         actions_feedback_uuid_ = UUID();
         actions_goal_uuid_ = UUID();
         action_goal_requests_.clear();
+        action_goal_requests_total_ = 0;
         received_actions_feedback_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
@@ -754,13 +756,23 @@ public:
                 }
             }
 
-            current_test_instance_->action_goal_requests_.push_back(std::make_pair(goal_id, fibonacci_number));
-            std::cout << "Action goal request callback received with UUID: " << goal_id << " and order: " << fibonacci_number << std::endl;
+            if (current_test_instance_->action_goal_requests_total_ < 3)
+            {
+                current_test_instance_->action_goal_requests_.push_back(std::make_pair(goal_id, fibonacci_number));
+                std::cout << "Action goal request callback received with UUID: " << goal_id << " and order: " << fibonacci_number << std::endl;
+                current_test_instance_->action_goal_requests_total_++;
 
-            // Notify that the action goal request has been received
-            current_test_instance_->cv_.notify_all();
+                // Notify that the action goal request has been received
+                current_test_instance_->cv_.notify_all();
 
-            return true;
+                return true;
+            }
+            else
+            {
+                std::cout << "Action goal request callback received with UUID: " << goal_id << " and order: " << fibonacci_number
+                          << ", but ignoring it as the limit has been reached." << std::endl;
+                return false;
+            }
         }
         return false;
     }
@@ -907,6 +919,7 @@ public:
     UUID actions_feedback_uuid_;
     UUID actions_goal_uuid_;
     std::vector<std::pair<UUID, uint64_t>> action_goal_requests_;
+    int action_goal_requests_total_ = 0; // Limit for action goal requests
     int received_actions_feedback_ = 0;
     eprosima::ddsenabler::participants::STATUS_CODE last_status_;
     int received_actions_status_updates_ = 0;

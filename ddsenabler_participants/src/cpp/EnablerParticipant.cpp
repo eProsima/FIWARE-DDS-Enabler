@@ -354,9 +354,26 @@ bool EnablerParticipant::announce_service(
 bool EnablerParticipant::revoke_service(
     const std::string& service_name)
 {
-    std::string request_name = "rq/" + service_name + "Request";
-
     std::unique_lock<std::mutex> lck(mtx_);
+
+    return revoke_service_nts(service_name);
+}
+
+bool EnablerParticipant::revoke_service_nts(
+    const std::string& service_name)
+{
+    {
+        auto it = services_.find(service_name);
+        if (it == services_.end())
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Failed to stop service " << service_name << " : service not found.");
+            return false;
+        }
+        it->second.remove_topic(RpcUtils::RpcType::RPC_REQUEST);
+    }
+
+    std::string request_name = "rq/" + service_name + "Request";
 
     auto it = server_endpoint_.find(service_name);
     if(it == server_endpoint_.end())
@@ -426,8 +443,31 @@ bool EnablerParticipant::announce_action(
     return true;
 }
 
+bool EnablerParticipant::revoke_action(
+    const std::string& action_name)
+{
+    std::unique_lock<std::mutex> lck(mtx_);
 
+    auto it = actions_.find(action_name);
+    if (it == actions_.end() || !it->second.fully_discovered)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to stop action " << action_name << " : action not found.");
+        return false;
+    }
 
+    auto& action = it->second;
+
+    if (this->revoke_service_nts(action.goal.service_name) &&
+            this->revoke_service_nts(action.result.service_name) &&
+            this->revoke_service_nts(action.cancel.service_name))
+    {
+        action.fully_discovered = false;
+        return true;
+    }
+
+    return false;
+}
 
 bool EnablerParticipant::request_topic(
     const std::string& topic_name,

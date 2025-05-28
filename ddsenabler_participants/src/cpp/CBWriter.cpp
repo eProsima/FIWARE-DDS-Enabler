@@ -335,6 +335,8 @@ void CBWriter::write_action_feedback(
     }
     std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
+    std::cout << "Feedback JSON: " << (*json_output).dump(4) << std::endl;
+
     // Get the action name
     std::string action_name;
     RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);

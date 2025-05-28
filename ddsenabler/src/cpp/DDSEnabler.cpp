@@ -341,6 +341,12 @@ bool DDSEnabler::announce_action(
     return enabler_participant_->announce_action(action_name);
 }
 
+bool DDSEnabler::revoke_action(
+    const std::string& action_name)
+{
+    return enabler_participant_->revoke_action(action_name);
+}
+
 void DDSEnabler::action_send_send_goal_reply(
     const std::string& action_name,
     const uint64_t goal_id,
@@ -405,6 +411,29 @@ bool DDSEnabler::action_send_result_reply(
     }
 
     return false;
+}
+
+bool DDSEnabler::action_send_feedback(
+    const char* action_name,
+    const char* json,
+    const participants::UUID& goal_id)
+{
+    if (!cb_handler_->is_UUID_active(goal_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send action feedback to action " << action_name
+                << ": goal id not found.");
+        return false;
+    }
+
+    // Create JSON object
+    nlohmann::json j;
+    j["goal_id"]["uuid"] = goal_id;
+    j["feedback"] = nlohmann::json::parse(json);
+    std::string feedback_json = j.dump(4);
+    std::string feedback_topic = "rt/" + std::string(action_name) + "feedback";
+    std::cout << " FEEDBACK " << feedback_json << std::endl;
+    return enabler_participant_->publish(feedback_topic, feedback_json);
 }
 
 

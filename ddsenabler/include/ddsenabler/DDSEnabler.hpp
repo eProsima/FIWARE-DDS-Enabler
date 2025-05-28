@@ -299,6 +299,20 @@ public:
             const std::string& action_name);
 
     /**
+     * @brief Stops the server for the given action.
+     *
+     * This function revokes the server associated with the specified action.
+     * It returns a boolean indicating whether the operation was successful.
+     * Failure may occur if the action was not previously announced.
+     *
+     * @param action_name The name of the action to be stopped.
+     *
+     * @return true if the action was successfully stopped, false otherwise.
+     */
+    bool revoke_action(
+            const std::string& action_name);
+
+    /**
      * @brief Send feedback for the specified goal_id action.
      *
      * This function sends feedback for the specified action goal identified by the given goal ID.
@@ -313,7 +327,7 @@ public:
     bool action_send_feedback(
         const char* action_name,
         const char* json,
-        const participants::UUID& goal_id){/*TODO*/ return false;};
+        const participants::UUID& goal_id);
 
     /**
      * @brief Send result for the specified goal_id action.

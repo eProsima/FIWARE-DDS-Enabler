@@ -252,6 +252,8 @@ TEST_F(DDSEnablerTest, manual_action_server)
     auto start_time = std::chrono::steady_clock::now();
     std::string action_name = "fibonacci/_action/";
 
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+
     // ASSERT_FALSE(enabler->revoke_action(action_name));
 
     ASSERT_TRUE(enabler->announce_action(action_name));
@@ -269,14 +271,25 @@ TEST_F(DDSEnablerTest, manual_action_server)
         uint64_t fibonacci_number = 0;
         ASSERT_TRUE(wait_for_action_request_notification(fibonacci_number, request_uuid, 100));
         std::string json = "{\"sequence\": [";
+        std::string feedback_json = "{\"partial_sequence\": [";
         for (size_t i = 0; i < fibonacci_number; ++i)
         {
             json += std::to_string(fibonacci_sequence[i]);
+            feedback_json += std::to_string(fibonacci_sequence[i]);
+
+            std::string feedback_tmp = feedback_json;
+            feedback_tmp += "]}";
+            ASSERT_TRUE(enabler->action_send_feedback(
+                action_name.c_str(),
+                feedback_tmp.c_str(),
+                request_uuid));
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
             if (i != fibonacci_number - 1)
             {
                 json += ", ";
+                feedback_json += ", ";
             }
-            // TODO send feedback
         }
         json += "]}";
         // std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -288,8 +301,8 @@ TEST_F(DDSEnablerTest, manual_action_server)
         received_requests++;
     }
 
-    // TODO ASSERT_TRUE(enabler->revoke_action(service_name));
-    // ASSERT_FALSE(enabler->revoke_service(service_name));
+    ASSERT_TRUE(enabler->revoke_action(action_name));
+    ASSERT_FALSE(enabler->revoke_action(action_name));
     // std::cout << "Action stopped, waiting for 10 seconds to manually test no requests are accepted." << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(10));
 }
