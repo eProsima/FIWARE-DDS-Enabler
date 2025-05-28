@@ -243,7 +243,7 @@ bool DDSEnabler::send_action_goal(
         return true;
     }
 
-    cb_handler_->erase_action_UUID(action_id);
+    cb_handler_->erase_action_UUID(action_id, true);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action goal to action " << action_name);
@@ -406,7 +406,7 @@ bool DDSEnabler::action_send_result_reply(
         reply_json,
         request_id))
     {
-        cb_handler_->erase_action_UUID(goal_id);
+        cb_handler_->erase_action_UUID(goal_id, true);
         return true;
     }
 

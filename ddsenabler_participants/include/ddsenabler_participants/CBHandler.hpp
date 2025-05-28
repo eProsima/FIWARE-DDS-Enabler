@@ -151,6 +151,7 @@ struct ActionRequestInfo
     uint64_t cancel_request_id = 0;
     uint64_t result_request_id = 0;
     std::string result;
+    int erased{2}; // 2: End Status & End Result not received yet, 1: One of them received, 0: both received, erase the action
 };
 
 /**
@@ -344,13 +345,17 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void erase_action_UUID(
-            const UUID& action_id)
+            const UUID& action_id,
+            bool force_erase = false)
     {
         std::lock_guard<std::recursive_mutex> lock(mtx_action_);
         auto it = action_request_id_to_uuid_.find(action_id);
         if (it != action_request_id_to_uuid_.end())
         {
-            action_request_id_to_uuid_.erase(it);
+            it->second.erased--;
+            // Only if both end result and end status have been received, erase the action
+            if (force_erase || it->second.erased == 0)
+                action_request_id_to_uuid_.erase(it);
         }
     }
 

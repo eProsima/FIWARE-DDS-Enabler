@@ -254,7 +254,7 @@ TEST_F(DDSEnablerTest, manual_action_server)
 
     std::this_thread::sleep_for(std::chrono::seconds(6));
 
-    // ASSERT_FALSE(enabler->revoke_action(action_name));
+    ASSERT_FALSE(enabler->revoke_action(action_name));
 
     ASSERT_TRUE(enabler->announce_action(action_name));
 

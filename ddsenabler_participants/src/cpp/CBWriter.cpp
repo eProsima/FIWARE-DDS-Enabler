@@ -335,8 +335,6 @@ void CBWriter::write_action_feedback(
     }
     std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
-    std::cout << "Feedback JSON: " << (*json_output).dump(4) << std::endl;
-
     // Get the action name
     std::string action_name;
     RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
@@ -492,6 +490,8 @@ void CBWriter::write_action_status(
     }
     std::shared_ptr<nlohmann::json> json_output = std::static_pointer_cast<nlohmann::json>(json_ptr);
 
+    std::cout << "STATUS json: " << json_output->dump(4) << std::endl;
+
     // Get the action name
     std::string action_name;
     RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
@@ -508,7 +508,7 @@ void CBWriter::write_action_status(
 
         ddsenabler::participants::STATUS_CODE status_code(status["status"]);
         std::string status_message;
-
+        std::cout << "STATUS CODE: " << status_code << std::endl;
         switch (status_code)
         {
             case ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN:
@@ -528,10 +528,14 @@ void CBWriter::write_action_status(
                 break;
 
             case ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
                 status_message = "The goal was achieved successfully by the action server";
                 break;
 
             case ddsenabler::participants::STATUS_CODE::STATUS_CANCELED:
+                if (erase_action_UUID_callback_)
+                    erase_action_UUID_callback_(uuid);
                 status_message = "The goal was canceled after an external request from an action client";
                 break;
 

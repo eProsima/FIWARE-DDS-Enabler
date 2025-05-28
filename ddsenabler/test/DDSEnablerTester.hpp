@@ -647,7 +647,7 @@ public:
             std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
             current_test_instance_->actions_goal_uuid_ = goalId;
             current_test_instance_->received_actions_result_ = true;
-            std::cout << "Action result callback received: " << actionName << ": " << json << std::endl;
+            std::cout << "Action result callback received: " << actionName << std::endl;
             current_test_instance_->received_actions_feedback_ = 0;
         }
 
