@@ -255,6 +255,12 @@ public:
             std::shared_ptr<ddspipe::participants::ISchemaHandler> schema_handler);
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    bool is_rtps_kind() const noexcept override
+    {
+        return true; // Temporal workaround until Pipe refactor
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     std::shared_ptr<ddspipe::core::IReader> create_reader(
             const ddspipe::core::ITopic& topic) override;
 
