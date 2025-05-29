@@ -29,7 +29,6 @@
 #include <fastdds/dds/xtypes/dynamic_types/MemberDescriptor.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/TypeDescriptor.hpp>
 
-
 #include <ddspipe_core/efficiency/payload/FastPayloadPool.hpp>
 
 #include <CBHandler.hpp>
@@ -37,26 +36,11 @@
 #include <CBMessage.hpp>
 #include <CBWriter.hpp>
 
-#include <thread>
-
 #include "types/DDSEnablerTestTypesPubSubTypes.hpp"
 
 using namespace eprosima;
 using namespace eprosima::fastdds::dds;
 using namespace eprosima::ddsenabler;
-
-DynamicType::_ref_type create_schema(
-        ddspipe::core::types::DdsTopic& topic)
-{
-    DynamicTypeBuilderFactory::_ref_type factory {DynamicTypeBuilderFactory::get_instance()};
-
-    TypeDescriptor::_ref_type type_descriptor {traits<TypeDescriptor>::make_shared()};
-    type_descriptor->kind(TK_STRUCTURE);
-    type_descriptor->name(topic.type_name);
-    DynamicTypeBuilder::_ref_type type_builder {factory->create_type(type_descriptor)};
-
-    return type_builder->build();
-}
 
 class CBWriterTest : public participants::CBWriter
 {
@@ -166,105 +150,88 @@ public:
 
 CBHandlerTest* CBHandlerTest::current_test_instance_ = nullptr;
 
-struct KnownType
-{
-    DynamicType::_ref_type dyn_type_;
-    TypeSupport type_sup_;
-    DataWriter* writer_ = nullptr;
-};
-
-bool test_create_publisher(
-        KnownType& a_type,
-        Topic** topic,
-        std::string topic_name_suffix = "topic_name")
-{
-    DomainParticipant* participant = DomainParticipantFactory::get_instance()
-                    ->create_participant(0, PARTICIPANT_QOS_DEFAULT);
-    if (participant == nullptr)
-    {
-        std::cout << "ERROR DDSEnablerTester: create_participant" << std::endl;
-        return false;
-    }
-
-    if (RETCODE_OK != a_type.type_sup_.register_type(participant))
-    {
-        std::cout << "ERROR DDSEnablerTester: fail to register type: " <<
-            a_type.type_sup_.get_type_name() << std::endl;
-        return false;
-    }
-
-    Publisher* publisher = participant->create_publisher(PUBLISHER_QOS_DEFAULT);
-    if (publisher == nullptr)
-    {
-        std::cout << "ERROR DDSEnablerTester: create_publisher: " <<
-            a_type.type_sup_.get_type_name() << std::endl;
-        return false;
-    }
-
-    std::ostringstream topic_name;
-    topic_name << a_type.type_sup_.get_type_name() << topic_name_suffix;
-    *topic = participant->create_topic(topic_name.str(), a_type.type_sup_.get_type_name(), TOPIC_QOS_DEFAULT);
-    std::cout << (*topic)->get_name() << std::endl;
-    if (*topic == nullptr)
-    {
-        std::cout << "ERROR DDSEnablerTester: create_topic: " <<
-            a_type.type_sup_.get_type_name() << std::endl;
-        return false;
-    }
-
-    DataWriterQos wqos = publisher->get_default_datawriter_qos();
-    a_type.writer_ = publisher->create_datawriter(*topic, wqos);
-    if (a_type.writer_ == nullptr)
-    {
-        std::cout << "ERROR DDSEnablerTester: create_datawriter: " <<
-            a_type.type_sup_.get_type_name() << std::endl;
-        return false;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    return true;
-}
-
-ddspipe::core::types::DdsTopic new_schema(
+void get_dynamic_type(
         int num_type,
         DynamicType::_ref_type& dynamic_type,
-        xtypes::TypeIdentifierPair& type_id_pair)
+        xtypes::TypeIdentifier& type_identifier,
+        ddspipe::core::types::DdsTopic& pipe_topic)
 {
-    KnownType k_type;
+    std::shared_ptr<TopicDataType> type_support;
     switch (num_type)
     {
         case 3:
         {
-            k_type.type_sup_.reset(new DDSEnablerTestType3PubSubType());
+            type_support.reset(new DDSEnablerTestType3PubSubType());
             break;
         }
         case 2:
         {
-            k_type.type_sup_.reset(new DDSEnablerTestType2PubSubType());
+            type_support.reset(new DDSEnablerTestType2PubSubType());
             break;
         }
         case 1:
         default:
         {
-            k_type.type_sup_.reset(new DDSEnablerTestType1PubSubType());
+            type_support.reset(new DDSEnablerTestType1PubSubType());
             break;
         }
     }
+    type_support->register_type_object_representation();
+    auto type_id_pair = type_support->type_identifiers();
 
-    eprosima::fastdds::dds::Topic* topic = nullptr;
+    type_identifier =
+            (fastdds::dds::xtypes::EK_COMPLETE ==
+            type_id_pair.type_identifier1()._d()) ? type_id_pair.type_identifier1() : type_id_pair.type_identifier2();
 
-    std::string str_topic_name = "topic_name" + std::to_string(num_type);
-    test_create_publisher(k_type, &topic, str_topic_name);
+    xtypes::TypeObject type_obj;
+    ASSERT_EQ(RETCODE_OK,
+            DomainParticipantFactory::get_instance()->type_object_registry().get_type_object(type_identifier,
+            type_obj));
+    dynamic_type = DynamicTypeBuilderFactory::get_instance()->create_type_w_type_object(type_obj)->build();
 
-    ddspipe::core::types::DdsTopic pipe_topic;
-    pipe_topic.m_topic_name = topic->get_name();
-    pipe_topic.type_name = topic->get_type_name();
-
-    eprosima::fastdds::dds::DomainParticipantFactory::get_instance()->type_object_registry().get_type_identifiers(
-        topic->get_type_name(), type_id_pair);
+    std::ostringstream topic_name;
+    topic_name << type_support->get_name() << "_topic_name_" << std::to_string(num_type);
+    pipe_topic.m_topic_name = topic_name.str();
+    pipe_topic.type_name = type_support->get_name();
     pipe_topic.type_identifiers = type_id_pair;
+}
 
-    dynamic_type = create_schema(pipe_topic);
-    return pipe_topic;
+void get_dynamic_type(
+        int num_type,
+        DynamicType::_ref_type& dynamic_type,
+        xtypes::TypeIdentifier& type_identifier)
+{
+    ddspipe::core::types::DdsTopic _;
+    get_dynamic_type(num_type, dynamic_type, type_identifier, _);
+}
+
+void get_data_payload(
+        int num_type,
+        eprosima::ddspipe::core::types::Payload& payload)
+{
+    std::shared_ptr<TopicDataType> type_support;
+    switch (num_type)
+    {
+        case 3:
+        {
+            type_support.reset(new DDSEnablerTestType3PubSubType());
+            break;
+        }
+        case 2:
+        {
+            type_support.reset(new DDSEnablerTestType2PubSubType());
+            break;
+        }
+        case 1:
+        default:
+        {
+            type_support.reset(new DDSEnablerTestType1PubSubType());
+            break;
+        }
+    }
+    void* data = type_support->create_data();
+    ASSERT_TRUE(type_support->serialize(data, payload, DataRepresentationId::XCDR2_DATA_REPRESENTATION));
+    type_support->delete_data(data);
 }
 
 TEST(DdsEnablerParticipantsTest, ddsenabler_participants_cb_handler_creation)
@@ -295,26 +262,26 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_new_schemas)
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
     ASSERT_NE(cb_handler_, nullptr);
 
-    xtypes::TypeIdentifierPair type_id_pair;
+    // Add a new schema
+    xtypes::TypeIdentifier type_id;
     DynamicType::_ref_type dynamic_type;
-    new_schema(1, dynamic_type, type_id_pair);
+    get_dynamic_type(1, dynamic_type, type_id);
 
     ASSERT_TRUE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 0);
-    cb_handler_->add_schema(dynamic_type, type_id_pair.type_identifier1());
+    cb_handler_->add_schema(dynamic_type, type_id);
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
     ASSERT_EQ(cb_handler_->type_called_, 1);
 
-
-
-    xtypes::TypeIdentifierPair type_id_pair2;
+    // Add another schema for a different type
+    xtypes::TypeIdentifier type_id2;
     DynamicType::_ref_type dynamic_type2;
-    new_schema(2, dynamic_type2, type_id_pair2);
+    get_dynamic_type(2, dynamic_type2, type_id2);
 
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
-    cb_handler_->add_schema(dynamic_type2, type_id_pair2.type_identifier1());
+    cb_handler_->add_schema(dynamic_type2, type_id2);
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 2);
     ASSERT_EQ(cb_handler_->type_called_, 2);
@@ -333,26 +300,26 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_same_type_schema)
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
     ASSERT_NE(cb_handler_, nullptr);
 
-    xtypes::TypeIdentifierPair type_id_pair;
+    // Add a new schema
+    xtypes::TypeIdentifier type_id;
     DynamicType::_ref_type dynamic_type;
-    new_schema(1, dynamic_type, type_id_pair);
+    get_dynamic_type(1, dynamic_type, type_id);
 
     ASSERT_TRUE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 0);
-    cb_handler_->add_schema(dynamic_type, type_id_pair.type_identifier1());
+    cb_handler_->add_schema(dynamic_type, type_id);
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
     ASSERT_EQ(cb_handler_->type_called_, 1);
 
-
-
-    xtypes::TypeIdentifierPair type_id_pair2;
+    // Add the same schema again
+    xtypes::TypeIdentifier type_id2;
     DynamicType::_ref_type dynamic_type2;
-    new_schema(1, dynamic_type2, type_id_pair2);
+    get_dynamic_type(1, dynamic_type2, type_id2);
 
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
-    cb_handler_->add_schema(dynamic_type2, type_id_pair2.type_identifier1());
+    cb_handler_->add_schema(dynamic_type2, type_id2);
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
     ASSERT_EQ(cb_handler_->type_called_, 1);
@@ -371,35 +338,23 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_data_with_schema)
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
     ASSERT_NE(cb_handler_, nullptr);
 
-    xtypes::TypeIdentifierPair type_id_pair;
+    xtypes::TypeIdentifier type_identifier;
     DynamicType::_ref_type dynamic_type;
-    ddspipe::core::types::DdsTopic pipe_topic = new_schema(1, dynamic_type, type_id_pair);
+    ddspipe::core::types::DdsTopic pipe_topic;
+    get_dynamic_type(1, dynamic_type, type_identifier, pipe_topic);
 
     ASSERT_TRUE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 0);
-    cb_handler_->add_schema(dynamic_type, type_id_pair.type_identifier1());
+    cb_handler_->add_schema(dynamic_type, type_identifier);
     ASSERT_FALSE(cb_handler_->schemas_.empty());
     ASSERT_EQ(cb_handler_->schemas_.size(), 1);
     ASSERT_EQ(cb_handler_->type_called_, 1);
 
     auto data = std::make_unique<eprosima::ddspipe::core::types::RtpsPayloadData>();
-    eprosima::ddspipe::core::types::Payload payload;
 
-    std::string content =
-            "{\n"
-            "    \"color\": \"RED\",\n"
-            "    \"shapesize\": 30,\n"
-            "    \"x\": 198,\n"
-            "    \"y\": 189\n"
-            "}";
-
-    payload.length = static_cast<uint32_t>(content.length());
-    payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
-
-    payload_pool_->get_payload(payload, data->payload);
-    payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
+    payload_pool_->get_payload(1000, data->payload);
     data->payload_owner = payload_pool_.get();
+    get_data_payload(1, data->payload);
 
     ASSERT_NO_THROW(cb_handler_->add_data(pipe_topic, *data));
     // If the data has been added, the sequence number should be 1
@@ -420,29 +375,16 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_add_data_without_schema
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
     ASSERT_NE(cb_handler_, nullptr);
 
-    xtypes::TypeIdentifierPair type_id_pair;
+    xtypes::TypeIdentifier type_id;
     DynamicType::_ref_type dynamic_type;
-    ddspipe::core::types::DdsTopic pipe_topic = new_schema(1, dynamic_type, type_id_pair);
+    ddspipe::core::types::DdsTopic pipe_topic;
+    get_dynamic_type(1, dynamic_type, type_id, pipe_topic);
 
     auto data = std::make_unique<eprosima::ddspipe::core::types::RtpsPayloadData>();
-    eprosima::ddspipe::core::types::Payload payload;
 
-    std::string content =
-            "{\n"
-            "    \"color\": \"RED\",\n"
-            "    \"shapesize\": 30,\n"
-            "    \"x\": 198,\n"
-            "    \"y\": 189\n"
-            "}";
-
-    payload.length = static_cast<uint32_t>(content.length());
-    payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = new unsigned char[payload.length];
-    std::memcpy(payload.data, content.data(), payload.length);
-
-    payload_pool_->get_payload(payload, data->payload);
-    payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
+    payload_pool_->get_payload(1000, data->payload);
     data->payload_owner = payload_pool_.get();
+    get_data_payload(1, data->payload);
 
     ASSERT_NO_THROW(cb_handler_->add_data(pipe_topic, *data));
     // As there is no schema associated, the sequence number should still be 0
@@ -463,28 +405,16 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
     auto cb_handler_ = std::make_shared<CBHandlerTest>(handler_config, payload_pool_);
     ASSERT_NE(cb_handler_, nullptr);
 
-    xtypes::TypeIdentifierPair type_id_pair;
+    xtypes::TypeIdentifier type_id;
     DynamicType::_ref_type dynamic_type;
-    ddspipe::core::types::DdsTopic pipe_topic = new_schema(1, dynamic_type, type_id_pair);
+    ddspipe::core::types::DdsTopic pipe_topic;
+    get_dynamic_type(1, dynamic_type, type_id, pipe_topic);
 
     auto data = std::make_unique<eprosima::ddspipe::core::types::RtpsPayloadData>();
-    eprosima::ddspipe::core::types::Payload payload;
 
-    std::string content =
-            "{\n"
-            "    \"color\": \"RED\",\n"
-            "    \"shapesize\": 30,\n"
-            "    \"x\": 198,\n"
-            "    \"y\": 189\n"
-            "}";
-
-    payload.length = static_cast<uint32_t>(content.length());
-    payload.max_size = static_cast<uint32_t>(content.length());
-    payload.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
-
-    payload_pool_->get_payload(payload, data->payload);
-    payload.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
+    payload_pool_->get_payload(1000, data->payload);
     data->payload_owner = payload_pool_.get();
+    get_data_payload(1, data->payload);
 
     participants::CBMessage msg;
     msg.sequence_number = 1;
@@ -499,20 +429,16 @@ TEST(DdsEnablerParticipantsTest, ddsenabler_participants_write_schema_first_time
     // The data will be successfully written as the dynamic type exists and we are bypassing the handler schema check
     ASSERT_EQ(cb_handler_->data_called_, 1);
 
-    xtypes::TypeIdentifierPair type_id_pair2;
+    xtypes::TypeIdentifier type_id2;
     DynamicType::_ref_type dynamic_type2;
-    ddspipe::core::types::DdsTopic pipe_topic2 = new_schema(2, dynamic_type2, type_id_pair2);
+    ddspipe::core::types::DdsTopic pipe_topic2;
+    get_dynamic_type(2, dynamic_type2, type_id2, pipe_topic2);
 
     auto data2 = std::make_unique<eprosima::ddspipe::core::types::RtpsPayloadData>();
-    eprosima::ddspipe::core::types::Payload payload2;
 
-    payload2.length = static_cast<uint32_t>(content.length());
-    payload2.max_size = static_cast<uint32_t>(content.length());
-    payload2.data = (unsigned char*)reinterpret_cast<const unsigned char*>(content.data());
-
-    payload_pool_->get_payload(payload2, data2->payload);
-    payload2.data = nullptr;     // Set to nullptr after copy to avoid free on destruction
+    payload_pool_->get_payload(1000, data2->payload);
     data2->payload_owner = payload_pool_.get();
+    get_data_payload(2, data2->payload);
 
     participants::CBMessage msg2;
     msg2.sequence_number = 1;
