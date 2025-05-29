@@ -432,14 +432,14 @@ protected:
     //! Payload Pool
     std::shared_ptr<ddspipe::core::PayloadPool> payload_pool_;
 
-    //! Thread Pool
-    std::shared_ptr<utils::SlotThreadPool> thread_pool_;
-
     //! Discovery Database
     std::shared_ptr<ddspipe::core::DiscoveryDatabase> discovery_database_;
 
     //! Participants Database
     std::shared_ptr<ddspipe::core::ParticipantsDatabase> participants_database_;
+
+    //! Thread Pool
+    std::shared_ptr<utils::SlotThreadPool> thread_pool_;
 
     //! CB Handler
     std::shared_ptr<eprosima::ddsenabler::participants::CBHandler> cb_handler_;

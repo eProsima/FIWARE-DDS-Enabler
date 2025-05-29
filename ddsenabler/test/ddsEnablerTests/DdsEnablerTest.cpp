@@ -307,8 +307,6 @@ TEST_F(DDSEnablerTest, manual_action_server)
 
     ASSERT_TRUE(enabler->revoke_action(action_name));
     ASSERT_FALSE(enabler->revoke_action(action_name));
-    // std::cout << "Action stopped, waiting for 10 seconds to manually test no requests are accepted." << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 TEST_F(DDSEnablerTest, send_type1)

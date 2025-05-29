@@ -46,10 +46,10 @@ public:
                 : topic_(topic),
                   ddspipe::participants::InternalReader(participant_id)
         {
-                
+
             guid_ = ddspipe::core::types::Guid::new_unique_guid();
         }
-    
+
         ~InternalRpcReader() = default;
 
         ddspipe::core::types::Guid guid() const override
@@ -75,8 +75,9 @@ public:
         void simulate_data_reception(
                 std::unique_ptr<ddspipe::core::IRoutingData>&& data) noexcept
         {
+                std::lock_guard<fastdds::RecursiveTimedMutex> lock(rtps_mutex_);
                 unread_count_++;
-                ddspipe::participants::InternalReader::simulate_data_reception(std::move(data)); 
+                ddspipe::participants::InternalReader::simulate_data_reception(std::move(data));
         }
 
         ddspipe::core::types::DdsTopic topic() const override

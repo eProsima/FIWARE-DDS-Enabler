@@ -54,6 +54,8 @@ struct ServiceDiscovered
 
     std::optional<ddspipe::core::types::RpcTopic> rpc_topic;
     bool fully_discovered{false};
+
+    std::optional<ddspipe::core::types::Endpoint> endpoint_request;
     bool enabler_as_server{false};
 
     bool add_topic(
@@ -331,8 +333,7 @@ protected:
             std::shared_ptr<eprosima::ddspipe::core::IReader>& reader,
             std::unique_lock<std::mutex>& lck);
 
-    bool create_service_writer_nts_(
-            const RpcUtils::RpcType& rpc_type,
+    bool create_service_request_writer_nts_(
             std::shared_ptr<ServiceDiscovered> service,
             std::unique_lock<std::mutex>& lck);
 
@@ -384,9 +385,6 @@ protected:
     ServiceTypeRequest service_req_callback_;
 
     RosActionTypeRequest action_req_callback_;
-
-    // Store for a given service server its corresponding endpoint
-    std::map<std::string, ddspipe::core::types::Endpoint> server_endpoint_;
 };
 
 } /* namespace participants */

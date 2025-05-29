@@ -280,34 +280,20 @@ bool EnablerParticipant::publish_rpc(
     return true;
 }
 
-bool EnablerParticipant::create_service_writer_nts_(
-        const RpcUtils::RpcType& rpc_type,
+bool EnablerParticipant::create_service_request_writer_nts_(
         std::shared_ptr<ServiceDiscovered> service,
         std::unique_lock<std::mutex>& lck)
 {
-    DdsTopic* topic;
-    if (rpc_type == RpcUtils::RpcType::RPC_REQUEST)
-    {
-        topic = &service->topic_request;
-    }
-    else if (rpc_type == RpcUtils::RpcType::RPC_REPLY)
-    {
-        topic = &service->topic_reply;
-    }
-    else
-        return false;
-
     std::string _;
-    auto reader = std::dynamic_pointer_cast<IReader>(lookup_reader_nts_(topic->m_topic_name, _));
+    auto reader = std::dynamic_pointer_cast<IReader>(lookup_reader_nts_(service->topic_request.m_topic_name, _));
 
     if (nullptr == reader)
     {
         auto request_edp = create_topic_writer_nts_(
-                *topic,
+                service->topic_request,
                 reader,
                 lck);
-        server_endpoint_.emplace(service->service_name, request_edp);
-
+        service->endpoint_request = request_edp;
         return true;
     }
 
@@ -339,7 +325,7 @@ bool EnablerParticipant::announce_service(
         return false;
     }
 
-    if (create_service_writer_nts_(RpcUtils::RPC_REQUEST, service, lck))
+    if (create_service_request_writer_nts_(service, lck))
     {
         // TODO once rebased adding it to services_ is only neccessary if it is not being discarded in create reader
         services_.insert_or_assign(service_name, service);
@@ -363,35 +349,25 @@ bool EnablerParticipant::revoke_service(
 bool EnablerParticipant::revoke_service_nts(
     const std::string& service_name)
 {
-    {
-        auto it = services_.find(service_name);
-        if (it == services_.end())
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Failed to stop service " << service_name << " : service not found.");
-            return false;
-        }
-        if (!it->second->enabler_as_server)
-        {
-            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Failed to stop service " << service_name << " : service not announced as server.");
-            return false;
-        }
-        it->second->remove_topic(RpcUtils::RpcType::RPC_REQUEST);
-    }
-
-    auto it = server_endpoint_.find(service_name);
-    if(it == server_endpoint_.end())
+    auto it = services_.find(service_name);
+    if (it == services_.end())
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                "Failed to stop service " << service_name << " : server not found.");
+                "Failed to stop service " << service_name << " : service not found.");
+        return false;
+    }
+    if (!it->second->enabler_as_server || !it->second->endpoint_request.has_value())
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to stop service " << service_name << " : service not announced as server.");
         return false;
     }
 
-    std::string request_name = "rq/" + service_name + "Request";
+    this->discovery_database_->erase_endpoint(it->second->endpoint_request.value());
+    it->second->endpoint_request.reset();
+    it->second->remove_topic(RpcUtils::RpcType::RPC_REQUEST);
 
-    this->discovery_database_->erase_endpoint(it->second);
-    server_endpoint_.erase(it);
+    std::string request_name = "rq/" + service_name + "Request";
 
     auto reader = lookup_reader_nts_(request_name);
     if (nullptr != reader)
@@ -661,7 +637,7 @@ bool EnablerParticipant::request_action_nts(
                 "Failed to announce action " << action.action_name << " : goal service type not found.");
         return false;
     }
-    if (!create_service_writer_nts_(RpcUtils::RPC_REQUEST, goal_service, lck))
+    if (!create_service_request_writer_nts_(goal_service, lck))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                 "Failed to announce action " << action.action_name << " : goal service writer creation failed.");
@@ -682,7 +658,7 @@ bool EnablerParticipant::request_action_nts(
                 "Failed to announce action " << action.action_name << " : cancel service type not found.");
         return false;
     }
-    if (!create_service_writer_nts_(RpcUtils::RPC_REQUEST, cancel_service, lck))
+    if (!create_service_request_writer_nts_(cancel_service, lck))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                 "Failed to announce action " << action.action_name << " : cancel service writer creation failed.");
@@ -703,7 +679,7 @@ bool EnablerParticipant::request_action_nts(
                 "Failed to announce action " << action.action_name << " : result service type not found.");
         return false;
     }
-    if (!create_service_writer_nts_(RpcUtils::RPC_REQUEST, result_service, lck))
+    if (!create_service_request_writer_nts_(result_service, lck))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                 "Failed to announce action " << action.action_name << " : result service writer creation failed.");
