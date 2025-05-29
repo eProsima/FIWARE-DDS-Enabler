@@ -503,7 +503,7 @@ void CBWriter::write_action_status(
     for (const auto& status : list)
     {
         UUID uuid = json_to_uuid(status["goal_info"]["goal_id"]);
-        if(is_UUID_active_callback_ && !is_UUID_active_callback_(uuid))
+        if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, uuid))
             continue;
 
         ddsenabler::participants::STATUS_CODE status_code(status["status"]);

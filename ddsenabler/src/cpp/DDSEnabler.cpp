@@ -231,6 +231,7 @@ bool DDSEnabler::send_action_goal(
     std::string goal_request_topic = action_name + "send_goal";
 
     cb_handler_->store_action_request(
+        action_name,
         action_id,
         sent_request_id_+1,
         RpcUtils::ActionType::GOAL);
@@ -269,6 +270,7 @@ bool DDSEnabler::action_send_get_result_request(
     uint64_t get_result_request_id = 0;
 
     cb_handler_->store_action_request(
+        action_name,
         action_id,
         sent_request_id_+1,
         RpcUtils::ActionType::RESULT);
@@ -292,7 +294,7 @@ bool DDSEnabler::cancel_action_goal(
     const std::string& action_name,
     const participants::UUID& goal_id)
 {
-    if (!cb_handler_->is_UUID_active(goal_id))
+    if (!cb_handler_->is_UUID_active(action_name,goal_id))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Failed to cancel action goal to action " << action_name
@@ -318,6 +320,7 @@ bool DDSEnabler::cancel_action_goal(
     std::string cancel_request_topic = action_name + "cancel_goal";
 
     cb_handler_->store_action_request(
+        action_name,
         goal_id,
         sent_request_id_+1,
         RpcUtils::ActionType::CANCEL);
@@ -383,13 +386,21 @@ bool DDSEnabler::action_send_result(
     const participants::STATUS_CODE& status_code,
     const char* json)
 {
+    if (!cb_handler_->is_UUID_active(action_name,goal_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send action feedback to action " << action_name
+                << ": goal id not found.");
+        return false;
+    }
+
     // Create JSON object
     nlohmann::json j;
     j["status"] = status_code;
     j["result"] = nlohmann::json::parse(json);
     std::string reply_json = j.dump(4);
 
-    return cb_handler_->store_action_result(goal_id, reply_json, action_name);
+    return cb_handler_->store_action_result(action_name, goal_id, reply_json);
 }
 
 bool DDSEnabler::action_send_result_reply(
@@ -418,7 +429,7 @@ bool DDSEnabler::action_send_feedback(
     const char* json,
     const participants::UUID& goal_id)
 {
-    if (!cb_handler_->is_UUID_active(goal_id))
+    if (!cb_handler_->is_UUID_active(action_name,goal_id))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Failed to send action feedback to action " << action_name
@@ -434,6 +445,43 @@ bool DDSEnabler::action_send_feedback(
     std::string feedback_topic = "rt/" + std::string(action_name) + "feedback";
     std::cout << " FEEDBACK " << feedback_json << std::endl;
     return enabler_participant_->publish(feedback_topic, feedback_json);
+}
+
+bool DDSEnabler::action_update_status(
+    const std::string& action_name,
+    const participants::UUID& goal_id,
+    const participants::STATUS_CODE& status_code)
+{
+    if (!cb_handler_->is_UUID_active(action_name,goal_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to update action status to action " << action_name
+                << ": goal id not found.");
+        return false;
+    }
+
+    // Get current time in seconds and nanoseconds
+    auto now = std::chrono::system_clock::now();
+    auto duration_since_epoch = now.time_since_epoch();
+    auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
+    auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
+
+    nlohmann::json goal_info;
+    goal_info["goal_id"]["uuid"] = goal_id;
+    goal_info["stamp"]["sec"] = static_cast<int64_t>(sec);
+    goal_info["stamp"]["nanosec"] = static_cast<uint32_t>(nanosec);
+
+
+    nlohmann::json goal_status;
+    goal_status["goal_info"] = goal_info;
+    goal_status["status"] = status_code;
+
+    nlohmann::json j;
+    j["status_list"] = nlohmann::json::array({goal_status});
+
+    std::string status_json = j.dump(4);
+    std::string status_topic = "rt/" + action_name + "status";
+    return enabler_participant_->publish(status_topic, status_json);
 }
 
 

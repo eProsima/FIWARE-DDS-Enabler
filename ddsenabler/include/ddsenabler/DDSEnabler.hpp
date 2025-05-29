@@ -348,6 +348,25 @@ public:
         const participants::STATUS_CODE& status_code,
         const char* json);
 
+     /**
+      * @brief Publishes an update for the status of an action.
+      *
+      * This function publishes a msg update for the status of an action.
+      * It returns a boolean indicating whether the operation was successful.
+      * Failure may occur if the action was not previously announced or if the goal ID is not currently active.
+      *
+      * @param action_name The name of the action for which the status is being updated.
+      * @param goal_id The unique identifier of the action goal for which the status is being updated.
+      * @param status_code The status code representing the current state of the action.
+      *
+      * @return true if the status update was successfully sent, false otherwise.
+      *
+     */
+    bool action_update_status(
+        const std::string& action_name,
+        const participants::UUID& goal_id,
+        const participants::STATUS_CODE& status_code);
+
 protected:
 
     /**

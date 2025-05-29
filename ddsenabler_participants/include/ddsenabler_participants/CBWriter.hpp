@@ -173,7 +173,7 @@ public:
             const uint64_t request_id);
 
     void set_is_UUID_active_callback(
-            std::function<bool(const UUID&)> callback)
+            std::function<bool(const std::string&, const UUID&)> callback)
     {
         is_UUID_active_callback_ = callback;
     }
@@ -230,7 +230,7 @@ protected:
     RosActionStatusNotification action_status_callback_;
     RosActionGoalRequestNotification action_goal_request_notification_callback_;
 
-    std::function<bool(const UUID&)> is_UUID_active_callback_;
+    std::function<bool(const std::string&, const UUID&)> is_UUID_active_callback_;
     std::function<void(const UUID&)> erase_action_UUID_callback_;
     std::function<bool(const std::string&, const participants::UUID&)> action_send_get_result_request_callback_;
     std::function<void(const std::string&, const uint64_t, bool accepted)> action_send_send_goal_reply_callback_;

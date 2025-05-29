@@ -72,30 +72,15 @@ namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
-// Struct that contains the information of a request: service name, request id and guid
-struct RequestInfo
-{
-    RequestInfo(
-            std::string request_topic,
-            uint64_t request_id)
-            : request_topic(std::move(request_topic))
-            , request_id(request_id)
-    {
-    }
-
-    RequestInfo() = default;
-
-    std::string request_topic;
-    uint64_t request_id;
-};
-
 struct ActionRequestInfo
 {
     ActionRequestInfo() = default;
 
     ActionRequestInfo(
+            const std::string& _action_name,
             RpcUtils::ActionType action_type,
             uint64_t request_id)
+            : action_name(_action_name)
     {
         set_request(request_id, action_type);
     }
@@ -147,6 +132,7 @@ struct ActionRequestInfo
         return true;
     }
 
+    std::string action_name;
     uint64_t goal_request_id = 0;
     uint64_t cancel_request_id = 0;
     uint64_t result_request_id = 0;
@@ -235,6 +221,7 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void store_action_request(
+            const std::string& action_name,
             const UUID& action_id,
             const uint64_t request_id,
             const RpcUtils::ActionType action_type)
@@ -244,26 +231,42 @@ public:
         auto it = action_request_id_to_uuid_.find(action_id);
         if (it != action_request_id_to_uuid_.end())
         {
+            if (it->second.action_name != action_name)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                        "Action name mismatch for action_id " << action_id
+                        << ": expected " << it->second.action_name
+                        << ", got " << action_name);
+                return;
+            }
             // If it exists, update the request_id for the given action_type
             it->second.set_request(request_id, action_type);
         }
         else
         {
             // If it does not exist, create a new entry
-            action_request_id_to_uuid_[action_id] = ActionRequestInfo(action_type, request_id);
+            action_request_id_to_uuid_[action_id] = ActionRequestInfo(action_name, action_type, request_id);
         }
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     bool store_action_result(
+            const std::string& action_name,
             const UUID& action_id,
-            const std::string& result,
-            const std::string& action_name)
+            const std::string& result)
     {
         std::lock_guard<std::recursive_mutex> lock(mtx_action_);
         auto it = action_request_id_to_uuid_.find(action_id);
         if (it != action_request_id_to_uuid_.end())
         {
+            if (it->second.action_name != action_name)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                        "Action name mismatch for action_id " << action_id
+                        << ": expected " << it->second.action_name
+                        << ", got " << action_name);
+                return false;
+            }
             if (it->second.result_request_id != 0)
             {
                 return action_send_result_reply_callback_(
@@ -291,59 +294,6 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    bool get_action_result(
-            const UUID& action_id,
-            std::string& result)
-    {
-        std::lock_guard<std::recursive_mutex> lock(mtx_action_);
-        auto it = action_request_id_to_uuid_.find(action_id);
-        if (it != action_request_id_to_uuid_.end())
-        {
-            if (!it->second.result.empty())
-            {
-                result = it->second.result;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    DDSENABLER_PARTICIPANTS_DllAPI
-    bool pop_action_request_UUID(
-                const uint64_t request_id,
-                const RpcUtils::ActionType action_type,
-                UUID& action_id)
-    {
-        std::lock_guard<std::recursive_mutex> lock(mtx_action_);
-        for (auto it = action_request_id_to_uuid_.begin(); it != action_request_id_to_uuid_.end(); ++it)
-        {
-            uint64_t action_request_id = it->second.get_request(action_type);
-            if (request_id == action_request_id)
-            {
-                action_id = it->first;
-                return true;
-            }
-        }
-        return false;
-    }
-
-    DDSENABLER_PARTICIPANTS_DllAPI
-    bool pop_action_request_ID(
-            const UUID& action_id,
-            const RpcUtils::ActionType action_type,
-            uint64_t& request_id)
-    {
-        std::lock_guard<std::recursive_mutex> lock(mtx_action_);
-        auto it = action_request_id_to_uuid_.find(action_id);
-        if (it != action_request_id_to_uuid_.end())
-        {
-            request_id = it->second.get_request(action_type);
-            return request_id != 0;
-        }
-        return false;
-    }
-
-    DDSENABLER_PARTICIPANTS_DllAPI
     void erase_action_UUID(
             const UUID& action_id,
             bool force_erase = false)
@@ -361,11 +311,12 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     bool is_UUID_active(
+            const std::string& action_name,
             const UUID& action_id)
     {
         std::lock_guard<std::recursive_mutex> lock(mtx_action_);
         auto it = action_request_id_to_uuid_.find(action_id);
-        if (it != action_request_id_to_uuid_.end())
+        if (it != action_request_id_to_uuid_.end() && action_name == it->second.action_name)
             return true;
 
         return false;
@@ -477,6 +428,41 @@ public:
     }
 
 protected:
+
+    bool pop_action_request_UUID(
+                const uint64_t request_id,
+                const RpcUtils::ActionType action_type,
+                UUID& action_id)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mtx_action_);
+        for (auto it = action_request_id_to_uuid_.begin(); it != action_request_id_to_uuid_.end(); ++it)
+        {
+            uint64_t action_request_id = it->second.get_request(action_type);
+            if (request_id == action_request_id)
+            {
+                action_id = it->first;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool get_action_result(
+            const UUID& action_id,
+            std::string& result)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mtx_action_);
+        auto it = action_request_id_to_uuid_.find(action_id);
+        if (it != action_request_id_to_uuid_.end())
+        {
+            if (!it->second.result.empty())
+            {
+                result = it->second.result;
+                return true;
+            }
+        }
+        return false;
+    }
 
     void write_schema_(
             const fastdds::dds::DynamicType::_ref_type& dyn_type,

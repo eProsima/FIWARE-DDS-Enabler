@@ -242,7 +242,7 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
     ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id));
     ASSERT_TRUE(wait_for_status_update(action_id, status, STATUS_CODE::STATUS_CANCELED));
 }
-
+// TODO test being requested tp cancel action goal
 TEST_F(DDSEnablerTest, manual_action_server)
 {
     auto enabler = create_ddsenabler();
@@ -270,6 +270,10 @@ TEST_F(DDSEnablerTest, manual_action_server)
     {
         uint64_t fibonacci_number = 0;
         ASSERT_TRUE(wait_for_action_request_notification(fibonacci_number, request_uuid, 100));
+        ASSERT_TRUE(enabler->action_update_status(
+            action_name.c_str(),
+            request_uuid,
+            eprosima::ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING));
         std::string json = "{\"sequence\": [";
         std::string feedback_json = "{\"partial_sequence\": [";
         for (size_t i = 0; i < fibonacci_number; ++i)

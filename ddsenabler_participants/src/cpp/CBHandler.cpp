@@ -48,8 +48,8 @@ CBHandler::CBHandler(
     cb_writer_ = std::make_unique<CBWriter>();
 
     cb_writer_->set_is_UUID_active_callback(
-        [this](const UUID& uuid) {
-            return this->is_UUID_active(uuid);
+        [this](const std::string& action_name, const UUID& uuid) {
+            return this->is_UUID_active(action_name, uuid);
         }
     );
 
@@ -243,6 +243,7 @@ void CBHandler::add_data(
                 return;
             }
             store_action_request(
+                rpc_name,
                 uuid,
                 received_requests_id_,
                 RpcUtils::ActionType::GOAL);
@@ -267,6 +268,7 @@ void CBHandler::add_data(
             RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
             rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
             store_action_request(
+                rpc_name,
                 uuid,
                 received_requests_id_,
                 RpcUtils::ActionType::RESULT);
