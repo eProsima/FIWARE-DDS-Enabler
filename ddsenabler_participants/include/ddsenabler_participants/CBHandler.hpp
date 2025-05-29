@@ -269,7 +269,7 @@ public:
             }
             if (it->second.result_request_id != 0)
             {
-                return action_send_result_reply_callback_(
+                return send_action_get_result_reply_callback_(
                         action_name,
                         action_id,
                         result,
@@ -400,10 +400,10 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_action_send_get_result_request_callback(
+    void set_send_action_get_result_request_callback(
             std::function<bool(const std::string&, const participants::UUID&)> callback)
     {
-        cb_writer_->set_action_send_get_result_request_callback(callback);
+        cb_writer_->set_send_action_get_result_request_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -414,17 +414,17 @@ public:
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_action_send_send_goal_reply_callback(
+    void set_send_action_send_goal_reply_callback(
             std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
     {
-        cb_writer_->set_action_send_send_goal_reply_callback(callback);
+        cb_writer_->set_send_action_send_goal_reply_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_action_send_result_reply_callback(
+    void set_send_action_get_result_reply_callback(
         std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
     {
-        action_send_result_reply_callback_ = callback;
+        send_action_get_result_reply_callback_ = callback;
     }
 
 protected:
@@ -554,7 +554,7 @@ protected:
     //! Map of any action services to the action's UUID
     std::unordered_map<participants::UUID, ActionRequestInfo> action_request_id_to_uuid_;
 
-    std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> action_send_result_reply_callback_;
+    std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> send_action_get_result_reply_callback_;
 };
 
 } /* namespace participants */

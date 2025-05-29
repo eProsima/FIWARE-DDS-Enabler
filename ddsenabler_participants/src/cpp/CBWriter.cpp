@@ -390,7 +390,7 @@ void CBWriter::write_action_goal_reply(
             );
     }
 
-    if (action_send_get_result_request_callback_ && !action_send_get_result_request_callback_(
+    if (send_action_get_result_request_callback_ && !send_action_get_result_request_callback_(
             action_name.c_str(),
             action_id))
     {
@@ -599,7 +599,7 @@ void CBWriter::write_action_request(
                     msg.publish_time.to_ns()
                     );
 
-        action_send_send_goal_reply_callback_(
+        send_action_send_goal_reply_callback_(
             action_name.c_str(),
             request_id,
             accepted);

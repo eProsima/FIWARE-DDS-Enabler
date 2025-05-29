@@ -184,16 +184,16 @@ public:
         erase_action_UUID_callback_ = callback;
     }
 
-    void set_action_send_get_result_request_callback(
+    void set_send_action_get_result_request_callback(
             std::function<bool(const std::string&, const participants::UUID&)> callback)
     {
-        action_send_get_result_request_callback_ = callback;
+        send_action_get_result_request_callback_ = callback;
     }
 
-    void set_action_send_send_goal_reply_callback(
+    void set_send_action_send_goal_reply_callback(
             std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
     {
-        action_send_send_goal_reply_callback_ = callback;
+        send_action_send_goal_reply_callback_ = callback;
     }
 
     UUID uuid_from_request_json(
@@ -232,8 +232,8 @@ protected:
 
     std::function<bool(const std::string&, const UUID&)> is_UUID_active_callback_;
     std::function<void(const UUID&)> erase_action_UUID_callback_;
-    std::function<bool(const std::string&, const participants::UUID&)> action_send_get_result_request_callback_;
-    std::function<void(const std::string&, const uint64_t, bool accepted)> action_send_send_goal_reply_callback_;
+    std::function<bool(const std::string&, const participants::UUID&)> send_action_get_result_request_callback_;
+    std::function<void(const std::string&, const uint64_t, bool accepted)> send_action_send_goal_reply_callback_;
 
 };
 

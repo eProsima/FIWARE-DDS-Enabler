@@ -64,25 +64,25 @@ DDSEnabler::DDSEnabler(
         handler_config,
         payload_pool_);
 
-    cb_handler_->set_action_send_get_result_request_callback(
+    cb_handler_->set_send_action_get_result_request_callback(
         [this](const std::string& action_name, const UUID& action_id)
         {
-            if (this->action_send_get_result_request(action_name, action_id))
+            if (this->send_action_get_result_request(action_name, action_id))
                 return true;
             this->cancel_action_goal(action_name, action_id);
             return false;
         });
 
-    cb_handler_->set_action_send_send_goal_reply_callback(
+    cb_handler_->set_send_action_send_goal_reply_callback(
         [this](const std::string& action_name, const uint64_t goal_id, bool accepted)
         {
-            return this->action_send_send_goal_reply(action_name, goal_id, accepted);
+            return this->send_action_send_goal_reply(action_name, goal_id, accepted);
         });
 
-    cb_handler_->set_action_send_result_reply_callback(
+    cb_handler_->set_send_action_get_result_reply_callback(
         [this](const std::string& action_name, const UUID& goal_id, const std::string& reply_json, const uint64_t request_id)
         {
-            return this->action_send_result_reply(action_name, goal_id, reply_json, request_id);
+            return this->send_action_get_result_reply(action_name, goal_id, reply_json, request_id);
         });
 
     // Create Enabler Participant
@@ -251,7 +251,7 @@ bool DDSEnabler::send_action_goal(
     return false;
 }
 
-bool DDSEnabler::action_send_get_result_request(
+bool DDSEnabler::send_action_get_result_request(
     const std::string& action_name,
     const UUID& action_id)
 {
@@ -350,7 +350,7 @@ bool DDSEnabler::revoke_action(
     return enabler_participant_->revoke_action(action_name);
 }
 
-void DDSEnabler::action_send_send_goal_reply(
+void DDSEnabler::send_action_send_goal_reply(
     const std::string& action_name,
     const uint64_t goal_id,
     bool accepted)
@@ -380,7 +380,7 @@ void DDSEnabler::action_send_send_goal_reply(
     return;
 }
 
-bool DDSEnabler::action_send_result(
+bool DDSEnabler::send_action_result(
     const char* action_name,
     const participants::UUID& goal_id,
     const participants::STATUS_CODE& status_code,
@@ -403,7 +403,7 @@ bool DDSEnabler::action_send_result(
     return cb_handler_->store_action_result(action_name, goal_id, reply_json);
 }
 
-bool DDSEnabler::action_send_result_reply(
+bool DDSEnabler::send_action_get_result_reply(
     const std::string& action_name,
     const participants::UUID& goal_id,
     const std::string& reply_json,
@@ -424,7 +424,7 @@ bool DDSEnabler::action_send_result_reply(
     return false;
 }
 
-bool DDSEnabler::action_send_feedback(
+bool DDSEnabler::send_action_feedback(
     const char* action_name,
     const char* json,
     const participants::UUID& goal_id)
@@ -447,7 +447,7 @@ bool DDSEnabler::action_send_feedback(
     return enabler_participant_->publish(feedback_topic, feedback_json);
 }
 
-bool DDSEnabler::action_update_status(
+bool DDSEnabler::update_action_status(
     const std::string& action_name,
     const participants::UUID& goal_id,
     const participants::STATUS_CODE& status_code)

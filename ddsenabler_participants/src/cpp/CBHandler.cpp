@@ -275,9 +275,9 @@ void CBHandler::add_data(
             std::string result;
             if (get_action_result(uuid, result))
             {
-                if (action_send_result_reply_callback_)
+                if (send_action_get_result_reply_callback_)
                 {
-                    action_send_result_reply_callback_(
+                    send_action_get_result_reply_callback_(
                         rpc_name,
                         uuid,
                         result,

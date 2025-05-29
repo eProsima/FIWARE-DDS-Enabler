@@ -270,7 +270,7 @@ TEST_F(DDSEnablerTest, manual_action_server)
     {
         uint64_t fibonacci_number = 0;
         ASSERT_TRUE(wait_for_action_request_notification(fibonacci_number, request_uuid, 100));
-        ASSERT_TRUE(enabler->action_update_status(
+        ASSERT_TRUE(enabler->update_action_status(
             action_name.c_str(),
             request_uuid,
             eprosima::ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING));
@@ -283,7 +283,7 @@ TEST_F(DDSEnablerTest, manual_action_server)
 
             std::string feedback_tmp = feedback_json;
             feedback_tmp += "]}";
-            ASSERT_TRUE(enabler->action_send_feedback(
+            ASSERT_TRUE(enabler->send_action_feedback(
                 action_name.c_str(),
                 feedback_tmp.c_str(),
                 request_uuid));
@@ -297,7 +297,7 @@ TEST_F(DDSEnablerTest, manual_action_server)
         }
         json += "]}";
         // std::this_thread::sleep_for(std::chrono::seconds(1));
-        ASSERT_TRUE(enabler->action_send_result(
+        ASSERT_TRUE(enabler->send_action_result(
             action_name.c_str(),
             request_uuid,
             eprosima::ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED,
