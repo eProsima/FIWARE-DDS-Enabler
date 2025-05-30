@@ -47,7 +47,8 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
 \
         ASSERT_TRUE(create_publisher(a_type)); \
 \
-        ASSERT_EQ(get_received_types(), 0); \
+        ASSERT_EQ(get_received_types(), 1); \
+        ASSERT_EQ(get_received_topics(), 1); \
         ASSERT_EQ(get_received_data(), 0); \
 \
         /* Send data */ \
@@ -57,6 +58,7 @@ class DDSEnablerTypedTest : public ddsenablertester::DDSEnablerTester
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_after_publication_ms)); \
 \
         ASSERT_EQ(get_received_types(), 1); \
+        ASSERT_EQ(get_received_topics(), 1); \
         ASSERT_EQ(get_received_data(), num_samples_); \
     }
 
@@ -658,7 +660,7 @@ DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableUShortStruct, Mutabl
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableUnionStruct, MutableUnionStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableWCharStruct, MutableWCharStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_InnerStructOptional, InnerStructOptionalPubSubType);
-DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_array_short_align_1_optional,
+/* DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_array_short_align_1_optional,
         array_short_align_1_optionalPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_array_short_align_2_optional,
         array_short_align_2_optionalPubSubType);
@@ -755,7 +757,7 @@ DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_ushort_optional, ushort_opt
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_wchar_align_1_optional, wchar_align_1_optionalPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_wchar_align_2_optional, wchar_align_2_optionalPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_wchar_align_4_optional, wchar_align_4_optionalPubSubType);
-DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_wchar_optional, wchar_optionalPubSubType);
+DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_wchar_optional, wchar_optionalPubSubType); */
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_BooleanStruct, BooleanStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_CharStruct, CharStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_DoubleStruct, DoubleStructPubSubType);

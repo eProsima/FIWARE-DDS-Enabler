@@ -19,38 +19,64 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+#include <string>
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
 /**
- * DdsLogFunc - callback for reception of DDS types
+ * DdsLogFunc - callback executed when consuming log messages
  */
-typedef void (*DdsLogFunc)(
-        const char* fileName,
-        int lineNo,
-        const char* funcName,
+typedef void (* DdsLogFunc)(
+        const char* file_name,
+        int line_no,
+        const char* func_name,
         int category,
         const char* msg);
 
 /**
- * DdsTypeNotification - callback for reception of DDS types
+ * DdsTypeNotification - callback for notifying the reception of DDS types
  */
-typedef void (*DdsTypeNotification)(
-        const char* typeName,
-        const char* topicName,
-        const char* serializedType);
+typedef void (* DdsTypeNotification)(
+        const char* type_name,
+        const char* serialized_type,
+        const unsigned char* serialized_type_internal,
+        uint32_t serialized_type_internal_size,
+        const char* data_placeholder);
 
 /**
- * DdsNotification - callback for reception of DDS data
+ * DdsTopicNotification - callback for notifying the reception of DDS topics
  */
-typedef void (*DdsNotification)(
-        const char* typeName,
-        const char* topicName,
-        const char* json,
-        int64_t publishTime);
+typedef void (* DdsTopicNotification)(
+        const char* topic_name,
+        const char* type_name,
+        const char* serialized_qos);
 
+/**
+ * DdsDataNotification - callback for notifying the reception of DDS data
+ */
+typedef void (* DdsDataNotification)(
+        const char* topic_name,
+        const char* json,
+        int64_t publish_time);
+
+/**
+ * DdsTopicQuery - callback for requesting information (type and QoS) of a DDS topic
+ */
+typedef bool (* DdsTopicQuery)(
+        const char* topic_name,
+        std::string& type_name,
+        std::string& serialized_qos);
+
+/**
+ * DdsTypeQuery - callback for requesting information (serialized description and size) of a DDS type
+ */
+typedef bool (* DdsTypeQuery)(
+        const char* type_name,
+        std::unique_ptr<const unsigned char []>& serialized_type_internal,
+        uint32_t& serialized_type_internal_size);
 
 } /* namespace participants */
 } /* namespace ddsenabler */

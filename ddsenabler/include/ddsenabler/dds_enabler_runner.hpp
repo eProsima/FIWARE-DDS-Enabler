@@ -19,35 +19,37 @@
 
 #pragma once
 
+#include <memory>
+#include <string>
+
+#include <cpp_utils/event/FileWatcherHandler.hpp>
+#include <cpp_utils/event/PeriodicEventHandler.hpp>
 #include <cpp_utils/exception/ConfigurationException.hpp>
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/logging/BaseLogConfiguration.hpp>
 #include <cpp_utils/logging/StdLogConsumer.hpp>
 #include <cpp_utils/ReturnCode.hpp>
 #include <cpp_utils/time/time_utils.hpp>
-#include <cpp_utils/types/Fuzzy.hpp>
-#include <cpp_utils/utils.hpp>
 
 #include <ddspipe_core/logging/DdsLogConsumer.hpp>
 
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
-#include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
-#include "ddsenabler/DDSEnabler.hpp"
-
-using namespace eprosima::ddspipe;
-using namespace eprosima::ddsenabler;
+#include <ddsenabler/CallbackSet.hpp>
+#include <ddsenabler/DDSEnabler.hpp>
 
 namespace eprosima {
 namespace ddsenabler {
 
 bool create_dds_enabler(
         const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler);
+        const CallbackSet& callbacks,
+        std::shared_ptr<DDSEnabler>& enabler);
 
+bool create_dds_enabler(
+        yaml::EnablerConfiguration configuration,
+        const CallbackSet& callbacks,
+        std::shared_ptr<DDSEnabler>& enabler);
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */

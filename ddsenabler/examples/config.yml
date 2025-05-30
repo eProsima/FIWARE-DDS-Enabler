@@ -21,3 +21,6 @@ dds:
   transport: shm
   whitelist-interfaces:
     - "127.0.0.1"
+
+ddsenabler:
+  initial-publish-wait: 500

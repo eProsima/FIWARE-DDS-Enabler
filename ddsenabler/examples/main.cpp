@@ -18,45 +18,61 @@
  */
 
 #include <csignal>
+#include <iostream>
 #include <stdexcept>
 #include <thread>
-#include <iostream>
 
+#include "CLIParser.hpp"
 #include "ddsenabler/dds_enabler_runner.hpp"
 #include "ddsenabler/DDSEnabler.hpp"
-#include "CLIParser.hpp"
 
 uint32_t received_types_ = 0;
+uint32_t received_topics_ = 0;
 uint32_t received_data_ = 0;
 std::mutex type_received_mutex_;
+std::mutex topic_received_mutex_;
 std::mutex data_received_mutex_;
 bool stop_app_ = false;
 
-// Static type callback
-static void test_type_callback(
-        const char* typeName,
-        const char* topicName,
-        const char* serializedType)
+// Static type notification callback
+static void test_type_notification_callback(
+        const char* type_name,
+        const char* serialized_type,
+        const unsigned char* serialized_type_internal,
+        uint32_t serialized_type_internal_size,
+        const char* data_placeholder)
 {
     std::lock_guard<std::mutex> lock(type_received_mutex_);
 
     received_types_++;
-    std::cout << "Type callback received: " << typeName << ", Total types: " <<
+    std::cout << "Type callback received: " << type_name << ", Total types: " <<
         received_types_ << std::endl;
 }
 
-// Static data callback
-static void test_data_callback(
-        const char* typeName,
-        const char* topicName,
+// Static topic notification callback
+static void test_topic_notification_callback(
+        const char* topic_name,
+        const char* type_name,
+        const char* serializedQos)
+{
+    std::lock_guard<std::mutex> lock(topic_received_mutex_);
+
+    received_topics_++;
+    std::cout << "Topic callback received: " << topic_name << " of type " << type_name << ", Total topics: " <<
+        received_topics_ << std::endl;
+}
+
+// Static data notification callback
+static void test_data_notification_callback(
+        const char* topic_name,
         const char* json,
-        int64_t publishTime)
+        int64_t publish_time)
 {
     std::lock_guard<std::mutex> lock(data_received_mutex_);
 
     received_data_++;
-    std::cout << "Data callback received: " << typeName << ", Total data: " <<
-        received_data_ << std::endl;
+    std::cout << "Data callback received: " << topic_name << ", Total data: " <<
+        received_data_ << ", data: " << json << std::endl;
 }
 
 int get_received_types()
@@ -64,6 +80,13 @@ int get_received_types()
     std::lock_guard<std::mutex> lock(type_received_mutex_);
 
     return received_types_;
+}
+
+int get_received_topics()
+{
+    std::lock_guard<std::mutex> lock(topic_received_mutex_);
+
+    return received_topics_;
 }
 
 int get_received_data()
@@ -84,10 +107,20 @@ int main(
         int argc,
         char** argv)
 {
+    using namespace eprosima::ddsenabler;
+
     CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
 
-    std::unique_ptr<DDSEnabler> enabler;
-    create_dds_enabler(config.config_file_path_.c_str(), test_data_callback, test_type_callback, nullptr, enabler);
+    CallbackSet callbacks{
+        .dds = {
+            .type_notification = test_type_notification_callback,
+            .topic_notification = test_topic_notification_callback,
+            .data_notification = test_data_notification_callback
+        }
+    };
+
+    std::shared_ptr<DDSEnabler> enabler;
+    create_dds_enabler(config.config_file_path_.c_str(), callbacks, enabler);
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
@@ -106,6 +139,7 @@ int main(
             return EXIT_SUCCESS;
         }
         else if (get_received_types() >= config.expected_types_ &&
+                get_received_topics() >= config.expected_topics_ &&
                 get_received_data() >= config.expected_data_)
         {
             std::cout << "Received enough data, stopping..." << std::endl;

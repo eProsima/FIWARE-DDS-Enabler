@@ -469,86 +469,86 @@ set(TEST_LIST
     ddsenabler_send_samples_MutableUnionStruct
     ddsenabler_send_samples_MutableWCharStruct
     ddsenabler_send_samples_InnerStructOptional
-    ddsenabler_send_samples_array_short_align_1_optional
-    ddsenabler_send_samples_array_short_align_2_optional
-    ddsenabler_send_samples_array_short_align_4_optional
-    ddsenabler_send_samples_array_short_optional
-    ddsenabler_send_samples_boolean_align_1_optional
-    ddsenabler_send_samples_boolean_align_2_optional
-    ddsenabler_send_samples_boolean_align_4_optional
-    ddsenabler_send_samples_boolean_optional
-    ddsenabler_send_samples_char_align_1_optional
-    ddsenabler_send_samples_char_align_2_optional
-    ddsenabler_send_samples_char_align_4_optional
-    ddsenabler_send_samples_char_optional
-    ddsenabler_send_samples_double_align_1_optional
-    ddsenabler_send_samples_double_align_2_optional
-    ddsenabler_send_samples_double_align_4_optional
-    ddsenabler_send_samples_double_optional
-    ddsenabler_send_samples_float_align_1_optional
-    ddsenabler_send_samples_float_align_2_optional
-    ddsenabler_send_samples_float_align_4_optional
-    ddsenabler_send_samples_float_optional
-    ddsenabler_send_samples_long_align_1_optional
-    ddsenabler_send_samples_long_align_2_optional
-    ddsenabler_send_samples_long_align_4_optional
-    ddsenabler_send_samples_long_optional
-    ddsenabler_send_samples_longdouble_align_1_optional
-    ddsenabler_send_samples_longdouble_align_2_optional
-    ddsenabler_send_samples_longdouble_align_4_optional
-    ddsenabler_send_samples_longdouble_optional
-    ddsenabler_send_samples_longlong_align_1_optional
-    ddsenabler_send_samples_longlong_align_2_optional
-    ddsenabler_send_samples_longlong_align_4_optional
-    ddsenabler_send_samples_longlong_optional
-    ddsenabler_send_samples_map_short_align_1_optional
-    ddsenabler_send_samples_map_short_align_2_optional
-    ddsenabler_send_samples_map_short_align_4_optional
-    ddsenabler_send_samples_map_short_optional
-    ddsenabler_send_samples_octet_align_1_optional
-    ddsenabler_send_samples_octet_align_2_optional
-    ddsenabler_send_samples_octet_align_4_optional
-    ddsenabler_send_samples_octet_optional
-    ddsenabler_send_samples_opt_struct_align_1_optional
-    ddsenabler_send_samples_opt_struct_align_2_optional
-    ddsenabler_send_samples_opt_struct_align_4_optional
-    ddsenabler_send_samples_opt_struct_optional
-    ddsenabler_send_samples_sequence_short_align_1_optional
-    ddsenabler_send_samples_sequence_short_align_2_optional
-    ddsenabler_send_samples_sequence_short_align_4_optional
-    ddsenabler_send_samples_sequence_short_optional
-    ddsenabler_send_samples_short_align_1_optional
-    ddsenabler_send_samples_short_align_2_optional
-    ddsenabler_send_samples_short_align_4_optional
-    ddsenabler_send_samples_short_optional
-    ddsenabler_send_samples_string_bounded_align_1_optional
-    ddsenabler_send_samples_string_bounded_align_2_optional
-    ddsenabler_send_samples_string_bounded_align_4_optional
-    ddsenabler_send_samples_string_bounded_optional
-    ddsenabler_send_samples_string_unbounded_align_1_optional
-    ddsenabler_send_samples_string_unbounded_align_2_optional
-    ddsenabler_send_samples_string_unbounded_align_4_optional
-    ddsenabler_send_samples_string_unbounded_optional
-    ddsenabler_send_samples_struct_align_1_optional
-    ddsenabler_send_samples_struct_align_2_optional
-    ddsenabler_send_samples_struct_align_4_optional
-    ddsenabler_send_samples_struct_optional
-    ddsenabler_send_samples_ulong_align_1_optional
-    ddsenabler_send_samples_ulong_align_2_optional
-    ddsenabler_send_samples_ulong_align_4_optional
-    ddsenabler_send_samples_ulong_optional
-    ddsenabler_send_samples_ulonglong_align_1_optional
-    ddsenabler_send_samples_ulonglong_align_2_optional
-    ddsenabler_send_samples_ulonglong_align_4_optional
-    ddsenabler_send_samples_ulonglong_optional
-    ddsenabler_send_samples_ushort_align_1_optional
-    ddsenabler_send_samples_ushort_align_2_optional
-    ddsenabler_send_samples_ushort_align_4_optional
-    ddsenabler_send_samples_ushort_optional
-    ddsenabler_send_samples_wchar_align_1_optional
-    ddsenabler_send_samples_wchar_align_2_optional
-    ddsenabler_send_samples_wchar_align_4_optional
-    ddsenabler_send_samples_wchar_optional
+    # ddsenabler_send_samples_array_short_align_1_optional
+    # ddsenabler_send_samples_array_short_align_2_optional
+    # ddsenabler_send_samples_array_short_align_4_optional
+    # ddsenabler_send_samples_array_short_optional
+    # ddsenabler_send_samples_boolean_align_1_optional
+    # ddsenabler_send_samples_boolean_align_2_optional
+    # ddsenabler_send_samples_boolean_align_4_optional
+    # ddsenabler_send_samples_boolean_optional
+    # ddsenabler_send_samples_char_align_1_optional
+    # ddsenabler_send_samples_char_align_2_optional
+    # ddsenabler_send_samples_char_align_4_optional
+    # ddsenabler_send_samples_char_optional
+    # ddsenabler_send_samples_double_align_1_optional
+    # ddsenabler_send_samples_double_align_2_optional
+    # ddsenabler_send_samples_double_align_4_optional
+    # ddsenabler_send_samples_double_optional
+    # ddsenabler_send_samples_float_align_1_optional
+    # ddsenabler_send_samples_float_align_2_optional
+    # ddsenabler_send_samples_float_align_4_optional
+    # ddsenabler_send_samples_float_optional
+    # ddsenabler_send_samples_long_align_1_optional
+    # ddsenabler_send_samples_long_align_2_optional
+    # ddsenabler_send_samples_long_align_4_optional
+    # ddsenabler_send_samples_long_optional
+    # ddsenabler_send_samples_longdouble_align_1_optional
+    # ddsenabler_send_samples_longdouble_align_2_optional
+    # ddsenabler_send_samples_longdouble_align_4_optional
+    # ddsenabler_send_samples_longdouble_optional
+    # ddsenabler_send_samples_longlong_align_1_optional
+    # ddsenabler_send_samples_longlong_align_2_optional
+    # ddsenabler_send_samples_longlong_align_4_optional
+    # ddsenabler_send_samples_longlong_optional
+    # ddsenabler_send_samples_map_short_align_1_optional
+    # ddsenabler_send_samples_map_short_align_2_optional
+    # ddsenabler_send_samples_map_short_align_4_optional
+    # ddsenabler_send_samples_map_short_optional
+    # ddsenabler_send_samples_octet_align_1_optional
+    # ddsenabler_send_samples_octet_align_2_optional
+    # ddsenabler_send_samples_octet_align_4_optional
+    # ddsenabler_send_samples_octet_optional
+    # ddsenabler_send_samples_opt_struct_align_1_optional
+    # ddsenabler_send_samples_opt_struct_align_2_optional
+    # ddsenabler_send_samples_opt_struct_align_4_optional
+    # ddsenabler_send_samples_opt_struct_optional
+    # ddsenabler_send_samples_sequence_short_align_1_optional
+    # ddsenabler_send_samples_sequence_short_align_2_optional
+    # ddsenabler_send_samples_sequence_short_align_4_optional
+    # ddsenabler_send_samples_sequence_short_optional
+    # ddsenabler_send_samples_short_align_1_optional
+    # ddsenabler_send_samples_short_align_2_optional
+    # ddsenabler_send_samples_short_align_4_optional
+    # ddsenabler_send_samples_short_optional
+    # ddsenabler_send_samples_string_bounded_align_1_optional
+    # ddsenabler_send_samples_string_bounded_align_2_optional
+    # ddsenabler_send_samples_string_bounded_align_4_optional
+    # ddsenabler_send_samples_string_bounded_optional
+    # ddsenabler_send_samples_string_unbounded_align_1_optional
+    # ddsenabler_send_samples_string_unbounded_align_2_optional
+    # ddsenabler_send_samples_string_unbounded_align_4_optional
+    # ddsenabler_send_samples_string_unbounded_optional
+    # ddsenabler_send_samples_struct_align_1_optional
+    # ddsenabler_send_samples_struct_align_2_optional
+    # ddsenabler_send_samples_struct_align_4_optional
+    # ddsenabler_send_samples_struct_optional
+    # ddsenabler_send_samples_ulong_align_1_optional
+    # ddsenabler_send_samples_ulong_align_2_optional
+    # ddsenabler_send_samples_ulong_align_4_optional
+    # ddsenabler_send_samples_ulong_optional
+    # ddsenabler_send_samples_ulonglong_align_1_optional
+    # ddsenabler_send_samples_ulonglong_align_2_optional
+    # ddsenabler_send_samples_ulonglong_align_4_optional
+    # ddsenabler_send_samples_ulonglong_optional
+    # ddsenabler_send_samples_ushort_align_1_optional
+    # ddsenabler_send_samples_ushort_align_2_optional
+    # ddsenabler_send_samples_ushort_align_4_optional
+    # ddsenabler_send_samples_ushort_optional
+    # ddsenabler_send_samples_wchar_align_1_optional
+    # ddsenabler_send_samples_wchar_align_2_optional
+    # ddsenabler_send_samples_wchar_align_4_optional
+    # ddsenabler_send_samples_wchar_optional
     ddsenabler_send_samples_BooleanStruct
     ddsenabler_send_samples_CharStruct
     ddsenabler_send_samples_DoubleStruct

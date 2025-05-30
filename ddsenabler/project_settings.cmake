@@ -50,4 +50,4 @@ set(MODULE_VERSION_FILE_PATH
     "../VERSION")
 
 set(MODULE_CPP_VERSION
-    C++17)
+    C++20)

@@ -1,0 +1,19 @@
+struct DDSEnablerTestType1
+{
+    short value;
+};
+
+struct DDSEnablerTestType2
+{
+    string value;
+};
+
+struct DDSEnablerTestType3
+{
+    long value[10];
+};
+
+struct DDSEnablerTestType4
+{
+    DDSEnablerTestType1 value;
+};

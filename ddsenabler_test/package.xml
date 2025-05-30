@@ -4,7 +4,7 @@
   <name>ddsenabler_test</name>
   <version>0.1.0</version>
   <description>
-     *eprosima DDS Enabler* main C++ package.
+     *eprosima DDS Enabler* system tests package.
   </description>
   <maintainer email="RaulSanchezMateos@eprosima.com">Raul Sánchez-Mateos</maintainer>
   <maintainer email="eugeniocollado@eprosima.com">Eugenio Collado</maintainer>
