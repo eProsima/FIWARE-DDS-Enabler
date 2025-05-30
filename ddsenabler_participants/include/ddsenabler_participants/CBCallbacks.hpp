@@ -63,17 +63,17 @@ typedef void (* DdsDataNotification)(
         int64_t publish_time);
 
 /**
- * DdsTopicRequest - callback for requesting information (type and QoS) of a DDS topic
+ * DdsTopicQuery - callback for requesting information (type and QoS) of a DDS topic
  */
-typedef bool (* DdsTopicRequest)(
+typedef bool (* DdsTopicQuery)(
         const char* topic_name,
         std::string& type_name,
         std::string& serialized_qos);
 
 /**
- * DdsTypeRequest - callback for requesting information (serialized description and size) of a DDS type
+ * DdsTypeQuery - callback for requesting information (serialized description and size) of a DDS type
  */
-typedef bool (* DdsTypeRequest)(
+typedef bool (* DdsTypeQuery)(
         const char* type_name,
         std::unique_ptr<const unsigned char []>& serialized_type_internal,
         uint32_t& serialized_type_internal_size);

@@ -31,8 +31,8 @@ struct DdsCallbacks
     participants::DdsTypeNotification type_notification{nullptr};
     participants::DdsTopicNotification topic_notification{nullptr};
     participants::DdsDataNotification data_notification{nullptr};
-    participants::DdsTypeRequest type_request{nullptr};
-    participants::DdsTopicRequest topic_request{nullptr};
+    participants::DdsTypeQuery type_query{nullptr};
+    participants::DdsTopicQuery topic_query{nullptr};
 };
 
 /**

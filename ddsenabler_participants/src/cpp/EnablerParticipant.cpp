@@ -59,7 +59,7 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
         reader = std::make_shared<InternalReader>(id());
         auto dds_topic = dynamic_cast<const DdsTopic&>(topic);
         readers_[dds_topic] = reader;
-        // Only notify the discovery of topics that do not originate from a topic request callback
+        // Only notify the discovery of topics that do not originate from a topic query callback
         if (dds_topic.topic_discoverer() != this->id())
         {
             std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
@@ -80,19 +80,19 @@ bool EnablerParticipant::publish(
 
     if (nullptr == reader)
     {
-        if (!topic_req_callback_)
+        if (!topic_query_callback_)
         {
             EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                     "Failed to publish data in topic " << topic_name <<
-                    " : topic is unknown and topic request callback not set.");
+                    " : topic is unknown and topic query callback not set.");
             return false;
         }
 
         std::string serialized_qos;
-        if (!topic_req_callback_(topic_name.c_str(), type_name, serialized_qos))
+        if (!topic_query_callback_(topic_name.c_str(), type_name, serialized_qos))
         {
             EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
-                    "Failed to publish data in topic " << topic_name << " : topic request callback failed.");
+                    "Failed to publish data in topic " << topic_name << " : topic query callback failed.");
             return false;
         }
 

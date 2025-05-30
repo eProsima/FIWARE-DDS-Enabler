@@ -161,23 +161,23 @@ bool CBHandler::get_type_identifier(
         }
     }
 
-    if (!type_req_callback_)
+    if (!type_query_callback_)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                "Type request callback not set.");
+                "Type query callback not set.");
         return false;
     }
 
     std::unique_ptr<const unsigned char []> serialized_type;
     uint32_t serialized_type_size;
-    if (!type_req_callback_(type_name.c_str(), serialized_type, serialized_type_size))
+    if (!type_query_callback_(type_name.c_str(), serialized_type, serialized_type_size))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
-                "Type request callback failed to retrieve " << type_name << " type.");
+                "Type query callback failed to retrieve " << type_name << " type.");
         return false;
     }
 
-    // Register the type obtained through the type request callback
+    // Register the type obtained through the type query callback
     fastdds::dds::xtypes::TypeObject type_object;
     if (!register_type_nts_(type_name, serialized_type.get(), serialized_type_size, type_identifier, type_object))
     {
@@ -187,7 +187,7 @@ bool CBHandler::get_type_identifier(
     }
 
     // Add to schemas map, but do not report it to the user as it is the exact same information we obtained through the
-    // type request callback.
+    // type query callback.
     add_schema_nts_(type_identifier, type_object, false);
 
     return true;

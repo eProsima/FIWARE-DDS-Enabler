@@ -201,13 +201,13 @@ void DDSEnabler::set_internal_callbacks_(
     {
         cb_handler_->set_data_notification_callback(callbacks.dds.data_notification);
     }
-    if (callbacks.dds.type_request)
+    if (callbacks.dds.type_query)
     {
-        cb_handler_->set_type_request_callback(callbacks.dds.type_request);
+        cb_handler_->set_type_query_callback(callbacks.dds.type_query);
     }
-    if (callbacks.dds.topic_request)
+    if (callbacks.dds.topic_query)
     {
-        enabler_participant_->set_topic_request_callback(callbacks.dds.topic_request);
+        enabler_participant_->set_topic_query_callback(callbacks.dds.topic_query);
     }
 }
 

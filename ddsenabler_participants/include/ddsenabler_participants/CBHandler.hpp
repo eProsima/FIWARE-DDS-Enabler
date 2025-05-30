@@ -182,15 +182,15 @@ public:
     }
 
     /**
-     * @brief Set the type request callback.
+     * @brief Set the type query callback.
      *
      * @param [in] callback Callback to be set.
      */
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_type_request_callback(
-            participants::DdsTypeRequest callback)
+    void set_type_query_callback(
+            participants::DdsTypeQuery callback)
     {
-        type_req_callback_ = callback;
+        type_query_callback_ = callback;
     }
 
 protected:
@@ -285,7 +285,7 @@ protected:
     std::mutex mtx_;
 
     //! Callback to request types from the user
-    DdsTypeRequest type_req_callback_;
+    DdsTypeQuery type_query_callback_;
 };
 
 } /* namespace participants */

@@ -88,8 +88,8 @@ public:
                 .type_notification = test_type_notification_callback,
                 .topic_notification = test_topic_notification_callback,
                 .data_notification = test_data_notification_callback,
-                .type_request = test_type_request_callback,
-                .topic_request = test_topic_request_callback
+                .type_query = test_type_query_callback,
+                .topic_query = test_topic_query_callback
             }
         };
 
@@ -259,7 +259,7 @@ public:
         return true;
     }
 
-    // eprosima::ddsenabler::participants::DdsDataNotification data_callback;
+    // eprosima::ddsenabler::participants::DdsDataNotification data_notification;
     static void test_data_notification_callback(
             const char* topic_name,
             const char* json,
@@ -275,7 +275,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
+    // eprosima::ddsenabler::participants::DdsTypeNotification type_notification;
     static void test_type_notification_callback(
             const char* type_name,
             const char* serialized_type,
@@ -293,7 +293,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
+    // eprosima::ddsenabler::participants::DdsTopicNotification topic_notification
     static void test_topic_notification_callback(
             const char* topic_name,
             const char* type_name,
@@ -309,8 +309,8 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::DdsTopicRequest topic_req_callback;
-    static bool test_topic_request_callback(
+    // eprosima::ddsenabler::participants::DdsTopicQuery topic_query;
+    static bool test_topic_query_callback(
             const char* topic_name,
             std::string& type_name,
             std::string& serialized_qos)
@@ -318,8 +318,8 @@ public:
         return true;
     }
 
-    // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-    static bool test_type_request_callback(
+    // eprosima::ddsenabler::participants::DdsTypeQuery type_query;
+    static bool test_type_query_callback(
             const char* type_name,
             std::unique_ptr<const unsigned char []>& serialized_type_internal,
             uint32_t& serialized_type_internal_size)

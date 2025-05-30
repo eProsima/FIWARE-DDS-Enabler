@@ -71,7 +71,7 @@ public:
         set_data_notification_callback(test_data_notification_callback);
         set_type_notification_callback(test_type_notification_callback);
         set_topic_notification_callback(test_topic_notification_callback);
-        set_type_request_callback(test_type_request_callback);
+        set_type_query_callback(test_type_query_callback);
     }
 
     // Expose protected members
@@ -79,8 +79,8 @@ public:
     using participants::CBHandler::cb_writer_;
     using participants::CBHandler::unique_sequence_number_;
 
-    // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
-    static bool test_type_request_callback(
+    // eprosima::ddsenabler::participants::DdsTypeQuery type_query;
+    static bool test_type_query_callback(
             const char* type_name,
             std::unique_ptr<const unsigned char []>& serialized_type_internal,
             uint32_t& serialized_type_internal_size)
@@ -90,11 +90,11 @@ public:
             return false;
         }
 
-        current_test_instance_->type_request_called++;
+        current_test_instance_->type_query_called++;
         return true;
     }
 
-    // eprosima::ddsenabler::participants::DdsDataNotification data_callback;
+    // eprosima::ddsenabler::participants::DdsDataNotification data_notification;
     static void test_data_notification_callback(
             const char* topic_name,
             const char* json,
@@ -108,7 +108,7 @@ public:
         current_test_instance_->data_called_++;
     }
 
-    // eprosima::ddsenabler::participants::DdsTypeNotification data_callback;
+    // eprosima::ddsenabler::participants::DdsTypeNotification type_notification;
     static void test_type_notification_callback(
             const char* type_name,
             const char* serialized_type,
@@ -124,7 +124,7 @@ public:
         current_test_instance_->type_called_++;
     }
 
-    // eprosima::ddsenabler::participants::DdsTopicNotification topic_callback;
+    // eprosima::ddsenabler::participants::DdsTopicNotification topic_notification;
     static void test_topic_notification_callback(
             const char* topic_name,
             const char* type_name,
@@ -138,7 +138,7 @@ public:
         current_test_instance_->topic_called_++;
     }
 
-    uint32_t type_request_called = 0;
+    uint32_t type_query_called = 0;
     uint32_t data_called_ = 0;
     uint32_t type_called_ = 0;
     uint32_t topic_called_ = 0;

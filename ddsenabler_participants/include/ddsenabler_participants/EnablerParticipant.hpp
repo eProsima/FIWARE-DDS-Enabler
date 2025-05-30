@@ -54,10 +54,10 @@ public:
             const std::string& json);
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void set_topic_request_callback(
-            participants::DdsTopicRequest callback)
+    void set_topic_query_callback(
+            participants::DdsTopicQuery callback)
     {
-        topic_req_callback_ = callback;
+        topic_query_callback_ = callback;
     }
 
 protected:
@@ -75,7 +75,7 @@ protected:
 
     std::condition_variable cv_;
 
-    DdsTopicRequest topic_req_callback_;
+    DdsTopicQuery topic_query_callback_;
 };
 
 } /* namespace participants */
