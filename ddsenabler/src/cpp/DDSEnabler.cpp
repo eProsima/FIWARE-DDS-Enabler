@@ -69,7 +69,7 @@ DDSEnabler::DDSEnabler(
         {
             if (this->send_action_get_result_request(action_name, action_id))
                 return true;
-            this->cancel_action_goal(action_name, action_id);
+            this->cancel_action_goal(action_name, action_id, 0);
             return false;
         });
 
@@ -230,13 +230,13 @@ bool DDSEnabler::send_action_goal(
     uint64_t goal_request_id = 0;
     std::string goal_request_topic = action_name + "send_goal";
 
-    cb_handler_->store_action_request(
-        action_name,
-        action_id,
-        sent_request_id_+1,
-        RpcUtils::ActionType::GOAL);
-
-    if(send_service_request(
+    if (cb_handler_->store_action_request(
+            action_name,
+            action_id,
+            sent_request_id_+1,
+            RpcUtils::ActionType::GOAL)
+        &&
+        send_service_request(
             goal_request_topic,
             goal_json,
             goal_request_id))
@@ -269,13 +269,13 @@ bool DDSEnabler::send_action_get_result_request(
     std::string get_result_request_topic = action_name + "get_result";
     uint64_t get_result_request_id = 0;
 
-    cb_handler_->store_action_request(
-        action_name,
-        action_id,
-        sent_request_id_+1,
-        RpcUtils::ActionType::RESULT);
-
-    if(send_service_request(
+    if (cb_handler_->store_action_request(
+            action_name,
+            action_id,
+            sent_request_id_+1,
+            RpcUtils::ActionType::RESULT)
+        &&
+        send_service_request(
             get_result_request_topic,
             json,
             get_result_request_id))
@@ -283,49 +283,40 @@ bool DDSEnabler::send_action_get_result_request(
         return true;
     }
 
-    // TODO cancel?
-
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-            "Failed to send action get result request to action " << action_name);
+            "Failed to send action get result request to action " << action_name
+            << ": cancelling.");
+    cancel_action_goal(action_name, action_id, 0);
     return false;
 }
 
 bool DDSEnabler::cancel_action_goal(
     const std::string& action_name,
-    const participants::UUID& goal_id)
+    const participants::UUID& goal_id,
+    const int64_t timestamp)
 {
-    if (!cb_handler_->is_UUID_active(action_name,goal_id))
+    if (goal_id != participants::UUID() &&
+        !cb_handler_->is_UUID_active(action_name, goal_id))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Failed to cancel action goal to action " << action_name
+                "Failed to cancel action goal for action " << action_name
                 << ": goal id not found.");
         return false;
     }
 
-    // TODO should we check if the goal_id is already in use?
-    // Get current time in seconds and nanoseconds
-    auto now = std::chrono::system_clock::now();
-    auto duration_since_epoch = now.time_since_epoch();
-    auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
-    auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
-
     // Create JSON object
     nlohmann::json j;
-    j["goal_info"]["goal_id"]["uuid"] = goal_id;
+    int64_t sec = timestamp / 1'000'000'000;
+    uint32_t nanosec = timestamp % 1'000'000'000;
     j["goal_info"]["stamp"]["sec"] = static_cast<int64_t>(sec);
     j["goal_info"]["stamp"]["nanosec"] = static_cast<uint32_t>(nanosec);
+    j["goal_info"]["goal_id"]["uuid"] = goal_id;
     std::string cancel_json = j.dump(4);
 
     uint64_t cancel_request_id = 0;
     std::string cancel_request_topic = action_name + "cancel_goal";
 
-    cb_handler_->store_action_request(
-        action_name,
-        goal_id,
-        sent_request_id_+1,
-        RpcUtils::ActionType::CANCEL);
-
-    if(send_service_request(
+    if (send_service_request(
             cancel_request_topic,
             cancel_json,
             cancel_request_id))
@@ -378,6 +369,50 @@ void DDSEnabler::send_action_send_goal_reply(
                 << ": goal id not found.");
     }
     return;
+}
+
+bool DDSEnabler::send_action_cancel_goal_reply(
+    const char* action_name,
+    const std::vector<participants::UUID>& goal_ids,
+    const participants::CANCEL_CODE& cancel_code,
+    const uint64_t request_id)
+{
+    // Create JSON object
+    nlohmann::json j;
+    j["return_code"] = cancel_code;
+    j["goals_canceling"] = nlohmann::json::array();
+    for (const auto& goal_id : goal_ids)
+    {
+        std::chrono::system_clock::time_point timestamp;
+        if (!cb_handler_->is_UUID_active(action_name, goal_id, &timestamp))
+        {
+            // EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+            //         "Not including goal " << goal_id << " in cancel reply for action "
+            //         << action_name << ": goal id not found.");
+            continue;
+        }
+
+        nlohmann::json goal_json;
+        goal_json["goal_id"]["uuid"] = goal_id;
+        auto duration_since_epoch = timestamp.time_since_epoch();
+        auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
+        auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
+        goal_json["stamp"]["sec"] = static_cast<int64_t>(sec);
+        goal_json["stamp"]["nanosec"] = static_cast<uint32_t>(nanosec);
+        j["goals_canceling"].push_back(goal_json);
+    }
+    std::string reply_json = j.dump(4);
+
+    if (!send_service_reply(
+            std::string(action_name) + "cancel_goal",
+            reply_json,
+            request_id))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                "Failed to send action cancel reply to action " << action_name
+                << ": request id not found.");
+        return false;
+    }
 }
 
 bool DDSEnabler::send_action_result(
@@ -452,7 +487,8 @@ bool DDSEnabler::update_action_status(
     const participants::UUID& goal_id,
     const participants::STATUS_CODE& status_code)
 {
-    if (!cb_handler_->is_UUID_active(action_name,goal_id))
+    std::chrono::system_clock::time_point goal_accepted_stamp;
+    if (!cb_handler_->is_UUID_active(action_name,goal_id, &goal_accepted_stamp))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
                 "Failed to update action status to action " << action_name
@@ -460,9 +496,7 @@ bool DDSEnabler::update_action_status(
         return false;
     }
 
-    // Get current time in seconds and nanoseconds
-    auto now = std::chrono::system_clock::now();
-    auto duration_since_epoch = now.time_since_epoch();
+    auto duration_since_epoch = goal_accepted_stamp.time_since_epoch();
     auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration_since_epoch).count();
     auto nanosec = std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch).count() % 1'000'000'000;
 

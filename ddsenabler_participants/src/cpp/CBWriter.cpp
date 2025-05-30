@@ -413,7 +413,7 @@ void CBWriter::write_action_goal_reply(
 void CBWriter::write_action_cancel_reply(
         const CBMessage& msg,
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
-        const UUID& action_id)
+        const uint64_t request_id)
 {
     ddsenabler::participants::STATUS_CODE status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCELED;
     std::string action_name;
@@ -461,14 +461,14 @@ void CBWriter::write_action_cancel_reply(
     for (const auto& goal : goals)
     {
         UUID msg_action_id = json_to_uuid(goal["goal_id"]);
-        if(msg_action_id != action_id)
+        if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, msg_action_id))
             continue;
 
         if (action_status_callback_)
         {
             action_status_callback_(
                 action_name.c_str(),
-                action_id,
+                msg_action_id,
                 status_code,
                 status_message.c_str(),
                 msg.publish_time.to_ns()
@@ -588,7 +588,7 @@ void CBWriter::write_action_request(
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
     // TODO do not read directly from json without failure handling
-    if(RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
+    if (RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
     {
         bool accepted;
         if (action_goal_request_notification_callback_)
@@ -604,6 +604,24 @@ void CBWriter::write_action_request(
             request_id,
             accepted);
 
+        return;
+    }
+    if (RpcUtils::RpcType::ACTION_CANCEL_REQUEST == rpc_type)
+    {
+        if (action_cancel_request_notification_callback_)
+        {
+            auto sec = (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["sec"];
+            auto nanosec = (*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["nanosec"];
+            int64_t timestamp = static_cast<int64_t>(sec.get<int64_t>()) * 1000000000 +
+                static_cast<int64_t>(nanosec.get<uint32_t>());
+            action_cancel_request_notification_callback_(
+                action_name.c_str(),
+                json_to_uuid((*json_output)[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
+                timestamp,
+                request_id,
+                msg.publish_time.to_ns()
+                );
+        }
         return;
     }
 }

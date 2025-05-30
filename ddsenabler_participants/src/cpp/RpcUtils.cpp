@@ -316,19 +316,19 @@ bool load_type_from_file(
     return true;
 }
 
-void save_service_to_file(const char* serviceName,
-        const char* requestTypeName,
-        const char* replyTypeName,
-        const char* requestSerializedQos,
-        const char* replySerializedQos,
+void save_service_to_file(const char* service_name,
+        const char* request_type_name,
+        const char* reply_type_name,
+        const char* request_serialized_qos,
+        const char* reply_serialized_qos,
         const std::string& filename)
 {
     nlohmann::json j;
-    j["serviceName"] = serviceName;
-    j["requestTypeName"] = requestTypeName;
-    j["replyTypeName"] = replyTypeName;
-    j["requestSerializedQos"] = requestSerializedQos;
-    j["replySerializedQos"] = replySerializedQos;
+    j["service_name"] = service_name;
+    j["request_type_name"] = request_type_name;
+    j["reply_type_name"] = reply_type_name;
+    j["request_serialized_qos"] = request_serialized_qos;
+    j["reply_serialized_qos"] = reply_serialized_qos;
 
     std::ofstream ofs(filename);
     if (ofs.is_open()) {
@@ -337,11 +337,11 @@ void save_service_to_file(const char* serviceName,
 }
 
 bool load_service_from_file(
-        const char* serviceName,
-        char*& requestTypeName,
-        char*& replyTypeName,
-        char*& requestSerializedQos,
-        char*& replySerializedQos,
+        const char* service_name,
+        char*& request_type_name,
+        char*& reply_type_name,
+        char*& request_serialized_qos,
+        char*& reply_serialized_qos,
         const std::string& filename)
 {
     std::ifstream ifs(filename);
@@ -352,19 +352,19 @@ bool load_service_from_file(
     nlohmann::json j;
     ifs >> j;
 
-    std::string file_serviceName = j["serviceName"].get<std::string>();
-    if (file_serviceName != std::string(serviceName)) {
+    std::string file_service_name = j["service_name"].get<std::string>();
+    if (file_service_name != std::string(service_name)) {
         return false;  // Service name does not match
     }
 
-    std::string _requestTypeName = j["requestTypeName"].get<std::string>();
-    requestTypeName = strdup(_requestTypeName.c_str());
-    std::string _replyTypeName = j["replyTypeName"].get<std::string>();
-    replyTypeName = strdup(_replyTypeName.c_str());
-    std::string _requestSerializedQos = j["requestSerializedQos"].get<std::string>();
-    requestSerializedQos = strdup(_requestSerializedQos.c_str());
-    std::string _replySerializedQos = j["replySerializedQos"].get<std::string>();
-    replySerializedQos = strdup(_replySerializedQos.c_str());
+    std::string _request_type_name = j["request_type_name"].get<std::string>();
+    request_type_name = strdup(_request_type_name.c_str());
+    std::string _reply_type_name = j["reply_type_name"].get<std::string>();
+    reply_type_name = strdup(_reply_type_name.c_str());
+    std::string _request_serialized_qos = j["request_serialized_qos"].get<std::string>();
+    request_serialized_qos = strdup(_request_serialized_qos.c_str());
+    std::string _reply_serialized_qos = j["reply_serialized_qos"].get<std::string>();
+    reply_serialized_qos = strdup(_reply_serialized_qos.c_str());
     ifs.close();
 
     return true;

@@ -80,6 +80,7 @@ public:
         action_goal_requests_.clear();
         action_goal_requests_total_ = 0;
         received_actions_feedback_ = 0;
+        received_actions_cancel_request_id_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
@@ -98,6 +99,7 @@ public:
         std::cout << "Received actions before reset: " << received_actions_ << std::endl;
         std::cout << "Received actions result before reset: " << received_actions_result_ << std::endl;
         std::cout << "Received actions feedback before reset: " << received_actions_feedback_ << std::endl;
+        std::cout << "Received actions cancel request before reset: " << received_actions_cancel_request_id_ << std::endl;
         std::cout << "Received actions status updates before reset: " << received_actions_status_updates_ << std::endl;
         received_types_ = 0;
         received_data_ = 0;
@@ -112,6 +114,7 @@ public:
         action_goal_requests_.clear();
         action_goal_requests_total_ = 0;
         received_actions_feedback_ = 0;
+        received_actions_cancel_request_id_ = 0;
         last_status_ = eprosima::ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
         received_actions_status_updates_ = 0;
         current_test_instance_ = nullptr;
@@ -150,6 +153,7 @@ public:
         action_callbacks.status_callback = test_action_status_callback;
         action_callbacks.type_req_callback = test_action_type_request_callback;
         action_callbacks.goal_request_callback = test_action_goal_request_notification_callback;
+        action_callbacks.cancel_request_callback = test_action_cancel_request_notification_callback;
 
         // Create DDS Enabler
         std::unique_ptr<DDSEnabler> enabler;
@@ -427,6 +431,27 @@ public:
         }
     }
 
+    bool wait_for_action_cancel_request(
+            uint64_t& request_id,
+            int timeout = 10)
+    {
+        std::unique_lock<std::mutex> lock(data_received_mutex_);
+        if (cv_.wait_for(lock, std::chrono::seconds(timeout), [this]()
+                {
+                    return received_actions_cancel_request_id_ != 0;
+                }))
+        {
+            request_id = received_actions_cancel_request_id_;
+            received_actions_cancel_request_id_ = 0; // Reset the cancel request after receiving it
+            return true;
+        }
+        else
+        {
+            std::cout << "Timeout waiting for action cancel request callback" << std::endl;
+            return false;
+        }
+    }
+
     // eprosima::ddsenabler::participants::DdsNotification data_callback;
     static void test_data_callback(
             const char* topicName,
@@ -484,7 +509,7 @@ public:
         return false;
     }
 
-    // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
+    // eprosima::ddsenabler::participants::DdsTypeQuery type_req_callback;
     static bool test_type_request_callback(
             const char* typeName,
             unsigned char*& serializedTypeInternal,
@@ -510,82 +535,82 @@ public:
 
     // eprosima::ddsenabler::participants::ServiceNotification service_callback;
     static void test_service_callback(
-            const char* serviceName,
-            const char* requestTypeName,
-            const char* replyTypeName,
-            const char* requestSerializedQos,
-            const char* replySerializedQos)
+            const char* service_name,
+            const char* request_type_name,
+            const char* reply_type_name,
+            const char* request_serialized_qos,
+            const char* reply_serialized_qos)
     {
-        if (current_test_instance_ && TEST_SERVICE_NAME == std::string(serviceName))
+        if (current_test_instance_ && TEST_SERVICE_NAME == std::string(service_name))
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
 
             current_test_instance_->received_services_++;
-            std::cout << "Service callback received: " << serviceName << ", Total services: " <<
+            std::cout << "Service callback received: " << service_name << ", Total services: " <<
                 current_test_instance_->received_services_ << std::endl;
 
             // std::string service_file = TEST_FILE_DIRECTORY + std::string(TEST_SERVICE_FILE);
-            // eprosima::ddsenabler::participants::RpcUtils::save_service_to_file(serviceName, requestTypeName, replyTypeName,
-            //         requestSerializedQos, replySerializedQos, service_file);
+            // eprosima::ddsenabler::participants::RpcUtils::save_service_to_file(service_name, request_type_name, reply_type_name,
+            //         request_serialized_qos, reply_serialized_qos, service_file);
         }
     }
 
     // eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
     static void test_reply_callback(
-            const char* serviceName,
+            const char* service_name,
             const char* json,
-            uint64_t requestId,
+            uint64_t request_id,
             int64_t publishTime)
     {
         if (current_test_instance_)
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
 
-            current_test_instance_->received_reply_ = requestId;
-            std::cout << "Reply callback received with id: " << requestId << " for service: " << serviceName << std::endl;
+            current_test_instance_->received_reply_ = request_id;
+            std::cout << "Reply callback received with id: " << request_id << " for service: " << service_name << std::endl;
         }
     }
 
     // eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
     static void test_request_callback(
-            const char* serviceName,
+            const char* service_name,
             const char* json,
-            uint64_t requestId,
+            uint64_t request_id,
             int64_t publishTime)
     {
         if (current_test_instance_)
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
 
-            current_test_instance_->received_request_id_ = requestId;
-            std::cout << "Request callback received with id: " << requestId << " for service: " << serviceName << std::endl;
+            current_test_instance_->received_request_id_ = request_id;
+            std::cout << "Request callback received with id: " << request_id << " for service: " << service_name << std::endl;
             current_test_instance_->cv_.notify_all();
         }
     }
 
-    // eprosima::ddsenabler::participants::ServiceTypeRequest type_req_callback;
+    // eprosima::ddsenabler::participants::ServiceTypeQuery type_req_callback;
     static bool test_service_type_request_callback(
-            const char* serviceName,
-            char*& requestTypeName,
-            char*& requestSerializedQos,
-            char*& replyTypeName,
-            char*& replySerializedQos)
+            const char* service_name,
+            char*& request_type_name,
+            char*& request_serialized_qos,
+            char*& reply_type_name,
+            char*& reply_serialized_qos)
     {
         if (current_test_instance_)
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->service_mutex_);
 
             current_test_instance_->received_services_request_++;
-            std::cout << "Service type request callback received: " << serviceName << ", Total services request: " <<
+            std::cout << "Service type request callback received: " << service_name << ", Total services request: " <<
                 current_test_instance_->received_services_request_ << std::endl;
 
             std::string service_file = TEST_FILE_DIRECTORY + std::string(TEST_SERVICE_FILE);
             if (eprosima::ddsenabler::participants::RpcUtils::load_service_from_file(
-                        serviceName,
-                        requestTypeName,
-                        replyTypeName,
-                        requestSerializedQos,
-                        replySerializedQos,
+                        service_name,
+                        request_type_name,
+                        reply_type_name,
+                        request_serialized_qos,
+                        reply_serialized_qos,
                         service_file))
             {
                 return true;
@@ -595,7 +620,7 @@ public:
         return false;
     }
 
-    // eprosima::ddsenabler::participants::RosActionNotification action_callback;
+    // eprosima::ddsenabler::participants::ActionNotification action_callback;
     static void test_action_callback(
             const char* actionName,
             const char* goalRequestActionType,
@@ -635,7 +660,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::RosActionResultNotification result_callback;
+    // eprosima::ddsenabler::participants::ActionResultNotification result_callback;
     static void test_action_result_callback(
             const char* actionName,
             const char* json,
@@ -654,7 +679,7 @@ public:
         current_test_instance_->cv_.notify_all();
     }
 
-    // eprosima::ddsenabler::participants::RosActionFeedbackNotification feedback_callback;
+    // eprosima::ddsenabler::participants::ActionFeedbackNotification feedback_callback;
     static void test_action_feedback_callback(
             const char* actionName,
             const char* json,
@@ -673,7 +698,7 @@ public:
         current_test_instance_->cv_.notify_all();
     }
 
-    // eprosima::ddsenabler::participants::RosActionStatusNotification status_callback;
+    // eprosima::ddsenabler::participants::ActionStatusNotification status_callback;
     static void test_action_status_callback(
             const char* actionName,
             const UUID& goalId,
@@ -694,7 +719,28 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::RosActionTypeRequest action_type_req_callback;
+    // eprosima::ddsenabler::participants::ActionCancelRequestNotification cancel_request_callback;
+    static void test_action_cancel_request_notification_callback(
+            const char* actionName,
+            const UUID& goalId,
+            int64_t timestamp,
+            uint64_t request_id,
+            int64_t publishTime)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->action_mutex_);
+
+            std::cout << "Action cancel request callback received for action: " << actionName
+                      << " with UUID: " << goalId << std::endl;
+
+            current_test_instance_->received_actions_cancel_request_id_ = request_id;
+
+            current_test_instance_->cv_.notify_all();
+        }
+    }
+
+    // eprosima::ddsenabler::participants::ActionTypeQuery action_type_req_callback;
     static bool test_action_type_request_callback(
             const char* actionName,
             char*& goalRequestActionType,
@@ -921,6 +967,7 @@ public:
     std::vector<std::pair<UUID, uint64_t>> action_goal_requests_;
     int action_goal_requests_total_ = 0; // Limit for action goal requests
     int received_actions_feedback_ = 0;
+    bool received_actions_cancel_request_id_ = 0;
     eprosima::ddsenabler::participants::STATUS_CODE last_status_;
     int received_actions_status_updates_ = 0;
     // Condition variable for synchronization

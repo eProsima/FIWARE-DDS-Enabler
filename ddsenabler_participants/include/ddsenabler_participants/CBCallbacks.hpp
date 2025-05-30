@@ -40,6 +40,13 @@ enum STATUS_CODE {
         STATUS_CANCEL_REQUEST_FAILED
     };
 
+enum CANCEL_CODE {
+        ERROR_NONE = 0,
+        ERROR_REJECTED,
+        ERROR_UNKNOWN_GOAL_ID,
+        ERROR_GOAL_TERMINATED
+};
+
 /**
  * DdsLogFunc - callback for reception of DDS types
  */
@@ -83,7 +90,7 @@ typedef bool (*DdsTopicRequest)(
         char*& typeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
         char*& serializedQos);
 
-typedef bool (*DdsTypeRequest)(
+typedef bool (*DdsTypeQuery)(
         const char* typeName,
         unsigned char*& serializedTypeInternal,
         uint32_t& serializedTypeInternalSize);
@@ -93,7 +100,7 @@ struct ddsCallbacks
         participants::DdsNotification data_callback = nullptr;
         participants::DdsTypeNotification type_callback = nullptr;
         participants::DdsTopicNotification topic_callback = nullptr;
-        participants::DdsTypeRequest type_req_callback = nullptr;
+        participants::DdsTypeQuery type_req_callback = nullptr;
         participants::DdsTopicRequest topic_req_callback = nullptr;
         participants::DdsLogFunc log_callback = nullptr;
 };
@@ -109,33 +116,33 @@ struct ddsCallbacks
  *
  * This callback is used to notify the discovery of a service and its associated request and reply types.
  *
- * @param serviceName The name of the service that was discovered.
- * @param requestTypeName The name of the request type associated with the service.
- * @param requestSerializedQos The serialized Quality of Service (QoS) settings for the request type.
- * @param replyTypeName The name of the reply type associated with the service.
- * @param replySerializedQos The serialized Quality of Service (QoS) settings for the reply type.
+ * @param service_name The name of the service that was discovered.
+ * @param request_type_name The name of the request type associated with the service.
+ * @param request_serialized_qos The serialized Quality of Service (QoS) settings for the request type.
+ * @param reply_type_name The name of the reply type associated with the service.
+ * @param reply_serialized_qos The serialized Quality of Service (QoS) settings for the reply type.
  */
 typedef void (*ServiceNotification)(
-        const char* serviceName,
-        const char* requestTypeName,
-        const char* replyTypeName,
-        const char* requestSerializedQos,
-        const char* replySerializedQos);
+        const char* service_name,
+        const char* request_type_name,
+        const char* reply_type_name,
+        const char* request_serialized_qos,
+        const char* reply_serialized_qos);
 
 /**
  * @brief Callback for reception of RPC reply data.
  *
  * This callback is used to notify the reception of a reply for a specific service.
  *
- * @param serviceName The name of the service for which the reply was received.
+ * @param service_name The name of the service for which the reply was received.
  * @param json The JSON data received in the reply.
- * @param requestId The unique identifier of the request for which this is a reply.
+ * @param request_id The unique identifier of the request for which this is a reply.
  * @param publishTime The time at which the reply was published.
  */
 typedef void (*ServiceReplyNotification)(
-        const char* serviceName,
+        const char* service_name,
         const char* json,
-        uint64_t requestId,
+        uint64_t request_id,
         int64_t publishTime);
 
 /**
@@ -143,17 +150,17 @@ typedef void (*ServiceReplyNotification)(
  *
  * This callback is used to notify the reception of a request for a specific service.
  *
- * @param serviceName The name of the service for which the request was received.
+ * @param service_name The name of the service for which the request was received.
  * @param json The JSON data received in the request.
- * @param requestId The unique identifier of the request.
+ * @param request_id The unique identifier of the request.
  * @param publishTime The time at which the request was published.
  *
- * @note The requestId is unique for each request and must be later used to identify the reply.
+ * @note The request_id is unique for each request and must be later used to identify the reply.
  */
 typedef void (*ServiceRequestNotification)(
-        const char* serviceName,
+        const char* service_name,
         const char* json,
-        uint64_t requestId,
+        uint64_t request_id,
         int64_t publishTime);
 
 // TODO rename it so that "Type" is smth equal to the one in DdsTopicRequest
@@ -162,25 +169,25 @@ typedef void (*ServiceRequestNotification)(
  *
  * This callback is used to request the type information for a service's request and reply.
  *
- * @param serviceName The name of the service for which the type information is requested.
- * @param requestTypeName The name of the request type associated with the service.
- * @param requestSerializedQos The serialized Quality of Service (QoS) settings for the request type.
- * @param replyTypeName The name of the reply type associated with the service.
- * @param replySerializedQos The serialized Quality of Service (QoS) settings for the reply type.
+ * @param service_name The name of the service for which the type information is requested.
+ * @param request_type_name The name of the request type associated with the service.
+ * @param request_serialized_qos The serialized Quality of Service (QoS) settings for the request type.
+ * @param reply_type_name The name of the reply type associated with the service.
+ * @param reply_serialized_qos The serialized Quality of Service (QoS) settings for the reply type.
  */
- typedef bool (*ServiceTypeRequest)(
-        const char* serviceName,
-        char*& requestTypeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
-        char*& requestSerializedQos,
-        char*& replyTypeName, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
-        char*& replySerializedQos);
+ typedef bool (*ServiceTypeQuery)(
+        const char* service_name,
+        char*& request_type_name, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        char*& request_serialized_qos,
+        char*& reply_type_name, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        char*& reply_serialized_qos);
 
 struct serviceCallbacks
 {
         participants::ServiceNotification service_callback = nullptr;
         participants::ServiceReplyNotification reply_callback = nullptr;
         participants::ServiceRequestNotification request_callback = nullptr;
-        participants::ServiceTypeRequest type_req_callback = nullptr;
+        participants::ServiceTypeQuery type_req_callback = nullptr;
 };
 
 /**********************/
@@ -209,7 +216,7 @@ struct serviceCallbacks
  * @param resultReplyActionSerializedQos The serialized Quality of Service (QoS) settings for the get result reply action.
  * @param feedbackActionSerializedQos The serialized Quality of Service (QoS) settings for the feedback action.
  */
-typedef void (*RosActionNotification)(
+typedef void (*ActionNotification)(
         const char* action_name,
         const char* goal_request_action_type,
         const char* goal_reply_action_type,
@@ -229,20 +236,43 @@ typedef void (*RosActionNotification)(
         const char* status_action_serialized_qos);
 
 /**
- * @brief Callback for notification of action result.
+ * @brief Callback for notification of an action goal request.
  *
- * This callback is used to notify the result of an action in case of success.
+ * This callback is used to notify the request of an action goal.
  *
- * @param action_name The name of the action for which the result is being notified.
- * @param json The JSON data representing the result of the action.
+ * @param action_name The name of the action for which the goal is being requested.
+ * @param json The JSON data representing the goal request.
  * @param goal_id The unique identifier of the goal associated with the action.
- * @param publish_time The time at which the result was published.
+ * @param publish_time The time at which the goal request was published.
+ * @param status_code The status code as a place holder for the current state of the action.
  */
-typedef void (*RosActionResultNotification)(
-        const char* action_name,
-        const char* json,
-        const UUID& goal_id,
-        int64_t publish_time);
+typedef bool (*ActionGoalRequestNotification)(
+    const char* action_name,
+    const char* json,
+    const UUID& goal_id,
+    int64_t publish_time);
+
+/**
+ * @brief Callback for notification of an action cancel request.
+ *
+ * This callback is used to notify the request to cancel an action goal:
+ *
+ * If the goal ID is empty and timestamp is zero, cancel all goals
+ * If the goal ID is empty and timestamp is not zero, cancel all goals accepted at or before the timestamp
+ * If the goal ID is not empty and timestamp is zero, cancel the goal with the given ID regardless of the time it was accepted
+ * If the goal ID is not empty and timestamp is not zero, cancel the goal with the given ID and all goals accepted at or before the timestamp
+ *
+ * @param action_name The name of the action for which the cancel request is being made.
+ * @param goal_id The unique identifier of the goal associated with the action.
+ * @param publish_time The time at which the cancel request was published.
+ * @param status_code The status code as a place holder for the current state of the action.
+ */
+typedef void (*ActionCancelRequestNotification)(
+    const char* action_name,
+    const UUID& goal_id,
+    int64_t timestamp,
+    uint64_t request_id,
+    int64_t publish_time);
 
 /**
  * @brief Callback for notification of action feedback.
@@ -254,7 +284,7 @@ typedef void (*RosActionResultNotification)(
  * @param goal_id The unique identifier of the goal associated with the action.
  * @param publish_time The time at which the feedback was published.
  */
-typedef void (*RosActionFeedbackNotification)(
+typedef void (*ActionFeedbackNotification)(
         const char* action_name,
         const char* json,
         const UUID& goal_id,
@@ -271,7 +301,7 @@ typedef void (*RosActionFeedbackNotification)(
  * @param status_message A message providing additional information about the status.
  * @param publish_time The time at which the status was published.
  */
-typedef void (*RosActionStatusNotification)(
+typedef void (*ActionStatusNotification)(
     const char* action_name,
     const UUID& goal_id,
     STATUS_CODE status_code,
@@ -279,21 +309,20 @@ typedef void (*RosActionStatusNotification)(
     int64_t publish_time);
 
 /**
- * @brief Callback for notification of an action goal request.
+ * @brief Callback for notification of action result.
  *
- * This callback is used to notify the request of an action goal.
+ * This callback is used to notify the result of an action in case of success.
  *
- * @param action_name The name of the action for which the goal is being requested.
- * @param json The JSON data representing the goal request.
+ * @param action_name The name of the action for which the result is being notified.
+ * @param json The JSON data representing the result of the action.
  * @param goal_id The unique identifier of the goal associated with the action.
- * @param publish_time The time at which the goal request was published.
- * @param status_code The status code as a place holder for the current state of the action.
+ * @param publish_time The time at which the result was published.
  */
-typedef bool (*RosActionGoalRequestNotification)(
-    const char* action_name,
-    const char* json,
-    const UUID& goal_id,
-    int64_t publish_time);
+typedef void (*ActionResultNotification)(
+        const char* action_name,
+        const char* json,
+        const UUID& goal_id,
+        int64_t publish_time);
 
 /**
  * @brief Callback for requesting the action types.
@@ -316,7 +345,7 @@ typedef bool (*RosActionGoalRequestNotification)(
  * @param result_reply_action_serialized_qos The serialized Quality of Service (QoS) settings for the get result reply action.
  * @param feedback_action_serialized_qos The serialized Quality of Service (QoS) settings for the feedback action.
  */
-typedef bool (*RosActionTypeRequest)(
+typedef bool (*ActionTypeQuery)(
     const char* action_name,
     char*& goal_request_action_type,
     char*& goal_reply_action_type,
@@ -335,31 +364,15 @@ typedef bool (*RosActionTypeRequest)(
     char*& feedback_action_serialized_qos,
     char*& status_action_serialized_qos);
 
-/**
- * @brief Callback for notification of an action cancel request.
- *
- * This callback is used to notify the request to cancel an action goal.
- *
- * @param action_name The name of the action for which the cancel request is being made.
- * @param goal_id The unique identifier of the goal associated with the action.
- * @param publish_time The time at which the cancel request was published.
- * @param status_code The status code as a place holder for the current state of the action.
- */
-typedef void (*RosActionCancelRequestNotification)(
-    const char* action_name,
-    const UUID& goal_id,
-    int64_t publish_time,
-    STATUS_CODE& status_code);
-
 struct actionCallbacks
 {
-    participants::RosActionNotification action_callback = nullptr;
-    participants::RosActionResultNotification result_callback = nullptr;
-    participants::RosActionFeedbackNotification feedback_callback = nullptr;
-    participants::RosActionStatusNotification status_callback = nullptr;
-    participants::RosActionGoalRequestNotification goal_request_callback = nullptr;
-    participants::RosActionTypeRequest type_req_callback = nullptr;
-    participants::RosActionCancelRequestNotification cancel_request_callback = nullptr;
+    participants::ActionNotification action_callback = nullptr;
+    participants::ActionResultNotification result_callback = nullptr;
+    participants::ActionFeedbackNotification feedback_callback = nullptr;
+    participants::ActionStatusNotification status_callback = nullptr;
+    participants::ActionGoalRequestNotification goal_request_callback = nullptr;
+    participants::ActionTypeQuery type_req_callback = nullptr;
+    participants::ActionCancelRequestNotification cancel_request_callback = nullptr;
 };
 
 } /* namespace participants */

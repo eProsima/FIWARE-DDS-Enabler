@@ -76,39 +76,45 @@ public:
     }
 
     void set_service_type_request_callback(
-            ServiceTypeRequest callback)
+            ServiceTypeQuery callback)
     {
         service_type_request_callback_ = callback;
     }
 
     void set_action_callback(
-            RosActionNotification callback)
+            ActionNotification callback)
     {
         action_callback_ = callback;
     }
 
     void set_action_result_callback(
-            RosActionResultNotification callback)
+            ActionResultNotification callback)
     {
         action_result_callback_ = callback;
     }
 
     void set_action_feedback_callback(
-            RosActionFeedbackNotification callback)
+            ActionFeedbackNotification callback)
     {
         action_feedback_callback_ = callback;
     }
 
     void set_action_status_callback(
-            RosActionStatusNotification callback)
+            ActionStatusNotification callback)
     {
         action_status_callback_ = callback;
     }
 
     void set_action_goal_request_notification_callback(
-            RosActionGoalRequestNotification callback)
+            ActionGoalRequestNotification callback)
     {
         action_goal_request_notification_callback_ = callback;
+    }
+
+    void set_action_cancel_request_notification_callback(
+            ActionCancelRequestNotification callback)
+    {
+        action_cancel_request_notification_callback_ = callback;
     }
 
     void write_schema(
@@ -161,7 +167,7 @@ public:
     void write_action_cancel_reply(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
-            const UUID& action_id);
+            const uint64_t request_id);
 
     void write_action_status(
             const CBMessage& msg,
@@ -223,12 +229,13 @@ protected:
     ServiceNotification service_callback_;
     ServiceReplyNotification reply_callback_;
     ServiceRequestNotification request_callback_;
-    ServiceTypeRequest service_type_request_callback_;
-    RosActionNotification action_callback_;
-    RosActionResultNotification action_result_callback_;
-    RosActionFeedbackNotification action_feedback_callback_;
-    RosActionStatusNotification action_status_callback_;
-    RosActionGoalRequestNotification action_goal_request_notification_callback_;
+    ServiceTypeQuery service_type_request_callback_;
+    ActionNotification action_callback_;
+    ActionResultNotification action_result_callback_;
+    ActionFeedbackNotification action_feedback_callback_;
+    ActionStatusNotification action_status_callback_;
+    ActionGoalRequestNotification action_goal_request_notification_callback_;
+    ActionCancelRequestNotification action_cancel_request_notification_callback_;
 
     std::function<bool(const std::string&, const UUID&)> is_UUID_active_callback_;
     std::function<void(const UUID&)> erase_action_UUID_callback_;

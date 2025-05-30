@@ -62,6 +62,37 @@ TEST_F(DDSEnablerTest, manual_service_discovery)
     std::cout << "Service available" << std::endl;
 }
 
+TEST_F(DDSEnablerTest, manual_request)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    std::string json = "{\"a\": 1, \"b\": 2}";
+    std::string service_name = "add_two_ints";
+    uint64_t request_id = 0;
+    ASSERT_FALSE(enabler->send_service_request(service_name, json, request_id));
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    int sent_requests = 0;
+    while(sent_requests < 3)
+    {
+        if(!enabler->send_service_request(service_name, json, request_id))
+        {
+            std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
+        }
+        sent_requests++;
+
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        ASSERT_EQ(get_received_reply(), request_id);
+        request_id = 0;
+    }
+}
+
+
 TEST_F(DDSEnablerTest, manual_reply)
 {
     auto enabler = create_ddsenabler();
@@ -102,36 +133,6 @@ TEST_F(DDSEnablerTest, manual_reply)
     std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
-TEST_F(DDSEnablerTest, manual_request)
-{
-    auto enabler = create_ddsenabler();
-    ASSERT_TRUE(enabler != nullptr);
-
-    std::string json = "{\"a\": 1, \"b\": 2}";
-    std::string service_name = "add_two_ints";
-    uint64_t request_id = 0;
-    ASSERT_FALSE(enabler->send_service_request(service_name, json, request_id));
-
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-    // Get time for later timeout
-    auto start_time = std::chrono::steady_clock::now();
-    int sent_requests = 0;
-    while(sent_requests < 3)
-    {
-        if(!enabler->send_service_request(service_name, json, request_id))
-        {
-            std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF ROS2 ADD TWO INTS SERVER)..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            continue;
-        }
-        sent_requests++;
-
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        ASSERT_EQ(get_received_reply(), request_id);
-        request_id = 0;
-    }
-}
-
 TEST_F(DDSEnablerTest, manual_action_discovery)
 {
     auto enabler = create_ddsenabler();
@@ -170,7 +171,7 @@ TEST_F(DDSEnablerTest, manual_action_client)
     }
     std::cout << "Action available" << std::endl;
 
-    ASSERT_FALSE(enabler->cancel_action_goal(action_name, UUID()));
+    ASSERT_FALSE(enabler->cancel_action_goal(action_name, RpcUtils::generate_UUID(), 0));
 
     int sent_requests = 0;
     while(sent_requests < 3)
@@ -211,7 +212,7 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    std::string json = "{\"order\": 10}";
+    std::string json = "{\"order\": 20}";
     std::string action_name = "fibonacci/_action/";
     UUID action_id;
 
@@ -239,7 +240,7 @@ TEST_F(DDSEnablerTest, manual_action_client_cancel)
     ASSERT_TRUE(wait_for_feedback(received_action_feedbacks, received_action_id));
     ASSERT_EQ(received_action_id, action_id);
 
-    ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id));
+    ASSERT_TRUE(enabler->cancel_action_goal(action_name, action_id, 0));
     ASSERT_TRUE(wait_for_status_update(action_id, status, STATUS_CODE::STATUS_CANCELED));
 }
 // TODO test being requested tp cancel action goal
@@ -302,6 +303,66 @@ TEST_F(DDSEnablerTest, manual_action_server)
             request_uuid,
             eprosima::ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED,
             json.c_str()));
+        received_requests++;
+    }
+
+    ASSERT_TRUE(enabler->revoke_action(action_name));
+    ASSERT_FALSE(enabler->revoke_action(action_name));
+}
+
+TEST_F(DDSEnablerTest, manual_action_server_cancel)
+{
+    auto enabler = create_ddsenabler();
+    ASSERT_TRUE(enabler != nullptr);
+
+    // Get time for later timeout
+    auto start_time = std::chrono::steady_clock::now();
+    std::string action_name = "fibonacci/_action/";
+
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+
+    ASSERT_FALSE(enabler->revoke_action(action_name));
+
+    ASSERT_TRUE(enabler->announce_action(action_name));
+
+    ASSERT_FALSE(enabler->announce_action(action_name));
+
+    uint16_t received_requests = 0;
+    UUID request_uuid;
+    std::cout << "Waiting for service to be available (REQUIRED MANUAL LAUNCH OF FIBONACCI CLIENT)..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    while(received_requests < 3)
+    {
+        uint64_t fibonacci_number = 0;
+        ASSERT_TRUE(wait_for_action_request_notification(fibonacci_number, request_uuid, 100));
+        ASSERT_TRUE(enabler->update_action_status(
+            action_name.c_str(),
+            request_uuid,
+            eprosima::ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING));
+        std::string feedback_json = "{\"partial_sequence\": [0]}";
+        ASSERT_TRUE(enabler->send_action_feedback(
+            action_name.c_str(),
+            feedback_json.c_str(),
+            request_uuid));
+        std::cout << "Waiting for action cancel request" << std::endl;
+        uint64_t cancel_request_id = 0;
+        ASSERT_TRUE(wait_for_action_cancel_request(cancel_request_id));
+        ASSERT_TRUE(enabler->send_action_cancel_goal_reply(
+            action_name.c_str(),
+            std::vector<UUID>{request_uuid},
+            eprosima::ddsenabler::participants::CANCEL_CODE::ERROR_NONE,
+            cancel_request_id));
+        ASSERT_TRUE(enabler->update_action_status(
+            action_name.c_str(),
+            request_uuid,
+            eprosima::ddsenabler::participants::STATUS_CODE::STATUS_CANCELED));
+        std::string canceled_result_json = "{\"sequence\": []}";
+        ASSERT_TRUE(enabler->send_action_result(
+            action_name.c_str(),
+            request_uuid,
+            eprosima::ddsenabler::participants::STATUS_CODE::STATUS_CANCELED,
+            canceled_result_json.c_str()));
         received_requests++;
     }
 

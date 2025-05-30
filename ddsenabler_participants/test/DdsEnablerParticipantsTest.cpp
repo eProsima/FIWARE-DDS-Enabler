@@ -97,7 +97,7 @@ public:
     using participants::CBHandler::cb_writer_;
     using participants::CBHandler::unique_sequence_number_;
 
-    // eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
+    // eprosima::ddsenabler::participants::DdsTypeQuery type_req_callback;
     static bool test_type_request_callback(
             const char* typeName,
             unsigned char*& serializedTypeInternal,

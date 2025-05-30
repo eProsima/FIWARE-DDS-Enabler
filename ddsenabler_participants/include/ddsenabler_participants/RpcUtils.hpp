@@ -131,19 +131,19 @@ bool load_type_from_file(
     uint32_t& serializedTypeInternalSize);
 
 void save_service_to_file(
-    const char* serviceName,
-    const char* requestTypeName,
-    const char* replyTypeName,
-    const char* requestSerializedQos,
-    const char* replySerializedQos,
+    const char* service_name,
+    const char* request_type_name,
+    const char* reply_type_name,
+    const char* request_serialized_qos,
+    const char* reply_serialized_qos,
     const std::string& filename);
 
 bool load_service_from_file(
-    const char* serviceName,
-    char*& requestTypeName,
-    char*& replyTypeName,
-    char*& requestSerializedQos,
-    char*& replySerializedQos,
+    const char* service_name,
+    char*& request_type_name,
+    char*& reply_type_name,
+    char*& request_serialized_qos,
+    char*& reply_serialized_qos,
     const std::string& filename);
 
 void save_action_to_file(

@@ -89,7 +89,7 @@ public:
     }
 
     void set_type_request_callback(
-            participants::DdsTypeRequest callback)
+            participants::DdsTypeQuery callback)
     {
         cb_handler_->set_type_request_callback(callback);
     }
@@ -112,47 +112,52 @@ public:
         cb_handler_->set_request_callback(callback);
     }
 
-    // TODO rename request of service (rq) to distinguish from request to broker
     void set_service_request_callback(
-                participants::ServiceTypeRequest callback)
+                participants::ServiceTypeQuery callback)
     {
         enabler_participant_->set_service_request_callback(callback);
     }
 
     void set_action_callback(
-            participants::RosActionNotification callback)
+            participants::ActionNotification callback)
     {
         cb_handler_->set_action_callback(callback);
     }
 
     void set_action_result_callback(
-            participants::RosActionResultNotification callback)
+            participants::ActionResultNotification callback)
     {
         cb_handler_->set_action_result_callback(callback);
     }
 
     void set_action_feedback_callback(
-            participants::RosActionFeedbackNotification callback)
+            participants::ActionFeedbackNotification callback)
     {
         cb_handler_->set_action_feedback_callback(callback);
     }
 
     void set_action_status_callback(
-            participants::RosActionStatusNotification callback)
+            participants::ActionStatusNotification callback)
     {
         cb_handler_->set_action_status_callback(callback);
     }
 
     void set_action_request_callback(
-            participants::RosActionTypeRequest callback)
+            participants::ActionTypeQuery callback)
     {
         enabler_participant_->set_action_request_callback(callback);
     }
 
     void set_action_goal_request_notification_callback(
-            participants::RosActionGoalRequestNotification callback)
+            participants::ActionGoalRequestNotification callback)
     {
         cb_handler_->set_action_goal_request_notification_callback(callback);
+    }
+
+    void set_action_cancel_request_notification_callback(
+            participants::ActionCancelRequestNotification callback)
+    {
+        cb_handler_->set_action_cancel_request_notification_callback(callback);
     }
 
     /**
@@ -174,7 +179,6 @@ public:
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
 
-    // TODO
     bool publish(
             const std::string& topic_name,
             const std::string& json);
@@ -317,6 +321,12 @@ public:
         const participants::STATUS_CODE& status_code,
         const char* json);
 
+    bool send_action_cancel_goal_reply(
+        const char* action_name,
+        const std::vector<participants::UUID>& goal_ids,
+        const participants::CANCEL_CODE& cancel_code,
+        const uint64_t request_id);
+
      /**
       * @brief Publishes an update for the status of an action.
       *
@@ -363,20 +373,24 @@ public:
     /**
      * @brief Cancels an action goal for the specified action.
      *
-     * This function cancels an action goal identified by the given goal ID for the specified action.
-     * It returns a boolean indicating whether the operation was successful.
-     * Failure may occur if the goal ID is not valid or if the action server was not previously created.
+     * This function sends a request to an action server to cancel:
+     *     If the goal ID is empty and timestamp is zero, cancel all goals
+     *     If the goal ID is empty and timestamp is not zero, cancel all goals accepted at or before the timestamp
+     *     If the goal ID is not empty and timestamp is zero, cancel the goal with the given ID regardless of the time it was accepted
+     *     If the goal ID is not empty and timestamp is not zero, cancel the goal with the given ID and all goals accepted at or before the timestamp
      * The success of the operation only indicates that the cancel request was sent, not that it was processed.
-     * The actual cancellation of the goal would be notified via a status update.
+     * The actual cancellation of the goals would be notified via a status update of each individual action.
      *
      * @param action_name The name of the action for which the goal is to be canceled.
-     * @param goal_id The unique identifier of the action goal to be canceled.
+     * @param goal_id The unique identifier of the action goal to be canceled or empty to cancel all goals.
+     * @param timestamp The acceptance timestamp of the goal to be canceled.
      *
-     * @return true if the cancel action request was successfully canceled, false otherwise.
+     * @return true if the cancel action request was successfully sent, false otherwise.
      */
     bool cancel_action_goal(
             const std::string& action_name,
-            const participants::UUID& goal_id);
+            const participants::UUID& goal_id,
+            const int64_t timestamp);
 
 protected:
 

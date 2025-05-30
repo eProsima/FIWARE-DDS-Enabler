@@ -81,6 +81,7 @@ struct ActionRequestInfo
             RpcUtils::ActionType action_type,
             uint64_t request_id)
             : action_name(_action_name)
+            , goal_accepted_stamp(std::chrono::system_clock::now())
     {
         set_request(request_id, action_type);
     }
@@ -97,9 +98,6 @@ struct ActionRequestInfo
             case RpcUtils::ActionType::RESULT:
                 result_request_id = request_id;
                 break;
-            case RpcUtils::ActionType::CANCEL:
-                cancel_request_id = request_id;
-                break;
             default:
                 break;
         }
@@ -115,8 +113,6 @@ struct ActionRequestInfo
                 return goal_request_id;
             case RpcUtils::ActionType::RESULT:
                 return result_request_id;
-            case RpcUtils::ActionType::CANCEL:
-                return cancel_request_id;
             default:
                 return 0;
         }
@@ -134,10 +130,10 @@ struct ActionRequestInfo
 
     std::string action_name;
     uint64_t goal_request_id = 0;
-    uint64_t cancel_request_id = 0;
     uint64_t result_request_id = 0;
+    std::chrono::system_clock::time_point goal_accepted_stamp;
     std::string result;
-    int erased{2}; // 2: End Status & End Result not received yet, 1: One of them received, 0: both received, erase the action
+    int erased{2}; // 2: End Status & Result not received yet, 1: One of them received, 0: both received, erase the action
 };
 
 /**
@@ -220,7 +216,7 @@ public:
             ddspipe::core::types::Payload& payload);
 
     DDSENABLER_PARTICIPANTS_DllAPI
-    void store_action_request(
+    bool store_action_request(
             const std::string& action_name,
             const UUID& action_id,
             const uint64_t request_id,
@@ -237,16 +233,32 @@ public:
                         "Action name mismatch for action_id " << action_id
                         << ": expected " << it->second.action_name
                         << ", got " << action_name);
-                return;
+                return false;
+            }
+            if (RpcUtils::ActionType::GOAL == action_type)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                        "Cannot store action goal request for action_id " << action_id
+                        << ": action already exists.");
+                return false;
             }
             // If it exists, update the request_id for the given action_type
             it->second.set_request(request_id, action_type);
         }
         else
         {
-            // If it does not exist, create a new entry
+            // If it does not exist, create a new entry only if the action type is goal request
+            if (RpcUtils::ActionType::GOAL != action_type)
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                        "Cannot store action request for action_id " << action_id
+                        << ": action does not exist and request type is not GOAL.");
+                return false;
+            }
             action_request_id_to_uuid_[action_id] = ActionRequestInfo(action_name, action_type, request_id);
         }
+
+        return true;
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -312,12 +324,19 @@ public:
     DDSENABLER_PARTICIPANTS_DllAPI
     bool is_UUID_active(
             const std::string& action_name,
-            const UUID& action_id)
+            const UUID& action_id,
+            std::chrono::system_clock::time_point* goal_accepted_stamp = nullptr)
     {
         std::lock_guard<std::recursive_mutex> lock(mtx_action_);
         auto it = action_request_id_to_uuid_.find(action_id);
         if (it != action_request_id_to_uuid_.end() && action_name == it->second.action_name)
+        {
+            if (goal_accepted_stamp)
+            {
+                *goal_accepted_stamp = it->second.goal_accepted_stamp;
+            }
             return true;
+        }
 
         return false;
     }
@@ -345,7 +364,7 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_request_callback(
-            participants::DdsTypeRequest callback)
+            participants::DdsTypeQuery callback)
     {
         type_req_callback_ = callback;
     }
@@ -373,28 +392,28 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_callback(
-            participants::RosActionNotification callback)
+            participants::ActionNotification callback)
     {
         cb_writer_->set_action_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_result_callback(
-            participants::RosActionResultNotification callback)
+            participants::ActionResultNotification callback)
     {
         cb_writer_->set_action_result_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_feedback_callback(
-            participants::RosActionFeedbackNotification callback)
+            participants::ActionFeedbackNotification callback)
     {
         cb_writer_->set_action_feedback_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_status_callback(
-            participants::RosActionStatusNotification callback)
+            participants::ActionStatusNotification callback)
     {
         cb_writer_->set_action_status_callback(callback);
     }
@@ -408,9 +427,16 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_goal_request_notification_callback(
-            participants::RosActionGoalRequestNotification callback)
+            participants::ActionGoalRequestNotification callback)
     {
         cb_writer_->set_action_goal_request_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_cancel_request_notification_callback(
+            participants::ActionCancelRequestNotification callback)
+    {
+        cb_writer_->set_action_cancel_request_notification_callback(callback);
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
@@ -422,7 +448,7 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_get_result_reply_callback(
-        std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
+            std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
     {
         send_action_get_result_reply_callback_ = callback;
     }
@@ -508,7 +534,7 @@ protected:
     void write_action_cancel_reply_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
-            const UUID& action_id);
+            const uint64_t request_id);
 
     void write_action_status_(
             const CBMessage& msg,
@@ -546,7 +572,7 @@ protected:
     //! Mutex synchronizing access to action related data structures
     std::recursive_mutex mtx_action_;
 
-    DdsTypeRequest type_req_callback_;
+    DdsTypeQuery type_req_callback_;
 
     //! Counter of received requests
     uint64_t received_requests_id_{0};

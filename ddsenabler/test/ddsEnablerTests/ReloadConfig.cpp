@@ -36,18 +36,18 @@ void test_data_callback(
 
 // eprosima::ddsenabler::participants::ServiceReplyNotification reply_callback;
 void test_reply_callback(
-        const char* serviceName,
+        const char* service_name,
         const char* json,
-        uint64_t requestId,
+        uint64_t request_id,
         int64_t publishTime)
 {
 }
 
 // eprosima::ddsenabler::participants::ServiceRequestNotification request_callback;
 void test_request_callback(
-        const char* serviceName,
+        const char* service_name,
         const char* json,
-        uint64_t requestId,
+        uint64_t request_id,
         int64_t publishTime)
 {
 }
@@ -79,7 +79,7 @@ bool test_topic_request_callback(
     return true;
 }
 
-// eprosima::ddsenabler::participants::DdsTypeRequest type_req_callback;
+// eprosima::ddsenabler::participants::DdsTypeQuery type_req_callback;
 bool test_type_request_callback(
         const char* typeName,
         unsigned char*& serializedTypeInternal,

@@ -286,14 +286,14 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_request_callback(
-            participants::ServiceTypeRequest callback)
+            participants::ServiceTypeQuery callback)
     {
         service_req_callback_ = callback;
     }
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_request_callback(
-            participants::RosActionTypeRequest callback)
+            participants::ActionTypeQuery callback)
     {
         action_req_callback_ = callback;
     }
@@ -382,9 +382,9 @@ protected:
 
     DdsTopicRequest topic_req_callback_;
 
-    ServiceTypeRequest service_req_callback_;
+    ServiceTypeQuery service_req_callback_;
 
-    RosActionTypeRequest action_req_callback_;
+    ActionTypeQuery action_req_callback_;
 };
 
 } /* namespace participants */

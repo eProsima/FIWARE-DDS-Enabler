@@ -206,11 +206,8 @@ void CBHandler::add_data(
 
         case RpcUtils::RpcType::ACTION_CANCEL_REPLY:
         {
-            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
-            UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::CANCEL, action_id_uuid))
-                write_action_cancel_reply_(msg, dyn_type, action_id_uuid);
-            erase_action_UUID(action_id_uuid);
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            write_action_cancel_reply_(msg, dyn_type, request_id);
             break;
         }
 
@@ -229,6 +226,7 @@ void CBHandler::add_data(
 
         // ACTIONS: CB AS SERVER
         case RpcUtils::RpcType::ACTION_GOAL_REQUEST:
+        case RpcUtils::RpcType::ACTION_CANCEL_REQUEST:
         {
             received_requests_id_++;
             RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
@@ -242,13 +240,16 @@ void CBHandler::add_data(
                         "Failed to extract UUID from send_goal_request JSON.");
                 return;
             }
-            store_action_request(
+
+            if (store_action_request(
                 rpc_name,
                 uuid,
                 received_requests_id_,
-                RpcUtils::ActionType::GOAL);
+                RpcUtils::get_action_type(rpc_type)))
+            {
+                write_action_request_(msg, dyn_type, received_requests_id_);
+            }
 
-            write_action_request_(msg, dyn_type, received_requests_id_);
             break;
         }
 
@@ -267,11 +268,17 @@ void CBHandler::add_data(
             received_requests_id_++;
             RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
             rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
-            store_action_request(
+            if (!store_action_request(
                 rpc_name,
                 uuid,
                 received_requests_id_,
-                RpcUtils::ActionType::RESULT);
+                RpcUtils::ActionType::RESULT))
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to store action request for get_result_request.");
+                return;
+            }
+
             std::string result;
             if (get_action_result(uuid, result))
             {
@@ -286,8 +293,6 @@ void CBHandler::add_data(
             }
             break;
         }
-
-        // TODO case RpcUtils::RpcType::ACTION_CANCEL_REQUEST:
 
         default:
             EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
@@ -441,9 +446,9 @@ void CBHandler::write_action_goal_reply_(
 void CBHandler::write_action_cancel_reply_(
     const CBMessage& msg,
     const fastdds::dds::DynamicType::_ref_type& dyn_type,
-    const UUID& action_id)
+    const uint64_t request_id)
 {
-    cb_writer_->write_action_cancel_reply(msg, dyn_type, action_id);
+    cb_writer_->write_action_cancel_reply(msg, dyn_type, request_id);
 }
 
 void CBHandler::write_action_status_(
