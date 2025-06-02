@@ -21,11 +21,13 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
-#include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <ddspipe_core/efficiency/payload/PayloadPool.hpp>
 #include <ddspipe_core/types/data/RtpsPayloadData.hpp>
+#include <ddspipe_core/types/data/RpcPayloadData.hpp>
 #include <ddspipe_core/types/dds/Payload.hpp>
 #include <ddspipe_core/types/topic/dds/DdsTopic.hpp>
 
@@ -35,6 +37,7 @@
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
 #include <ddsenabler_participants/CBWriter.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
 
 namespace std {
@@ -52,11 +55,86 @@ struct hash<eprosima::fastdds::dds::xtypes::TypeIdentifier>
 
 };
 
+template<>
+struct hash<eprosima::ddsenabler::participants::UUID> {
+    std::size_t operator()(const eprosima::ddsenabler::participants::UUID& uuid) const noexcept {
+        std::size_t hash = 0;
+        for (uint8_t byte : uuid) {
+            hash ^= std::hash<uint8_t>{}(byte) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+        }
+        return hash;
+    }
+};
+
 } // std
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
+
+struct ActionRequestInfo
+{
+    ActionRequestInfo() = default;
+
+    ActionRequestInfo(
+            const std::string& _action_name,
+            RpcUtils::ActionType action_type,
+            uint64_t request_id)
+            : action_name(_action_name)
+            , goal_accepted_stamp(std::chrono::system_clock::now())
+    {
+        set_request(request_id, action_type);
+    }
+
+    void set_request(
+            uint64_t request_id,
+            RpcUtils::ActionType action_type)
+    {
+        switch (action_type)
+        {
+            case RpcUtils::ActionType::GOAL:
+                goal_request_id = request_id;
+                break;
+            case RpcUtils::ActionType::RESULT:
+                result_request_id = request_id;
+                break;
+            default:
+                break;
+        }
+        return;
+    }
+
+    uint64_t get_request(
+            RpcUtils::ActionType action_type) const
+    {
+        switch (action_type)
+        {
+            case RpcUtils::ActionType::GOAL:
+                return goal_request_id;
+            case RpcUtils::ActionType::RESULT:
+                return result_request_id;
+            default:
+                return 0;
+        }
+    }
+
+    bool set_result(const std::string&& str)
+    {
+        if (str.empty() || !result.empty())
+        {
+            return false; // Cannot set string if already set or empty
+        }
+        result = std::move(str);
+        return true;
+    }
+
+    std::string action_name;
+    uint64_t goal_request_id = 0;
+    uint64_t result_request_id = 0;
+    std::chrono::system_clock::time_point goal_accepted_stamp;
+    std::string result;
+    int erased{2}; // 2: End Status & Result not received yet, 1: One of them received, 0: both received, erase the action
+};
 
 /**
  * Class that manages the interaction between \c EnablerParticipant and CB.
@@ -108,6 +186,15 @@ public:
     void add_topic(
             const ddspipe::core::types::DdsTopic& topic);
 
+    // TODO documentation
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void add_service(
+            const ddspipe::core::types::RpcTopic& service);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void add_action(
+            const RpcUtils::RpcAction& action);
+
     /**
      * @brief Add a data sample, associated to the given \c topic.
      *
@@ -144,6 +231,30 @@ public:
             const std::string& type_name,
             const std::string& json,
             ddspipe::core::types::Payload& payload);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool store_action_request(
+            const std::string& action_name,
+            const UUID& action_id,
+            const uint64_t request_id,
+            const RpcUtils::ActionType action_type);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool store_action_result(
+            const std::string& action_name,
+            const UUID& action_id,
+            const std::string& result);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void erase_action_UUID(
+            const UUID& action_id,
+            bool force_erase = false);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool is_UUID_active(
+            const std::string& action_name,
+            const UUID& action_id,
+            std::chrono::system_clock::time_point* goal_accepted_stamp = nullptr);
 
     /**
      * @brief Set the data notification callback.
@@ -193,7 +304,100 @@ public:
         type_query_callback_ = callback;
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_notification_callback(
+            participants::ServiceNotification callback)
+    {
+        cb_writer_->set_service_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_reply_notification_callback(
+            participants::ServiceReplyNotification callback)
+    {
+        cb_writer_->set_service_reply_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_request_notification_callback(
+            participants::ServiceRequestNotification callback)
+    {
+        cb_writer_->set_service_request_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_notification_callback(
+            participants::ActionNotification callback)
+    {
+        cb_writer_->set_action_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_result_notification_callback(
+            participants::ActionResultNotification callback)
+    {
+        cb_writer_->set_action_result_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_feedback_notification_callback(
+            participants::ActionFeedbackNotification callback)
+    {
+        cb_writer_->set_action_feedback_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_status_notification_callback(
+            participants::ActionStatusNotification callback)
+    {
+        cb_writer_->set_action_status_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_send_action_get_result_request_callback(
+            std::function<bool(const std::string&, const participants::UUID&)> callback)
+    {
+        cb_writer_->set_send_action_get_result_request_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_goal_request_notification_callback(
+            participants::ActionGoalRequestNotification callback)
+    {
+        cb_writer_->set_action_goal_request_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_cancel_request_notification_callback(
+            participants::ActionCancelRequestNotification callback)
+    {
+        cb_writer_->set_action_cancel_request_notification_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_send_action_send_goal_reply_callback(
+            std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
+    {
+        cb_writer_->set_send_action_send_goal_reply_callback(callback);
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_send_action_get_result_reply_callback(
+            std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
+    {
+        send_action_get_result_reply_callback_ = callback;
+    }
+
 protected:
+
+    bool pop_action_request_UUID(
+                const uint64_t request_id,
+                const RpcUtils::ActionType action_type,
+                UUID& action_id);
+
+    bool get_action_result(
+            const UUID& action_id,
+            std::string& result);
 
     /**
      * @brief Add a schema, associated to the given \c dyn_type and \c type_id.
@@ -238,6 +442,11 @@ protected:
     void write_topic_nts_(
             const ddspipe::core::types::DdsTopic& topic);
 
+    void write_service_nts_(
+            const ddspipe::core::types::RpcTopic& service);
+
+    void write_action_nts_(
+            const RpcUtils::RpcAction& action);
     /**
      * @brief Write to CB.
      *
@@ -247,6 +456,44 @@ protected:
     void write_sample_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void write_service_reply_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
+    void write_service_request_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
+    void write_action_result_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_feedback_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void write_action_goal_reply_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const UUID& action_id);
+
+    void write_action_cancel_reply_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
+
+    void write_action_status_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type);
+
+    void write_action_request_nts_(
+            const CBMessage& msg,
+            const fastdds::dds::DynamicType::_ref_type& dyn_type,
+            const uint64_t request_id);
 
     /**
      * @brief Register a type using the given serialized type data.
@@ -282,10 +529,18 @@ protected:
     unsigned int unique_sequence_number_{0};
 
     //! Mutex synchronizing access to object's data structures
-    std::mutex mtx_;
+    std::recursive_mutex mtx_;
 
     //! Callback to request types from the user
     DdsTypeQuery type_query_callback_;
+
+    //! Counter of received requests
+    uint64_t received_requests_id_{0};
+
+    //! Map of any action services to the action's UUID
+    std::unordered_map<participants::UUID, ActionRequestInfo> action_request_id_to_uuid_;
+
+    std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> send_action_get_result_reply_callback_;
 };
 
 } /* namespace participants */

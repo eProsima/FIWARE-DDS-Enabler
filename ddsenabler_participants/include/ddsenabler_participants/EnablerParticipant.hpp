@@ -21,17 +21,229 @@
 #include <condition_variable>
 #include <map>
 #include <mutex>
+#include <optional>
 
 #include <ddspipe_participants/participant/dynamic_types/SchemaParticipant.hpp>
-#include <ddspipe_participants/reader/auxiliar/InternalReader.hpp>
 
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/EnablerParticipantConfiguration.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
+#include <ddsenabler_participants/InternalRpcReader.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
+
 
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
+
+struct ServiceDiscovered
+{
+
+    ServiceDiscovered(const std::string& service_name)
+        : service_name(service_name)
+    {
+    }
+
+    std::string service_name;
+
+    ddspipe::core::types::DdsTopic topic_request;
+    bool request_discovered{false};
+
+    ddspipe::core::types::DdsTopic topic_reply;
+    bool reply_discovered{false};
+
+    std::optional<ddspipe::core::types::RpcTopic> rpc_topic;
+    bool fully_discovered{false};
+
+    std::optional<ddspipe::core::types::Endpoint> endpoint_request;
+    bool enabler_as_server{false};
+
+    bool add_topic(
+            const ddspipe::core::types::DdsTopic& topic,
+            RpcUtils::RpcType rpc_type)
+    {
+        if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+        {
+                if(request_discovered)
+                        return false;
+                topic_request = topic;
+                request_discovered = true;
+        }
+        else
+        {
+                if(reply_discovered)
+                        return false;
+                topic_reply = topic;
+                reply_discovered = true;
+        }
+
+        if(request_discovered && reply_discovered)
+        {
+                if (service_name.empty())
+                {
+                        // TODO handle error
+                        return false;
+                }
+                fully_discovered = true;
+                rpc_topic = std::make_optional<ddspipe::core::types::RpcTopic>(
+                    service_name,
+                    topic_request,
+                    topic_reply);
+                return true;
+        }
+
+        return false;
+    }
+
+    bool remove_topic(RpcUtils::RpcType rpc_type)
+    {
+        if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+        {
+            request_discovered = false;
+            topic_request = ddspipe::core::types::DdsTopic();
+        }
+        else
+        {
+            reply_discovered = false;
+            topic_reply = ddspipe::core::types::DdsTopic();
+        }
+
+        fully_discovered = false;
+        rpc_topic = std::nullopt;
+
+        return true;
+    }
+
+    ddspipe::core::types::RpcTopic get_service()
+    {
+        if(!fully_discovered || rpc_topic == std::nullopt)
+            throw std::runtime_error("Service not fully discovered");
+        return rpc_topic.value();
+    }
+
+    bool get_topic(
+            const RpcUtils::RpcType& rpc_type,
+            ddspipe::core::types::DdsTopic& topic)
+    {
+        if(rpc_type == RpcUtils::RpcType::RPC_REQUEST)
+        {
+            if(!request_discovered)
+                return false;
+            topic = topic_request;
+            return true;
+        }
+        if (rpc_type == RpcUtils::RpcType::RPC_REPLY)
+        {
+            if(!reply_discovered)
+                return false;
+            topic = topic_reply;
+            return true;
+        }
+        return false;
+    }
+};
+
+struct ActionDiscovered
+{
+    ActionDiscovered(const std::string& action_name)
+        : action_name(action_name)
+    {
+    }
+
+    std::string action_name;
+    std::weak_ptr<ServiceDiscovered> goal;
+    std::weak_ptr<ServiceDiscovered> result;
+    std::weak_ptr<ServiceDiscovered> cancel;
+    ddspipe::core::types::DdsTopic feedback;
+    bool feedback_discovered{false};
+    ddspipe::core::types::DdsTopic status;
+    bool status_discovered{false};
+    bool fully_discovered{false};
+    bool enabler_as_server{false};
+
+    bool check_fully_discovered()
+    {
+        auto g = goal.lock();
+        auto r = result.lock();
+        auto c = cancel.lock();
+
+        if (g && r && c &&
+            g->fully_discovered && r->fully_discovered && c->fully_discovered &&
+            feedback_discovered && status_discovered)
+        {
+            fully_discovered = true;
+            return true;
+        }
+        fully_discovered = false;
+        return false;
+    }
+
+    bool add_service(
+            std::shared_ptr<ServiceDiscovered> service,
+            RpcUtils::RpcType rpc_type)
+    {
+        switch (rpc_type)
+        {
+            case RpcUtils::RpcType::ACTION_GOAL_REQUEST:
+            case RpcUtils::RpcType::ACTION_GOAL_REPLY:
+                goal = service;
+                break;
+            case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
+            case RpcUtils::RpcType::ACTION_RESULT_REPLY:
+                result = service;
+                break;
+            case RpcUtils::RpcType::ACTION_CANCEL_REQUEST:
+            case RpcUtils::RpcType::ACTION_CANCEL_REPLY:
+                cancel = service;
+                break;
+            default:
+                return false;
+        }
+        return true;
+    }
+
+
+    bool add_topic(
+            const ddspipe::core::types::DdsTopic& topic,
+            RpcUtils::RpcType rpc_type)
+    {
+        switch (rpc_type)
+        {
+            case RpcUtils::RpcType::ACTION_FEEDBACK:
+                feedback = topic;
+                feedback_discovered = true;
+                break;
+            case RpcUtils::RpcType::ACTION_STATUS:
+                status = topic;
+                status_discovered = true;
+                break;
+            default:
+                return false;
+        }
+
+        return true;
+    }
+
+    RpcUtils::RpcAction get_action(const std::string& action_name)
+    {
+        auto g = goal.lock();
+        auto r = result.lock();
+        auto c = cancel.lock();
+
+        if (!fully_discovered || !g || !r || !c)
+            throw std::runtime_error("Action not fully discovered or ServiceDiscovered expired");
+
+        return RpcUtils::RpcAction(
+            action_name,
+            g->get_service(),
+            r->get_service(),
+            c->get_service(),
+            feedback,
+            status);
+    }
+};
+
+
 
 class EnablerParticipant : public ddspipe::participants::SchemaParticipant
 {
@@ -45,6 +257,12 @@ public:
             std::shared_ptr<ddspipe::participants::ISchemaHandler> schema_handler);
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    bool is_rtps_kind() const noexcept override
+    {
+        return true; // Temporal workaround until Pipe refactor
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     std::shared_ptr<ddspipe::core::IReader> create_reader(
             const ddspipe::core::ITopic& topic) override;
 
@@ -54,28 +272,118 @@ public:
             const std::string& json);
 
     DDSENABLER_PARTICIPANTS_DllAPI
+    bool publish_rpc(
+            const std::string&  topic_name,
+            const std::string& json,
+            const uint64_t request_id);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
     void set_topic_query_callback(
             participants::DdsTopicQuery callback)
     {
         topic_query_callback_ = callback;
     }
 
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_service_query_callback(
+            participants::ServiceTypeQuery callback)
+    {
+        service_query_callback_ = callback;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    void set_action_query_callback(
+            participants::ActionTypeQuery callback)
+    {
+        action_query_callback_ = callback;
+    }
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool announce_service(
+            const std::string& service_name);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool revoke_service(
+            const std::string& service_name);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool announce_action(
+            const std::string& action_name);
+
+    DDSENABLER_PARTICIPANTS_DllAPI
+    bool revoke_action(
+            const std::string& action_name);
+
 protected:
 
-    std::shared_ptr<ddspipe::participants::InternalReader> lookup_reader_nts_(
+    bool query_topic_nts_(
+            const std::string& topic_name,
+            ddspipe::core::types::DdsTopic& topic);
+
+    bool query_service_nts_(
+            std::shared_ptr<ServiceDiscovered> service);
+
+    bool query_action_nts_(
+            ActionDiscovered& action,
+            std::unique_lock<std::mutex>& lck);
+
+    ddspipe::core::types::Endpoint create_topic_writer_nts_(
+            const ddspipe::core::types::DdsTopic& topic,
+            std::shared_ptr<eprosima::ddspipe::core::IReader>& reader,
+            std::unique_lock<std::mutex>& lck);
+
+    bool create_service_request_writer_nts_(
+            std::shared_ptr<ServiceDiscovered> service,
+            std::unique_lock<std::mutex>& lck);
+
+    bool fullfill_topic_type_nts_(
+        const std::string& topic_name,
+        const std::string _type_name,
+        const std::string serialized_qos_content,
+        ddspipe::core::types::DdsTopic& topic);
+
+    bool fullfill_service_type_nts_(
+            const std::string _request_type_name,
+            const std::string serialized_request_qos_content,
+            const std::string _reply_type_name,
+            const std::string serialized_reply_qos_content,
+            std::shared_ptr<ServiceDiscovered> service);
+
+    std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name,
             std::string& type_name) const;
 
-    std::shared_ptr<ddspipe::participants::InternalReader> lookup_reader_nts_(
+    std::shared_ptr<ddspipe::core::IReader> lookup_reader_nts_(
             const std::string& topic_name) const;
 
-    std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::participants::InternalReader>> readers_;
+    bool service_discovered_nts_(
+            const std::string& service_name,
+            const ddspipe::core::types::DdsTopic& topic,
+            RpcUtils::RpcType rpc_type);
+
+    bool action_discovered_nts_(
+            const std::string& action_name,
+            const ddspipe::core::types::DdsTopic& topic,
+            RpcUtils::RpcType rpc_type);
+
+    bool revoke_service_nts_(
+            const std::string& service_name);
+
+    std::map<ddspipe::core::types::DdsTopic, std::shared_ptr<ddspipe::core::IReader>> readers_;
+
+    std::map<std::string, std::shared_ptr<ServiceDiscovered>> services_;
+
+    std::map<std::string, ActionDiscovered> actions_;
 
     std::mutex mtx_;
 
     std::condition_variable cv_;
 
     DdsTopicQuery topic_query_callback_;
+
+    ServiceTypeQuery service_query_callback_;
+
+    ActionTypeQuery action_query_callback_;
 };
 
 } /* namespace participants */

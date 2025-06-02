@@ -26,8 +26,8 @@
 #include <cpp_utils/exception/InconsistencyException.hpp>
 
 #include <ddsenabler_participants/serialization.hpp>
+#include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
-
 #include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {
@@ -46,6 +46,18 @@ CBHandler::CBHandler(
             "Creating CB handler instance.");
 
     cb_writer_ = std::make_unique<CBWriter>();
+
+    cb_writer_->set_is_UUID_active_callback(
+        [this](const std::string& action_name, const UUID& uuid) {
+            return this->is_UUID_active(action_name, uuid, nullptr);
+        }
+    );
+
+    cb_writer_->set_erase_action_UUID_callback(
+        [this](const UUID& uuid) {
+            return this->erase_action_UUID(uuid, false);
+        }
+    );
 }
 
 CBHandler::~CBHandler()
@@ -58,7 +70,7 @@ void CBHandler::add_schema(
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
         const fastdds::dds::xtypes::TypeIdentifier& type_id)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     add_schema_nts_(dyn_type, type_id);
 }
@@ -66,7 +78,7 @@ void CBHandler::add_schema(
 void CBHandler::add_topic(
         const DdsTopic& topic)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding topic: " << topic << ".");
@@ -74,11 +86,33 @@ void CBHandler::add_topic(
     write_topic_nts_(topic);
 }
 
+void CBHandler::add_service(
+        const RpcTopic& service)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+            "Adding service: " << service.service_name() << ".");
+
+    write_service_nts_(service);
+}
+
+void CBHandler::add_action(
+        const RpcUtils::RpcAction& action)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+
+    EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
+            "Adding action: " << action.action_name << ".");
+
+    write_action_nts_(action);
+}
+
 void CBHandler::add_data(
         const DdsTopic& topic,
         RtpsPayloadData& data)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_HANDLER,
             "Adding data in topic: " << topic << ".");
@@ -120,14 +154,155 @@ void CBHandler::add_data(
         throw utils::InconsistencyException(STR_ENTRY << "Received sample with no payload.");
     }
 
-    write_sample_nts_(msg, dyn_type);
+    std::string rpc_name;
+    RpcUtils::RpcType rpc_type = RpcUtils::get_rpc_name(topic.m_topic_name, rpc_name);
+    switch (rpc_type)
+    {
+        case RpcUtils::RpcType::RPC_NONE:
+            write_sample_nts_(msg, dyn_type);
+            break;
+
+        // SERVICES
+        case RpcUtils::RpcType::RPC_REQUEST:
+        {
+            received_requests_id_++;
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
+            write_service_request_nts_(msg, dyn_type, received_requests_id_);
+            break;
+        }
+
+        case RpcUtils::RpcType::RPC_REPLY:
+        {
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            write_service_reply_nts_(msg, dyn_type, request_id);
+            break;
+        }
+
+        // ACTIONS: CB AS CLIENT
+        case RpcUtils::RpcType::ACTION_RESULT_REPLY:
+        {
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            UUID action_id_uuid;
+            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::RESULT, action_id_uuid))
+                write_action_result_nts_(msg, dyn_type, action_id_uuid);
+            erase_action_UUID(action_id_uuid);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_GOAL_REPLY:
+        {
+            // TODO: If it is accepted send directly the get_result_request, if it is not accepted send updated status. How to read the data without deserializing it?
+            // TODO: all the send_goal_responses have an "accepted" parameter?
+            auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            UUID action_id_uuid;
+            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::GOAL, action_id_uuid))
+                write_action_goal_reply_nts_(msg, dyn_type, action_id_uuid);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_CANCEL_REPLY:
+        {
+            auto request_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
+            write_action_cancel_reply_nts_(msg, dyn_type, request_id);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_FEEDBACK:
+        {
+            // TODO strip the UUID from the type when adding the schema
+            write_action_feedback_nts_(msg, dyn_type);
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_STATUS:
+        {
+            write_action_status_nts_(msg, dyn_type);
+            break;
+        }
+
+        // ACTIONS: CB AS SERVER
+        case RpcUtils::RpcType::ACTION_GOAL_REQUEST:
+        case RpcUtils::RpcType::ACTION_CANCEL_REQUEST:
+        {
+            received_requests_id_++;
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
+            auto uuid = cb_writer_->uuid_from_request_json(
+                msg,
+                dyn_type);
+            if (uuid == UUID())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to extract UUID from send_goal_request JSON.");
+                return;
+            }
+
+            if (store_action_request(
+                rpc_name,
+                uuid,
+                received_requests_id_,
+                RpcUtils::get_action_type(rpc_type)))
+            {
+                write_action_request_nts_(msg, dyn_type, received_requests_id_);
+            }
+
+            break;
+        }
+
+        case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
+        {
+            auto uuid = cb_writer_->uuid_from_request_json(
+                msg,
+                dyn_type);
+            if (uuid == UUID())
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to extract UUID from get_result_request JSON.");
+                return;
+            }
+
+            received_requests_id_++;
+            RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
+            rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
+            if (!store_action_request(
+                rpc_name,
+                uuid,
+                received_requests_id_,
+                RpcUtils::ActionType::RESULT))
+            {
+                EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                        "Failed to store action request for get_result_request.");
+                return;
+            }
+
+            std::string result;
+            if (get_action_result(uuid, result))
+            {
+                if (send_action_get_result_reply_callback_)
+                {
+                    send_action_get_result_reply_callback_(
+                        rpc_name,
+                        uuid,
+                        result,
+                        received_requests_id_);
+                }
+            }
+            break;
+        }
+
+        default:
+            EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
+                    "Unknown RPC type for topic " << topic.m_topic_name << ".");
+            break;
+    }
 }
 
 bool CBHandler::get_type_identifier(
         const std::string& type_name,
         fastdds::dds::xtypes::TypeIdentifier& type_identifier)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     auto it = schemas_.find(type_name);
     if (it != schemas_.end())
@@ -198,7 +373,7 @@ bool CBHandler::get_serialized_data(
         const std::string& json,
         Payload& payload)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
 
     fastdds::dds::DynamicType::_ref_type dyn_type;
     auto it = schemas_.find(type_name);
@@ -309,6 +484,80 @@ void CBHandler::write_sample_nts_(
     cb_writer_->write_data(msg, dyn_type);
 }
 
+void CBHandler::write_service_nts_(
+        const RpcTopic& service)
+{
+    cb_writer_->write_service_notification(service);
+}
+
+void CBHandler::write_service_reply_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_service_reply_notification(msg, dyn_type, request_id);
+}
+
+void CBHandler::write_service_request_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_service_request_notification(msg, dyn_type, request_id);
+}
+
+void CBHandler::write_action_nts_(
+        const RpcUtils::RpcAction& action)
+{
+    cb_writer_->write_action_notification(action);
+}
+
+void CBHandler::write_action_result_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_result_notification(msg, dyn_type, action_id);
+}
+
+void CBHandler::write_action_feedback_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
+    cb_writer_->write_action_feedback_notification(msg, dyn_type);
+}
+
+void CBHandler::write_action_goal_reply_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const UUID& action_id)
+{
+    cb_writer_->write_action_goal_reply_notification(msg, dyn_type, action_id);
+}
+
+void CBHandler::write_action_cancel_reply_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_action_cancel_reply_notification(msg, dyn_type, request_id);
+}
+
+void CBHandler::write_action_status_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type)
+{
+    cb_writer_->write_action_status_notification(msg, dyn_type);
+}
+
+void CBHandler::write_action_request_nts_(
+    const CBMessage& msg,
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    const uint64_t request_id)
+{
+    cb_writer_->write_action_request_notification(msg, dyn_type, request_id);
+}
+
 bool CBHandler::register_type_nts_(
         const std::string& type_name,
         const unsigned char* serialized_type,
@@ -366,6 +615,160 @@ bool CBHandler::register_type_nts_(
     type_object = _type_object;
 
     return true;
+}
+
+bool CBHandler::store_action_request(
+        const std::string& action_name,
+        const UUID& action_id,
+        const uint64_t request_id,
+        const RpcUtils::ActionType action_type)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+
+    auto it = action_request_id_to_uuid_.find(action_id);
+    if (it != action_request_id_to_uuid_.end())
+    {
+        if (it->second.action_name != action_name)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Action name mismatch for action, expected "
+                    << it->second.action_name << ", got " << action_name);
+            return false;
+        }
+        if (RpcUtils::ActionType::GOAL == action_type)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Cannot store action goal request as action id already exists.");
+            return false;
+        }
+        // If it exists, update the request_id for the given action_type
+        it->second.set_request(request_id, action_type);
+    }
+    else
+    {
+        // If it does not exist, create a new entry only if the action type is goal request
+        if (RpcUtils::ActionType::GOAL != action_type)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Cannot store action request, action does not exist and request type is not GOAL.");
+            return false;
+        }
+        action_request_id_to_uuid_[action_id] = ActionRequestInfo(action_name, action_type, request_id);
+    }
+
+    return true;
+}
+
+bool CBHandler::store_action_result(
+        const std::string& action_name,
+        const UUID& action_id,
+        const std::string& result)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto it = action_request_id_to_uuid_.find(action_id);
+    if (it != action_request_id_to_uuid_.end())
+    {
+        if (it->second.action_name != action_name)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Action name mismatch for action, expected " << it->second.action_name
+                    << ", got " << action_name);
+            return false;
+        }
+        if (it->second.result_request_id != 0)
+        {
+            return send_action_get_result_reply_callback_(
+                    action_name,
+                    action_id,
+                    result,
+                    it->second.result_request_id);
+        }
+        if (it->second.set_result(std::move(result)))
+        {
+            return true;
+        }
+        else
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Failed to store action result for action, result already set.");
+            return false;
+        }
+    }
+    EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+            "Failed to send action result, goal id not found.");
+    return false;
+}
+
+void CBHandler::erase_action_UUID(
+            const UUID& action_id,
+            bool force_erase)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto it = action_request_id_to_uuid_.find(action_id);
+    if (it != action_request_id_to_uuid_.end())
+    {
+        it->second.erased--;
+        // Only if both end result and end status (or force parameter) have been received, erase the action
+        if (force_erase || it->second.erased == 0)
+        {
+            action_request_id_to_uuid_.erase(it);
+        }
+    }
+}
+
+bool CBHandler::is_UUID_active(
+        const std::string& action_name,
+        const UUID& action_id,
+        std::chrono::system_clock::time_point* goal_accepted_stamp)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto it = action_request_id_to_uuid_.find(action_id);
+    if (it != action_request_id_to_uuid_.end() && action_name == it->second.action_name)
+    {
+        if (goal_accepted_stamp)
+        {
+            *goal_accepted_stamp = it->second.goal_accepted_stamp;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+
+bool CBHandler::pop_action_request_UUID(
+        const uint64_t request_id,
+        const RpcUtils::ActionType action_type,
+        UUID& action_id)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    for (auto it = action_request_id_to_uuid_.begin(); it != action_request_id_to_uuid_.end(); ++it)
+    {
+        uint64_t action_request_id = it->second.get_request(action_type);
+        if (request_id == action_request_id)
+        {
+            action_id = it->first;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool CBHandler::get_action_result(
+        const UUID& action_id,
+        std::string& result)
+{
+    std::lock_guard<std::recursive_mutex> lock(mtx_);
+    auto it = action_request_id_to_uuid_.find(action_id);
+    if (it != action_request_id_to_uuid_.end())
+    {
+        if (!it->second.result.empty())
+        {
+            result = it->second.result;
+            return true;
+        }
+    }
+    return false;
 }
 
 } /* namespace participants */
