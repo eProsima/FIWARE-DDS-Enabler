@@ -1,3 +1,6 @@
+.. include:: ../exports/alias.include
+.. include:: ../exports/roles.include
+
 .. _configuration:
 
 #############
@@ -5,7 +8,7 @@ Configuration
 #############
 
 DDS Enabler Configuration
-========================
+=========================
 
 The DDSEnabler is configured by a *.yaml* configuration file.
 This *.yaml* file contains all the information regarding the DDS interface configuration, and DDSEnabler specifications.
@@ -27,7 +30,7 @@ Configuration related to DDS communication.
 DDS Domain
 ^^^^^^^^^^
 
-Tag ``domain`` configures the :term:`Domain Id`.
+Tag ``domain`` configures the `Domain Id`.
 
 .. code-block:: yaml
 
@@ -39,8 +42,8 @@ Topic Filtering
 ^^^^^^^^^^^^^^^
 
 The DDSEnabler automatically detects the topics that are being used in a DDS Network.
-The DDSEnabler then creates internal DDS :term:`Readers<DataReader>` to record the data published on each topic.
-The DDSEnabler allows filtering DDS :term:`Topics<Topic>` to allow users to configure the DDS :term:`Topics<Topic>` that must be recorded.
+The DDSEnabler then creates internal DDS `Readers<DataReader>` to record the data published on each topic.
+The DDSEnabler allows filtering DDS `Topics<Topic>` to allow users to configure the DDS `Topics<Topic>` that must be recorded.
 These data filtering rules can be configured under the ``allowlist`` and ``blocklist`` tags.
 If the ``allowlist`` and ``blocklist`` are not configured, the DDSEnabler will recorded the data published on every topic it discovers.
 If both the ``allowlist`` and ``blocklist`` are configured and a topic appears in both of them, the ``blocklist`` has priority and the topic will be blocked.
@@ -257,7 +260,7 @@ See `Interface Whitelist <https://fast-dds.docs.eprosima.com/en/latest/fastdds/t
 .. _ddsenabler_ddsenabler_configuration:
 
 DDSEnabler Configuration
------------------------
+------------------------
 
 Configuration of data writing to the Context Broker.
 

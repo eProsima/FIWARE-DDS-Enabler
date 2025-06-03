@@ -1,3 +1,6 @@
+.. include:: ../exports/alias.include
+.. include:: ../exports/roles.include
+
 .. _project_overview:
 
 ################
@@ -28,6 +31,7 @@ As explained in the eProsima Fast DDS documentation:
 
     Since it is a Data-Centric Publish Subscribe (DCPS) model, three key application entities are
     defined in its implementation:
+
     * publication entities, which define the information-generating objects and their properties.
     * subscription entities, which define the information-consuming objects and their properties.
     * configuration entities, that define the types of information that are transmitted as topics,
@@ -42,6 +46,7 @@ The different entities involved in the DDS protocol are also defined in the ePro
 .. note::
 
     In the DCPS model, four basic elements are defined for the development of a system of communicating applications.
+
     * Publisher: It is the DCPS entity in charge of the creation and configuration of the DataWriters it implements.
       The DataWriter is the entity in charge of the actual publication of the messages.
       Each one will have an assigned Topic under which the messages are published.
@@ -93,7 +98,7 @@ As described in the Fast DDS documentation:
 
 
 Among the many features of Fast DDS, there are two key functionalities for the development of the AML-IP:
-a) the TCP transport, 
+a) the TCP transport,
 b) the Discovery Server discovery mechanism.
 
 Among the multiple transport protocols and communication mechanisms available in Fast DDS, the TCP transport protocol
@@ -129,7 +134,7 @@ The following can be gleaned from the Fast DDS online documentation:
 
 * Discovery Server DomainParticipants may be clients or servers.
   The only difference between them is on how they handle discovery traffic.
-  The user traffic [...] is roleindependent.
+  The user traffic [...] is role-independent.
   [...]
 * All server and client discovery information will be shared with linked clients.
   [...] a server may act as a client for other servers.
@@ -159,7 +164,7 @@ DDS Enabler
 ===========
 
 DDS Enabler serves as a single point of entry for DDS communication, managing all necessary DDS participants and
-efficiently transmiting the DDS data published into a DDS environment to the Context Broker.
+efficiently transmitting the DDS data published into a DDS environment to the Context Broker.
 
 DDS Enabler supports extensive configuration options through a YAML file.
 This allows users to fine-tune various DDS settings to meet their specific requirements.

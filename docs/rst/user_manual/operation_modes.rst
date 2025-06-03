@@ -1,3 +1,6 @@
+.. include:: ../exports/alias.include
+.. include:: ../exports/roles.include
+
 .. _operation_modes:
 
 ###############
@@ -140,6 +143,7 @@ goes to entity A".
 *   DDS Data Type
 
 .. code-block:: idl
+
     struct TemperatureReadings
     {
         @key int sensor_id;
@@ -192,4 +196,4 @@ goes to entity A".
 DDS Binding
 ===========
 
-Configuration files are used to stablish relationships between Topics and attributes.
+Configuration files are used to establish relationships between Topics and attributes.
