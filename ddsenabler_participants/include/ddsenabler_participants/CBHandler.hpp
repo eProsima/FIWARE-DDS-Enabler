@@ -38,6 +38,7 @@
 #include <ddsenabler_participants/CBMessage.hpp>
 #include <ddsenabler_participants/CBWriter.hpp>
 #include <ddsenabler_participants/RpcUtils.hpp>
+#include <ddsenabler_participants/RpcStructs.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
 
 namespace std {
@@ -71,70 +72,6 @@ struct hash<eprosima::ddsenabler::participants::UUID> {
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
-
-struct ActionRequestInfo
-{
-    ActionRequestInfo() = default;
-
-    ActionRequestInfo(
-            const std::string& _action_name,
-            RpcUtils::ActionType action_type,
-            uint64_t request_id)
-            : action_name(_action_name)
-            , goal_accepted_stamp(std::chrono::system_clock::now())
-    {
-        set_request(request_id, action_type);
-    }
-
-    void set_request(
-            uint64_t request_id,
-            RpcUtils::ActionType action_type)
-    {
-        switch (action_type)
-        {
-            case RpcUtils::ActionType::GOAL:
-                goal_request_id = request_id;
-                break;
-            case RpcUtils::ActionType::RESULT:
-                result_request_id = request_id;
-                break;
-            default:
-                break;
-        }
-        return;
-    }
-
-    uint64_t get_request(
-            RpcUtils::ActionType action_type) const
-    {
-        switch (action_type)
-        {
-            case RpcUtils::ActionType::GOAL:
-                return goal_request_id;
-            case RpcUtils::ActionType::RESULT:
-                return result_request_id;
-            default:
-                return 0;
-        }
-    }
-
-    bool set_result(const std::string&& str)
-    {
-        if (str.empty() || !result.empty())
-        {
-            return false; // Cannot set string if already set or empty
-        }
-        result = std::move(str);
-        return true;
-    }
-
-    std::string action_name;
-    uint64_t goal_request_id = 0;
-    uint64_t result_request_id = 0;
-    std::chrono::system_clock::time_point goal_accepted_stamp;
-    std::string result;
-    int erased{2}; // 2: End Status & Result not received yet, 1: One of them received, 0: both received, erase the action
-};
 
 /**
  * Class that manages the interaction between \c EnablerParticipant and CB.
@@ -186,11 +123,20 @@ public:
     void add_topic(
             const ddspipe::core::types::DdsTopic& topic);
 
-    // TODO documentation
+    /**
+     * @brief Add a service, associated to the given \c service.
+     *
+     * @param [in] service RPC topic associated to this service.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void add_service(
             const ddspipe::core::types::RpcTopic& service);
 
+    /**
+     * @brief Add an action, associated to the given \c action.
+     *
+     * @param [in] action RPC action associated to this action.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void add_action(
             const RpcUtils::RpcAction& action);
@@ -232,6 +178,19 @@ public:
             const std::string& json,
             ddspipe::core::types::Payload& payload);
 
+    /**
+     * @brief Store an action request (goal, cancel or result) with its associated UUID and request ID.
+     * This info will later be used to associate the reply id with the UUID of the action.
+     *
+     * @note: An ActionRequestInfo can only be created if ActionType is GOAL, otherwise it will return false.
+     * @note: When creating the ActionRequestInfo the current time will be stored as the goal accepted stamp.
+     *
+     * @param [in] action_name Name of the action.
+     * @param [in] action_id UUID of the action.
+     * @param [in] request_id Request ID of the action request.
+     * @param [in] action_type Type of the action (GOAL, RESULT, CANCEL).
+     * @return \c true if the action request was successfully stored, \c false otherwise.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     bool store_action_request(
             const std::string& action_name,
@@ -239,17 +198,46 @@ public:
             const uint64_t request_id,
             const RpcUtils::ActionType action_type);
 
+    /**
+     * @brief Send the reply containing the result of an action or store it for a later reply.
+     * If the result request was previously received the reply will be sent, otherwise the result will be stored.
+     *
+     * @param [in] action_name Name of the action.
+     * @param [in] action_id UUID of the action.
+     * @param [in] result Result of the action.
+     * @return \c true if the result was successfully stored, \c false otherwise.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
-    bool store_action_result(
+    bool handle_action_result(
             const std::string& action_name,
             const UUID& action_id,
             const std::string& result);
 
+    /**
+     * @brief Erase an action UUID from the internal map that tracks which actions are active.
+     *
+     * An action is considered active if it has a goal request and has not received its result and a final status (aborted, rejected, succeeded).
+     * The action will be forced to be erased if \c force_erase is set to \c true , allowing to erase actions without complying with the previous condition.
+     *
+     * @note: The status updates are not a strict requirement in the ROS2 actions specification, so there could be servers not sending them.
+     *
+     * @param [in] action_id UUID of the action to be erased.
+     * @param [in] force_erase If \c true, the action will be erased regardless of its status.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void erase_action_UUID(
             const UUID& action_id,
-            bool force_erase = false);
+            ActionEraseReason erase_reason);
 
+    /**
+     * @brief Check if an action represented by its UUID is active.
+     * An action is considered active if it has a goal request and has not received its result and a final status (aborted, rejected, succeeded).
+     *
+     * @param [in] action_name Name of the action.
+     * @param [in] action_id UUID of the action to be checked.
+     * @param [out] goal_accepted_stamp Optional pointer to get the timestamp when the goal was accepted.
+     * @return \c true if the action is active, \c false otherwise.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     bool is_UUID_active(
             const std::string& action_name,
@@ -304,6 +292,11 @@ public:
         type_query_callback_ = callback;
     }
 
+    /**
+     * @brief Set the service notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_notification_callback(
             participants::ServiceNotification callback)
@@ -311,6 +304,11 @@ public:
         cb_writer_->set_service_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the service reply notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_reply_notification_callback(
             participants::ServiceReplyNotification callback)
@@ -318,6 +316,11 @@ public:
         cb_writer_->set_service_reply_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the service request notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_request_notification_callback(
             participants::ServiceRequestNotification callback)
@@ -325,6 +328,11 @@ public:
         cb_writer_->set_service_request_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_notification_callback(
             participants::ActionNotification callback)
@@ -332,6 +340,11 @@ public:
         cb_writer_->set_action_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action result notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_result_notification_callback(
             participants::ActionResultNotification callback)
@@ -339,6 +352,11 @@ public:
         cb_writer_->set_action_result_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action feedback notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_feedback_notification_callback(
             participants::ActionFeedbackNotification callback)
@@ -346,6 +364,11 @@ public:
         cb_writer_->set_action_feedback_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action status notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_status_notification_callback(
             participants::ActionStatusNotification callback)
@@ -353,6 +376,11 @@ public:
         cb_writer_->set_action_status_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action get result request callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_get_result_request_callback(
             std::function<bool(const std::string&, const participants::UUID&)> callback)
@@ -360,6 +388,11 @@ public:
         cb_writer_->set_send_action_get_result_request_callback(callback);
     }
 
+    /**
+     * @brief Set the action goal request notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_goal_request_notification_callback(
             participants::ActionGoalRequestNotification callback)
@@ -367,6 +400,11 @@ public:
         cb_writer_->set_action_goal_request_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action cancel request notification callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_cancel_request_notification_callback(
             participants::ActionCancelRequestNotification callback)
@@ -374,6 +412,11 @@ public:
         cb_writer_->set_action_cancel_request_notification_callback(callback);
     }
 
+    /**
+     * @brief Set the action send goal reply callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_send_goal_reply_callback(
             std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
@@ -381,6 +424,11 @@ public:
         cb_writer_->set_send_action_send_goal_reply_callback(callback);
     }
 
+    /**
+     * @brief Set the action get result reply callback.
+     *
+     * @param [in] callback Callback to be set.
+     */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_get_result_reply_callback(
             std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
@@ -390,11 +438,26 @@ public:
 
 protected:
 
-    bool pop_action_request_UUID(
+    /**
+     * @brief Pop an action request UUID from the internal map that tracks which actions are active.
+     *
+     * @param [in] request_id Request ID of the action request.
+     * @param [in] action_type Type of the action (GOAL, RESULT, CANCEL).
+     * @param [out] action_id UUID of the action associated to the request.
+     * @return \c true if the action request was successfully popped, \c false otherwise.
+     */
+    bool get_action_request_UUID(
                 const uint64_t request_id,
                 const RpcUtils::ActionType action_type,
                 UUID& action_id);
 
+    /**
+     * @brief Get the result (if it has been previouly stored) of an action associated to the given \c action_id.
+     *
+     * @param [in] action_id UUID of the action.
+     * @param [out] result Result of the action.
+     * @return \c true if the result was found, \c false otherwise.
+     */
     bool get_action_result(
             const UUID& action_id,
             std::string& result);
@@ -442,9 +505,19 @@ protected:
     void write_topic_nts_(
             const ddspipe::core::types::DdsTopic& topic);
 
+    /**
+     * @brief Write the service to CB.
+     *
+     * @param [in] service RPC topic associated to this service.
+     */
     void write_service_nts_(
             const ddspipe::core::types::RpcTopic& service);
 
+    /**
+     * @brief Write the action to CB.
+     *
+     * @param [in] action RPC action associated to this action.
+     */
     void write_action_nts_(
             const RpcUtils::RpcAction& action);
     /**
@@ -457,39 +530,93 @@ protected:
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    /**
+     * @brief Write the service reply to CB.
+     *
+     * @param [in] msg CBMessage containing the service reply.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] request_id Request ID of the service reply.
+     */
     void write_service_reply_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const uint64_t request_id);
 
+    /**
+     * @brief Write the service request to CB.
+     *
+     * @param [in] msg CBMessage containing the service request.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] request_id Request ID of the service request.
+     */
     void write_service_request_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const uint64_t request_id);
 
+    /**
+     * @brief Write the action result to CB.
+     *
+     * @param [in] msg CBMessage containing the action goal request.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] request_id Request ID of the action goal request.
+     */
     void write_action_result_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const UUID& action_id);
 
+    /**
+     * @brief Write the action feedback to CB.
+     *
+     * @param [in] msg CBMessage containing the action feedback.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     */
     void write_action_feedback_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    /**
+     * @brief Write the action goal reply to CB.
+     *
+     * @param [in] msg CBMessage containing the action goal reply.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] action_id UUID of the action.
+     */
     void write_action_goal_reply_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const UUID& action_id);
 
+    /**
+     * @brief Write the action cancel reply to CB.
+     *
+     * @param [in] msg CBMessage containing the action cancel reply.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] request_id Request ID of the action cancel reply.
+     */
     void write_action_cancel_reply_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
             const uint64_t request_id);
 
+    /**
+     * @brief Write the action status to CB.
+     *
+     * @param [in] msg CBMessage containing the action status.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     */
     void write_action_status_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type);
 
+    /**
+     * @brief Write the action (goal or cancel) request to CB.
+     *
+     * @param [in] msg CBMessage containing the action request.
+     * @param [in] dyn_type DynamicType containing the type information required.
+     * @param [in] request_id Request ID of the action request.
+     */
     void write_action_request_nts_(
             const CBMessage& msg,
             const fastdds::dds::DynamicType::_ref_type& dyn_type,
@@ -537,9 +664,10 @@ protected:
     //! Counter of received requests
     uint64_t received_requests_id_{0};
 
-    //! Map of any action services to the action's UUID
+    //! Map of all ActionRequestInfos to their UUIDs
     std::unordered_map<participants::UUID, ActionRequestInfo> action_request_id_to_uuid_;
 
+    //! Lambda to send action get result reply
     std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> send_action_get_result_reply_callback_;
 };
 

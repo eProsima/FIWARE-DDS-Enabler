@@ -40,7 +40,7 @@ struct ServiceCallbacks
     participants::ServiceNotification service_notification{nullptr};
     participants::ServiceRequestNotification service_request_notification{nullptr};
     participants::ServiceReplyNotification service_reply_notification{nullptr};
-    participants::ServiceTypeQuery service_query{nullptr};
+    participants::ServiceQuery service_query{nullptr};
 };
 
 struct ActionCallbacks
@@ -51,7 +51,7 @@ struct ActionCallbacks
     participants::ActionCancelRequestNotification action_cancel_request_notification{nullptr};
     participants::ActionResultNotification action_result_notification{nullptr};
     participants::ActionStatusNotification action_status_notification{nullptr};
-    participants::ActionTypeQuery action_query{nullptr};
+    participants::ActionQuery action_query{nullptr};
 };
 
 /**

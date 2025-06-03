@@ -141,8 +141,6 @@ void CBWriter::write_data(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -185,8 +183,6 @@ void CBWriter::write_service_reply_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -219,8 +215,6 @@ void CBWriter::write_service_request_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -292,8 +286,6 @@ void CBWriter::write_action_result_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -325,8 +317,6 @@ void CBWriter::write_action_feedback_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -334,7 +324,6 @@ void CBWriter::write_action_feedback_notification(
     std::string action_name;
     RpcUtils::get_rpc_name(msg.topic.topic_name(), action_name);
 
-    // TODO check what we want to have in the json now that the type is not the same as the one in the action
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
     if (action_feedback_notification_callback_)
@@ -359,8 +348,6 @@ void CBWriter::write_action_goal_reply_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -368,10 +355,20 @@ void CBWriter::write_action_goal_reply_notification(
     ddsenabler::participants::STATUS_CODE status_code = ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED;
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
-    if (!json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["accepted"])
+    try
     {
-        status_message = "Action goal rejected";
-        status_code = ddsenabler::participants::STATUS_CODE::STATUS_REJECTED;
+        if (!json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["accepted"])
+        {
+            status_message = "Action goal rejected";
+            status_code = ddsenabler::participants::STATUS_CODE::STATUS_REJECTED;
+        }
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing action goal reply notification: " << e.what());
+        status_message = "Action goal reply notification malformed";
+        status_code = ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
     }
     if (action_status_notification_callback_)
     {
@@ -384,11 +381,13 @@ void CBWriter::write_action_goal_reply_notification(
             );
     }
 
-    if (send_action_get_result_request_callback_ && !send_action_get_result_request_callback_(
-            action_name.c_str(),
-            action_id))
+    if (ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED == status_code &&
+            send_action_get_result_request_callback_ &&
+            !send_action_get_result_request_callback_(
+                action_name.c_str(),
+                action_id))
     {
-        status_message = "Action goal rejected";
+        status_message = "Action goal aborted";
         status_code = ddsenabler::participants::STATUS_CODE::STATUS_ABORTED;
 
         if (action_status_notification_callback_)
@@ -416,8 +415,6 @@ void CBWriter::write_action_cancel_reply_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -425,11 +422,22 @@ void CBWriter::write_action_cancel_reply_notification(
     instanceHandle << msg.instanceHandle;
 
     std::string status_message;
-    int return_code = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["return_code"];
+    int return_code;
+    try
+    {
+        return_code = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["return_code"];
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing action cancel reply notification: " << e.what());
+        status_code = ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN;
+        return;
+    }
     switch (return_code)
     {
         case 0:
-            status_message = "Action cancelled successfully";
+            status_message = "Action canceled successfully";
             status_code = ddsenabler::participants::STATUS_CODE::STATUS_CANCELED;
             break;
         case 1:
@@ -450,23 +458,31 @@ void CBWriter::write_action_cancel_reply_notification(
             break;
     }
 
-    const auto& goals = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goals_canceling"];
-    for (const auto& goal : goals)
+    try
     {
-        UUID msg_action_id = json_to_uuid(goal["goal_id"]);
-        if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, msg_action_id))
-            continue;
-
-        if (action_status_notification_callback_)
+        const auto& goals = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goals_canceling"];
+        for (const auto& goal : goals)
         {
-            action_status_notification_callback_(
-                action_name.c_str(),
-                msg_action_id,
-                status_code,
-                status_message.c_str(),
-                msg.publish_time.to_ns()
-                );
+            UUID msg_action_id = json_to_uuid(goal["goal_id"]);
+            if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, msg_action_id))
+                continue;
+
+            if (action_status_notification_callback_)
+            {
+                action_status_notification_callback_(
+                    action_name.c_str(),
+                    msg_action_id,
+                    status_code,
+                    status_message.c_str(),
+                    msg.publish_time.to_ns()
+                    );
+            }
         }
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing action cancel reply notification goals: " << e.what());
     }
 }
 
@@ -477,8 +493,6 @@ void CBWriter::write_action_status_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -489,70 +503,79 @@ void CBWriter::write_action_status_notification(
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
 
-    const auto& list = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["status_list"];
-    for (const auto& status : list)
+    try
     {
-        UUID uuid = json_to_uuid(status["goal_info"]["goal_id"]);
-        if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, uuid))
-            continue;
-
-        ddsenabler::participants::STATUS_CODE status_code(status["status"]);
-        std::string status_message;
-        switch (status_code)
+        const auto& list = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["status_list"];
+        for (const auto& status : list)
         {
-            case ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN:
-                status_message = "The status has not been properly set";
-                break;
+            UUID uuid = json_to_uuid(status["goal_info"]["goal_id"]);
+            if(is_UUID_active_callback_ && !is_UUID_active_callback_(action_name, uuid))
+                continue;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED:
-                status_message = "The goal has been accepted and is awaiting execution";
-                break;
+            ddsenabler::participants::STATUS_CODE status_code(status["status"]);
+            std::string status_message;
+            switch (status_code)
+            {
+                case ddsenabler::participants::STATUS_CODE::STATUS_UNKNOWN:
+                    status_message = "The status has not been properly set";
+                    break;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING:
-                status_message = "The goal is currently being executed by the action server";
-                break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_ACCEPTED:
+                    status_message = "The goal has been accepted and is awaiting execution";
+                    break;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_CANCELING:
-                status_message = "The client has requested that the goal be canceled and the action server has accepted the cancel request";
-                break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_EXECUTING:
+                    status_message = "The goal is currently being executed by the action server";
+                    break;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
-                status_message = "The goal was achieved successfully by the action server";
-                break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_CANCELING:
+                    status_message = "The client has requested that the goal be canceled and the action server has accepted the cancel request";
+                    break;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_CANCELED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
-                status_message = "The goal was canceled after an external request from an action client";
-                break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_SUCCEEDED:
+                    if (erase_action_UUID_callback_)
+                        erase_action_UUID_callback_(uuid, ActionEraseReason::FINAL_STATUS);
+                    status_message = "The goal was achieved successfully by the action server";
+                    break;
 
-            case ddsenabler::participants::STATUS_CODE::STATUS_ABORTED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
-                status_message = "The goal was terminated by the action server without an external request";
-                break;
-            case ddsenabler::participants::STATUS_CODE::STATUS_REJECTED:
-                if (erase_action_UUID_callback_)
-                    erase_action_UUID_callback_(uuid);
-                status_message = "The goal was rejected by the action server, it will not be executed";
-                break;
-            default:
-                status_message = "Unknown status code";
-                break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_CANCELED:
+                    if (erase_action_UUID_callback_)
+                        erase_action_UUID_callback_(uuid, ActionEraseReason::FINAL_STATUS);
+                    status_message = "The goal was canceled after an external request from an action client";
+                    break;
+
+                case ddsenabler::participants::STATUS_CODE::STATUS_ABORTED:
+                    if (erase_action_UUID_callback_)
+                        erase_action_UUID_callback_(uuid, ActionEraseReason::FINAL_STATUS);
+                    status_message = "The goal was terminated by the action server without an external request";
+                    break;
+                case ddsenabler::participants::STATUS_CODE::STATUS_REJECTED:
+                    if (erase_action_UUID_callback_)
+                        erase_action_UUID_callback_(uuid, ActionEraseReason::FINAL_STATUS);
+                    status_message = "The goal was rejected by the action server, it will not be executed";
+                    break;
+                default:
+                    status_message = "Unknown status code";
+                    break;
+            }
+
+            if (action_status_notification_callback_)
+            {
+                action_status_notification_callback_(
+                    action_name.c_str(),
+                    uuid,
+                    status_code,
+                    status_message.c_str(),
+                    msg.publish_time.to_ns()
+                    );
+            }
         }
-
-        if (action_status_notification_callback_)
-        {
-            action_status_notification_callback_(
-                action_name.c_str(),
-                uuid,
-                status_code,
-                status_message.c_str(),
-                msg.publish_time.to_ns()
-                );
-        }
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing action status notification: " << e.what());
+        return;
     }
 }
 
@@ -564,8 +587,6 @@ void CBWriter::write_action_request_notification(
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
         return;
     }
 
@@ -575,60 +596,77 @@ void CBWriter::write_action_request_notification(
 
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
-    // TODO do not read directly from json without failure handling
-    if (RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
+    try
     {
-        bool accepted;
-        if (action_goal_request_notification_callback_)
-            accepted = action_goal_request_notification_callback_(
+        if (RpcUtils::RpcType::ACTION_GOAL_REQUEST == rpc_type)
+        {
+            bool accepted;
+            if (action_goal_request_notification_callback_)
+                accepted = action_goal_request_notification_callback_(
+                        action_name.c_str(),
+                        json_data.dump(4).c_str(),
+                        json_to_uuid(json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
+                        msg.publish_time.to_ns()
+                        );
+
+            send_action_send_goal_reply_callback_(
+                action_name.c_str(),
+                request_id,
+                accepted);
+
+            return;
+        }
+        if (RpcUtils::RpcType::ACTION_CANCEL_REQUEST == rpc_type)
+        {
+            if (action_cancel_request_notification_callback_)
+            {
+                auto sec = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["sec"];
+                auto nanosec = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["nanosec"];
+                int64_t timestamp = static_cast<int64_t>(sec.get<int64_t>()) * 1000000000 +
+                    static_cast<int64_t>(nanosec.get<uint32_t>());
+                action_cancel_request_notification_callback_(
                     action_name.c_str(),
-                    json_data.dump(4).c_str(),
                     json_to_uuid(json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
+                    timestamp,
+                    request_id,
                     msg.publish_time.to_ns()
                     );
-
-        send_action_send_goal_reply_callback_(
-            action_name.c_str(),
-            request_id,
-            accepted);
-
-        return;
-    }
-    if (RpcUtils::RpcType::ACTION_CANCEL_REQUEST == rpc_type)
-    {
-        if (action_cancel_request_notification_callback_)
-        {
-            auto sec = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["sec"];
-            auto nanosec = json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_info"]["nanosec"];
-            int64_t timestamp = static_cast<int64_t>(sec.get<int64_t>()) * 1000000000 +
-                static_cast<int64_t>(nanosec.get<uint32_t>());
-            action_cancel_request_notification_callback_(
-                action_name.c_str(),
-                json_to_uuid(json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]),
-                timestamp,
-                request_id,
-                msg.publish_time.to_ns()
-                );
+            }
+            return;
         }
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing action request notification: " << e.what());
         return;
     }
 }
 
-UUID CBWriter::uuid_from_request_json(
+bool CBWriter::uuid_from_request_json(
     const CBMessage& msg,
-    const fastdds::dds::DynamicType::_ref_type& dyn_type)
+    const fastdds::dds::DynamicType::_ref_type& dyn_type,
+    UUID& uuid)
 {
     nlohmann::json json_data;
     if (!prepare_json_data_(msg, dyn_type, json_data))
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
-                "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
-        return UUID();
+        return false;
     }
 
     std::stringstream instanceHandle;
     instanceHandle << msg.instanceHandle;
-    return json_to_uuid(json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]);
+    try
+    {
+        uuid = json_to_uuid(json_data[msg.topic.topic_name()]["data"][instanceHandle.str()]["goal_id"]);
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Error parsing UUID from request JSON: " << e.what());
+        return false;
+    }
+    return true;
 }
 
 bool CBWriter::prepare_json_data_(
@@ -685,9 +723,9 @@ bool CBWriter::prepare_json_data_(
 
     if (json_output.empty())
     {
-        // TODO: handle error
         EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
                 "Not able to generate JSON data for topic " << msg.topic.topic_name() << ".");
+        return false;
     }
 
     return true;
@@ -700,13 +738,17 @@ fastdds::dds::DynamicData::_ref_type CBWriter::get_dynamic_data_(
     // TODO fast this should not be done, but dyn types API is like it is.
     auto& data_no_const = const_cast<eprosima::fastdds::rtps::SerializedPayload_t&>(msg.payload);
 
-    // Create PubSub Type
-    // TODO: avoid creating this object each time -> store in a map
-    fastdds::dds::DynamicPubSubType pubsub_type(dyn_type);
+    // Create a DynamicData object using the DynamicType
     fastdds::dds::DynamicData::_ref_type dyn_data(
         fastdds::dds::DynamicDataFactory::get_instance()->create_data(dyn_type));
 
-    pubsub_type.deserialize(data_no_const, &dyn_data);
+    // Deserialize data into the DynamicData object
+    if (!(get_pubsub_type_(dyn_type).deserialize(data_no_const, &dyn_data)))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_CB_WRITER,
+                "Failed to deserialize data for topic: " << msg.topic.topic_name());
+        return nullptr;
+    }
 
     return dyn_data;
 }

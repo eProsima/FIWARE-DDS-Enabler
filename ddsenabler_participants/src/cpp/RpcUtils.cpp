@@ -53,7 +53,6 @@ RpcType get_rpc_name(const std::string& topic_name, std::string& rpc_name)
     }
     else
     {
-        // TODO what if is a regular topic that ends with "/feedback" or "/status"? Maybe also check for "action" in the name?
         // Check for action feedback/status topics
         if (rpc_name.size() >= 9 && rpc_name.substr(rpc_name.size() - 9) == "/feedback")
         {

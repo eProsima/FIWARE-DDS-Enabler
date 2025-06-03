@@ -54,8 +54,8 @@ CBHandler::CBHandler(
     );
 
     cb_writer_->set_erase_action_UUID_callback(
-        [this](const UUID& uuid) {
-            return this->erase_action_UUID(uuid, false);
+        [this](const UUID& uuid, ActionEraseReason reason) {
+            return this->erase_action_UUID(uuid, reason);
         }
     );
 }
@@ -184,19 +184,17 @@ void CBHandler::add_data(
         {
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
             UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::RESULT, action_id_uuid))
+            if (get_action_request_UUID(action_id, RpcUtils::ActionType::RESULT, action_id_uuid))
                 write_action_result_nts_(msg, dyn_type, action_id_uuid);
-            erase_action_UUID(action_id_uuid);
+            erase_action_UUID(action_id_uuid, ActionEraseReason::RESULT);
             break;
         }
 
         case RpcUtils::RpcType::ACTION_GOAL_REPLY:
         {
-            // TODO: If it is accepted send directly the get_result_request, if it is not accepted send updated status. How to read the data without deserializing it?
-            // TODO: all the send_goal_responses have an "accepted" parameter?
             auto action_id = dynamic_cast<ddspipe::core::types::RpcPayloadData&>(data).write_params.get_reference().related_sample_identity().sequence_number().to64long();
             UUID action_id_uuid;
-            if (pop_action_request_UUID(action_id, RpcUtils::ActionType::GOAL, action_id_uuid))
+            if (get_action_request_UUID(action_id, RpcUtils::ActionType::GOAL, action_id_uuid))
                 write_action_goal_reply_nts_(msg, dyn_type, action_id_uuid);
             break;
         }
@@ -210,7 +208,6 @@ void CBHandler::add_data(
 
         case RpcUtils::RpcType::ACTION_FEEDBACK:
         {
-            // TODO strip the UUID from the type when adding the schema
             write_action_feedback_nts_(msg, dyn_type);
             break;
         }
@@ -228,10 +225,11 @@ void CBHandler::add_data(
             received_requests_id_++;
             RpcPayloadData& rpc_data = dynamic_cast<RpcPayloadData&>(data);
             rpc_data.sent_sequence_number = eprosima::fastdds::rtps::SequenceNumber_t(received_requests_id_);
-            auto uuid = cb_writer_->uuid_from_request_json(
-                msg,
-                dyn_type);
-            if (uuid == UUID())
+            UUID uuid;
+            if (!cb_writer_->uuid_from_request_json(
+                    msg,
+                    dyn_type,
+                    uuid))
             {
                 EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                         "Failed to extract UUID from send_goal_request JSON.");
@@ -252,10 +250,11 @@ void CBHandler::add_data(
 
         case RpcUtils::RpcType::ACTION_RESULT_REQUEST:
         {
-            auto uuid = cb_writer_->uuid_from_request_json(
-                msg,
-                dyn_type);
-            if (uuid == UUID())
+            UUID uuid;
+            if (!cb_writer_->uuid_from_request_json(
+                    msg,
+                    dyn_type,
+                    uuid))
             {
                 EPROSIMA_LOG_ERROR(DDSENABLER_CB_HANDLER,
                         "Failed to extract UUID from get_result_request JSON.");
@@ -417,6 +416,7 @@ bool CBHandler::get_serialized_data(
     return true;
 }
 
+// TODO should we strip the UUID from the type when adding the action's schema
 void CBHandler::add_schema_nts_(
         const fastdds::dds::DynamicType::_ref_type& dyn_type,
         const fastdds::dds::xtypes::TypeIdentifier& type_id,
@@ -659,7 +659,7 @@ bool CBHandler::store_action_request(
     return true;
 }
 
-bool CBHandler::store_action_result(
+bool CBHandler::handle_action_result(
         const std::string& action_name,
         const UUID& action_id,
         const std::string& result)
@@ -701,15 +701,13 @@ bool CBHandler::store_action_result(
 
 void CBHandler::erase_action_UUID(
             const UUID& action_id,
-            bool force_erase)
+            ActionEraseReason erase_reason)
 {
     std::lock_guard<std::recursive_mutex> lock(mtx_);
     auto it = action_request_id_to_uuid_.find(action_id);
     if (it != action_request_id_to_uuid_.end())
     {
-        it->second.erased--;
-        // Only if both end result and end status (or force parameter) have been received, erase the action
-        if (force_erase || it->second.erased == 0)
+        if (it->second.erase(erase_reason))
         {
             action_request_id_to_uuid_.erase(it);
         }
@@ -736,7 +734,7 @@ bool CBHandler::is_UUID_active(
 }
 
 
-bool CBHandler::pop_action_request_UUID(
+bool CBHandler::get_action_request_UUID(
         const uint64_t request_id,
         const RpcUtils::ActionType action_type,
         UUID& action_id)

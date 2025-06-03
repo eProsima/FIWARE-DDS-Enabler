@@ -602,7 +602,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::ServiceTypeQuery type_query_callback;
+    // eprosima::ddsenabler::participants::ServiceQuery type_query_callback;
     static bool test_service_query_callback(
             const char* service_name,
             std::string& request_type_name,
@@ -754,7 +754,7 @@ public:
         }
     }
 
-    // eprosima::ddsenabler::participants::ActionTypeQuery action_query_callback;
+    // eprosima::ddsenabler::participants::ActionQuery action_query_callback;
     static bool test_action_query_callback(
             const char* action_name,
             std::string& goal_request_action_type,

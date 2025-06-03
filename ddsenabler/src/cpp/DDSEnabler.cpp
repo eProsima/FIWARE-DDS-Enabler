@@ -347,7 +347,7 @@ bool DDSEnabler::send_action_goal(
         return true;
     }
 
-    cb_handler_->erase_action_UUID(action_id, true);
+    cb_handler_->erase_action_UUID(action_id, ActionEraseReason::FORCED);
 
     EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
             "Failed to send action goal to action " << action_name);
@@ -539,7 +539,7 @@ bool DDSEnabler::send_action_result(
     j["result"] = nlohmann::json::parse(json);
     std::string reply_json = j.dump(4);
 
-    return cb_handler_->store_action_result(action_name, goal_id, reply_json);
+    return cb_handler_->handle_action_result(action_name, goal_id, reply_json);
 }
 
 bool DDSEnabler::send_action_get_result_reply(
@@ -555,7 +555,7 @@ bool DDSEnabler::send_action_get_result_reply(
         reply_json,
         request_id))
     {
-        cb_handler_->erase_action_UUID(goal_id, true);
+        cb_handler_->erase_action_UUID(goal_id, ActionEraseReason::FORCED);
         return true;
     }
 

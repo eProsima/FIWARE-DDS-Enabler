@@ -159,7 +159,6 @@ typedef void (* ServiceRequestNotification)(
         uint64_t request_id,
         int64_t publish_time);
 
-// TODO rename it so that "Type" is smth equal to the one in DdsTopicRequest
 /**
  * @brief Callback requesting the type information of a given service's request and reply.
  *
@@ -171,11 +170,11 @@ typedef void (* ServiceRequestNotification)(
  * @param reply_type_name The name of the reply type associated with the service.
  * @param reply_serialized_qos The serialized Quality of Service (QoS) settings for the reply type.
  */
- typedef bool (* ServiceTypeQuery)(
+ typedef bool (* ServiceQuery)(
         const char* service_name,
-        std::string& request_type_name, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        std::string& request_type_name,
         std::string& request_serialized_qos,
-        std::string& reply_type_name, // TODO: better pass unique_ptr by ref? Then the user would allocate resources but will always have its ownership
+        std::string& reply_type_name,
         std::string& reply_serialized_qos);
 
 
@@ -334,7 +333,7 @@ typedef void (* ActionResultNotification)(
  * @param result_reply_action_serialized_qos The serialized Quality of Service (QoS) settings for the get result reply action.
  * @param feedback_action_serialized_qos The serialized Quality of Service (QoS) settings for the feedback action.
  */
-typedef bool (* ActionTypeQuery)(
+typedef bool (* ActionQuery)(
     const char* action_name,
     std::string& goal_request_action_type,
     std::string& goal_reply_action_type,

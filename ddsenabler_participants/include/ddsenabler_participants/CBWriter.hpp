@@ -29,6 +29,7 @@
 
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
+#include <ddsenabler_participants/RpcStructs.hpp>
 #include <ddsenabler_participants/RpcUtils.hpp>
 
 namespace eprosima {
@@ -224,7 +225,7 @@ public:
 
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_erase_action_UUID_callback(
-            std::function<void(const UUID&)> callback)
+            std::function<void(const UUID&, ActionEraseReason)> callback)
     {
         erase_action_UUID_callback_ = callback;
     }
@@ -243,9 +244,10 @@ public:
         send_action_send_goal_reply_callback_ = callback;
     }
 
-    UUID uuid_from_request_json(
+    bool uuid_from_request_json(
         const CBMessage& msg,
-        const fastdds::dds::DynamicType::_ref_type& dyn_type);
+        const fastdds::dds::DynamicType::_ref_type& dyn_type,
+        UUID& uuid);
 
 protected:
 
@@ -294,7 +296,7 @@ protected:
     std::map<fastdds::dds::DynamicType::_ref_type, fastdds::dds::DynamicPubSubType> dynamic_pubsub_types_;
 
     std::function<bool(const std::string&, const UUID&)> is_UUID_active_callback_;
-    std::function<void(const UUID&)> erase_action_UUID_callback_;
+    std::function<void(const UUID&, ActionEraseReason)> erase_action_UUID_callback_;
     std::function<bool(const std::string&, const participants::UUID&)> send_action_get_result_request_callback_;
     std::function<void(const std::string&, const uint64_t, bool accepted)> send_action_send_goal_reply_callback_;
 

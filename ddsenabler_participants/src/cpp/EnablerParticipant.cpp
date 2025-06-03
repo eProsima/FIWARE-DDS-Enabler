@@ -106,27 +106,35 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
             else
                 reader = std::make_shared<InternalReader>(id());
 
-            if (RpcUtils::ActionType::NONE == RpcUtils::get_action_type(rpc_type))
+            // Only notify the discovery of topics that do not originate from a topic query callback
+            if (dds_topic.topic_discoverer() != this->id())
             {
-                if (service_discovered_nts_(rpc_name, dds_topic, rpc_type))
+                if (RpcUtils::ActionType::NONE == RpcUtils::get_action_type(rpc_type))
                 {
-                    RpcTopic service = services_.find(rpc_name)->second->get_service();
-                    std::static_pointer_cast<CBHandler>(schema_handler_)->add_service(service);
+                    if (service_discovered_nts_(rpc_name, dds_topic, rpc_type))
+                    {
+                        RpcTopic service = services_.find(rpc_name)->second->get_service();
+                        std::static_pointer_cast<CBHandler>(schema_handler_)->add_service(service);
+                    }
                 }
-            }
-            else
-            {
-                if (action_discovered_nts_(rpc_name, dds_topic, rpc_type))
+                else
                 {
-                    auto action = actions_.find(rpc_name)->second.get_action(rpc_name);
-                    std::static_pointer_cast<CBHandler>(schema_handler_)->add_action(action);
+                    if (action_discovered_nts_(rpc_name, dds_topic, rpc_type))
+                    {
+                        auto action = actions_.find(rpc_name)->second.get_action(rpc_name);
+                        std::static_pointer_cast<CBHandler>(schema_handler_)->add_action(action);
+                    }
                 }
             }
         }
         else
         {
             reader = std::make_shared<InternalReader>(id());
-            std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
+            // Only notify the discovery of topics that do not originate from a topic query callback
+            if (dds_topic.topic_discoverer() != this->id())
+            {
+                std::static_pointer_cast<CBHandler>(schema_handler_)->add_topic(dds_topic);
+            }
         }
         readers_[dds_topic] = reader;
     }
@@ -134,25 +142,35 @@ std::shared_ptr<IReader> EnablerParticipant::create_reader(
     return reader;
 }
 
-ddspipe::core::types::Endpoint EnablerParticipant::create_topic_writer_nts_(
+bool EnablerParticipant::create_topic_writer_nts_(
         const DdsTopic& topic,
         std::shared_ptr<IReader>& reader,
+        ddspipe::core::types::Endpoint& request_edp,
         std::unique_lock<std::mutex>& lck)
 {
-    auto request_edp = rtps::CommonParticipant::simulate_endpoint(topic, this->id());
+    request_edp = rtps::CommonParticipant::simulate_endpoint(topic, this->id());
     this->discovery_database_->add_endpoint(request_edp);
 
-    cv_.wait(lck, [&]
+    // Wait for reader to be created from discovery thread
+    // NOTE: Set a timeout to avoid a deadlock in case the reader is never created for some reason (e.g. the topic
+    // is blocked or the underlying DDS Pipe object is disabled/destroyed before the reader is created).
+    if (!cv_.wait_for(lck, std::chrono::seconds(5), [&]
             {
                 return nullptr != (reader = lookup_reader_nts_(topic.m_topic_name));
-            });
+            }))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to create internal reader for topic " << topic.m_topic_name <<
+                " , please verify that the topic is allowed.");
+        return false;
+    }
+
     // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
     // message when not using transient durability
     std::this_thread::sleep_for(std::chrono::milliseconds(std::static_pointer_cast<EnablerParticipantConfiguration>(
                 configuration_)->initial_publish_wait));
 
-    // TODO handle potential failure
-    return request_edp;
+    return true;
 }
 
 bool EnablerParticipant::publish(
@@ -180,7 +198,8 @@ bool EnablerParticipant::publish(
             return false;
         }
 
-        create_topic_writer_nts_(topic, i_reader, lck);
+        ddspipe::core::types::Endpoint _;
+        create_topic_writer_nts_(topic, i_reader, _, lck);
 
         // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
         // message when not using transient durability
@@ -295,12 +314,17 @@ bool EnablerParticipant::create_service_request_writer_nts_(
 
     if (nullptr == reader)
     {
-        auto request_edp = create_topic_writer_nts_(
+        ddspipe::core::types::Endpoint request_edp;
+        if (create_topic_writer_nts_(
                 service->topic_request,
                 reader,
-                lck);
-        service->endpoint_request = request_edp;
-        return true;
+                request_edp,
+                lck))
+        {
+            service->endpoint_request = request_edp;
+            return true;
+        }
+        return false;
     }
 
     // TODO What if there is a server already running in ROS2, currently the announce will fail
@@ -334,7 +358,6 @@ bool EnablerParticipant::announce_service(
 
     if (create_service_request_writer_nts_(service, lck))
     {
-        // TODO once rebased adding it to services_ is only neccessary if it is not being discarded in create reader
         services_.insert_or_assign(service_name, service);
         return true;
     }
@@ -344,7 +367,7 @@ bool EnablerParticipant::announce_service(
     return false;
 }
 
-// TODO after revoking the service the client is still matched, probably the dds participant does not remove its entities
+// TODO after revoking the service the client is still matched
 bool EnablerParticipant::revoke_service(
     const std::string& service_name)
 {
@@ -411,7 +434,6 @@ bool EnablerParticipant::announce_action(
         return false;
     }
 
-    // TODO once rebased adding it to actions_ is only neccessary if it is not being discarded in create reader
     actions_.insert_or_assign(action_name, action);
     return true;
 }
@@ -470,25 +492,40 @@ bool EnablerParticipant::query_topic_nts_(
                             " : topic is unknown and topic request callback not set.");
         return false;
     }
-    std::string _type_name;
-    std::string serialized_qos_content;
+    std::string type_name;
+    std::string serialized_qos;
+    if (!topic_query_callback_(topic_name.c_str(), type_name, serialized_qos))
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to publish data in topic " << topic_name << " : topic query callback failed.");
+        return false;
+    }
 
-    topic_query_callback_(topic_name.c_str(), _type_name, serialized_qos_content); // TODO: allow the user not to provide QoS + handle fail case
-
-    return fullfill_topic_type_nts_(topic_name, _type_name, serialized_qos_content, topic);
+    return fullfill_topic_type_nts_(topic_name, type_name, serialized_qos, topic);
 }
 
 bool EnablerParticipant::fullfill_topic_type_nts_(
     const std::string& topic_name,
-    const std::string _type_name,
-    const std::string serialized_qos_content,
+    const std::string type_name,
+    const std::string serialized_qos,
     DdsTopic& topic)
 
 {
-    std::string type_name = std::string(_type_name); // TODO: free resources allocated by user, or redesign interaction (same for serialized_qos_content)
-    std::string serialized_qos(serialized_qos_content);
-
-    TopicQoS qos = serialization::deserialize_qos(serialized_qos); // TODO: handle fail case (try-catch?)
+    // Deserialize QoS if provided by the user (otherwise use default one)
+    TopicQoS qos;
+    if (!serialized_qos.empty())
+    {
+        try
+        {
+            qos = serialization::deserialize_qos(serialized_qos);
+        }
+        catch (const std::exception& e)
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                    "Failed to deserialize QoS for topic " << topic_name << ": " << e.what());
+            return false;
+        }
+    }
 
     fastdds::dds::xtypes::TypeIdentifier type_identifier;
     if (!std::static_pointer_cast<CBHandler>(schema_handler_)->get_type_identifier(type_name, type_identifier))
@@ -551,7 +588,7 @@ bool EnablerParticipant::query_service_nts_(
 
 
     if (!service_query_callback_(service->service_name.c_str(), request_type_name, serialized_request_qos_content,
-            reply_type_name, serialized_reply_qos_content)) // TODO: allow the user not to provide QoS + handle fail case
+            reply_type_name, serialized_reply_qos_content))
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
                 "Failed to announce service " << service->service_name << " : service type request failed.");
@@ -712,10 +749,14 @@ bool EnablerParticipant::query_action_nts_(
         std::string _;
         auto feedback_reader = std::dynamic_pointer_cast<IReader>(lookup_reader_nts_(feedback_topic_name, _));
         if (!feedback_reader)
+        {
+            ddspipe::core::types::Endpoint _;
             create_topic_writer_nts_(
                     action.feedback,
                     feedback_reader,
+                    _,
                     lck);
+        }
     }
     action.feedback = feedback_topic;
     action.feedback_discovered = true;
@@ -736,10 +777,14 @@ bool EnablerParticipant::query_action_nts_(
         std::string _;
         auto status_reader = std::dynamic_pointer_cast<IReader>(lookup_reader_nts_(action.status.m_topic_name, _));
         if (!status_reader)
+        {
+            ddspipe::core::types::Endpoint _;
             create_topic_writer_nts_(
                     action.status,
                     status_reader,
+                    _,
                     lck);
+        }
     }
     action.status = status_topic;
     action.status_discovered = true;
