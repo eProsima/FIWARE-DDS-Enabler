@@ -36,7 +36,6 @@
 #include <ddsenabler_participants/CBCallbacks.hpp>
 #include <ddsenabler_participants/CBHandlerConfiguration.hpp>
 #include <ddsenabler_participants/CBMessage.hpp>
-#include <ddsenabler_participants/CBWriter.hpp>
 #include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/RpcStructs.hpp>
 #include <ddsenabler_participants/library/library_dll.h>
@@ -72,6 +71,8 @@ struct hash<eprosima::ddsenabler::participants::UUID> {
 namespace eprosima {
 namespace ddsenabler {
 namespace participants {
+
+class CBWriter;
 
 /**
  * Class that manages the interaction between \c EnablerParticipant and CB.
@@ -251,10 +252,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_data_notification_callback(
-            participants::DdsDataNotification callback)
-    {
-        cb_writer_->set_data_notification_callback(callback);
-    }
+            participants::DdsDataNotification callback);
 
     /**
      * @brief Set the topic notification callback.
@@ -263,10 +261,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_topic_notification_callback(
-            participants::DdsTopicNotification callback)
-    {
-        cb_writer_->set_topic_notification_callback(callback);
-    }
+            participants::DdsTopicNotification callback);
 
     /**
      * @brief Set the type notification callback.
@@ -275,10 +270,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_notification_callback(
-            participants::DdsTypeNotification callback)
-    {
-        cb_writer_->set_type_notification_callback(callback);
-    }
+            participants::DdsTypeNotification callback);
 
     /**
      * @brief Set the type query callback.
@@ -287,11 +279,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_type_query_callback(
-            participants::DdsTypeQuery callback)
-    {
-        type_query_callback_ = callback;
-    }
-
+            participants::DdsTypeQuery callback);
     /**
      * @brief Set the service notification callback.
      *
@@ -299,10 +287,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_notification_callback(
-            participants::ServiceNotification callback)
-    {
-        cb_writer_->set_service_notification_callback(callback);
-    }
+            participants::ServiceNotification callback);
 
     /**
      * @brief Set the service reply notification callback.
@@ -311,10 +296,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_reply_notification_callback(
-            participants::ServiceReplyNotification callback)
-    {
-        cb_writer_->set_service_reply_notification_callback(callback);
-    }
+            participants::ServiceReplyNotification callback);
 
     /**
      * @brief Set the service request notification callback.
@@ -323,10 +305,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_service_request_notification_callback(
-            participants::ServiceRequestNotification callback)
-    {
-        cb_writer_->set_service_request_notification_callback(callback);
-    }
+            participants::ServiceRequestNotification callback);
 
     /**
      * @brief Set the action notification callback.
@@ -335,10 +314,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_notification_callback(
-            participants::ActionNotification callback)
-    {
-        cb_writer_->set_action_notification_callback(callback);
-    }
+            participants::ActionNotification callback);
 
     /**
      * @brief Set the action result notification callback.
@@ -347,10 +323,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_result_notification_callback(
-            participants::ActionResultNotification callback)
-    {
-        cb_writer_->set_action_result_notification_callback(callback);
-    }
+            participants::ActionResultNotification callback);
 
     /**
      * @brief Set the action feedback notification callback.
@@ -359,10 +332,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_feedback_notification_callback(
-            participants::ActionFeedbackNotification callback)
-    {
-        cb_writer_->set_action_feedback_notification_callback(callback);
-    }
+            participants::ActionFeedbackNotification callback);
 
     /**
      * @brief Set the action status notification callback.
@@ -371,10 +341,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_status_notification_callback(
-            participants::ActionStatusNotification callback)
-    {
-        cb_writer_->set_action_status_notification_callback(callback);
-    }
+            participants::ActionStatusNotification callback);
 
     /**
      * @brief Set the action get result request callback.
@@ -383,10 +350,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_get_result_request_callback(
-            std::function<bool(const std::string&, const participants::UUID&)> callback)
-    {
-        cb_writer_->set_send_action_get_result_request_callback(callback);
-    }
+            std::function<bool(const std::string&, const participants::UUID&)> callback);
 
     /**
      * @brief Set the action goal request notification callback.
@@ -395,10 +359,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_goal_request_notification_callback(
-            participants::ActionGoalRequestNotification callback)
-    {
-        cb_writer_->set_action_goal_request_notification_callback(callback);
-    }
+            participants::ActionGoalRequestNotification callback);
 
     /**
      * @brief Set the action cancel request notification callback.
@@ -407,10 +368,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_action_cancel_request_notification_callback(
-            participants::ActionCancelRequestNotification callback)
-    {
-        cb_writer_->set_action_cancel_request_notification_callback(callback);
-    }
+            participants::ActionCancelRequestNotification callback);
 
     /**
      * @brief Set the action send goal reply callback.
@@ -419,10 +377,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_send_goal_reply_callback(
-            std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
-    {
-        cb_writer_->set_send_action_send_goal_reply_callback(callback);
-    }
+            std::function<void(const std::string&, const uint64_t, bool accepted)> callback);
 
     /**
      * @brief Set the action get result reply callback.
@@ -431,10 +386,7 @@ public:
      */
     DDSENABLER_PARTICIPANTS_DllAPI
     void set_send_action_get_result_reply_callback(
-            std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
-    {
-        send_action_get_result_reply_callback_ = callback;
-    }
+            std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback);
 
 protected:
 

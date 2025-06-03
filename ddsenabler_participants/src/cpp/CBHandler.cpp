@@ -28,6 +28,7 @@
 #include <ddsenabler_participants/serialization.hpp>
 #include <ddsenabler_participants/RpcUtils.hpp>
 #include <ddsenabler_participants/types/dynamic_types_collection/DynamicTypesCollection.hpp>
+#include <ddsenabler_participants/CBWriter.hpp>
 #include <ddsenabler_participants/CBHandler.hpp>
 
 namespace eprosima {
@@ -767,6 +768,102 @@ bool CBHandler::get_action_result(
         }
     }
     return false;
+}
+
+void CBHandler::set_data_notification_callback(
+        participants::DdsDataNotification callback)
+{
+    cb_writer_->set_data_notification_callback(callback);
+}
+
+void CBHandler::set_topic_notification_callback(
+        participants::DdsTopicNotification callback)
+{
+    cb_writer_->set_topic_notification_callback(callback);
+}
+
+void CBHandler::set_type_notification_callback(
+        participants::DdsTypeNotification callback)
+{
+    cb_writer_->set_type_notification_callback(callback);
+}
+
+void CBHandler::set_type_query_callback(
+        participants::DdsTypeQuery callback)
+{
+    type_query_callback_ = callback;
+}
+
+void CBHandler::set_service_notification_callback(
+        participants::ServiceNotification callback)
+{
+    cb_writer_->set_service_notification_callback(callback);
+}
+
+void CBHandler::set_service_reply_notification_callback(
+        participants::ServiceReplyNotification callback)
+{
+    cb_writer_->set_service_reply_notification_callback(callback);
+}
+
+void CBHandler::set_service_request_notification_callback(
+        participants::ServiceRequestNotification callback)
+{
+    cb_writer_->set_service_request_notification_callback(callback);
+}
+
+void CBHandler::set_action_notification_callback(
+        participants::ActionNotification callback)
+{
+    cb_writer_->set_action_notification_callback(callback);
+}
+
+void CBHandler::set_action_result_notification_callback(
+        participants::ActionResultNotification callback)
+{
+    cb_writer_->set_action_result_notification_callback(callback);
+}
+
+void CBHandler::set_action_feedback_notification_callback(
+        participants::ActionFeedbackNotification callback)
+{
+    cb_writer_->set_action_feedback_notification_callback(callback);
+}
+
+void CBHandler::set_action_status_notification_callback(
+        participants::ActionStatusNotification callback)
+{
+    cb_writer_->set_action_status_notification_callback(callback);
+}
+
+void CBHandler::set_send_action_get_result_request_callback(
+        std::function<bool(const std::string&, const participants::UUID&)> callback)
+{
+    cb_writer_->set_send_action_get_result_request_callback(callback);
+}
+
+void CBHandler::set_action_goal_request_notification_callback(
+        participants::ActionGoalRequestNotification callback)
+{
+    cb_writer_->set_action_goal_request_notification_callback(callback);
+}
+
+void CBHandler::set_action_cancel_request_notification_callback(
+        participants::ActionCancelRequestNotification callback)
+{
+    cb_writer_->set_action_cancel_request_notification_callback(callback);
+}
+
+void CBHandler::set_send_action_send_goal_reply_callback(
+        std::function<void(const std::string&, const uint64_t, bool accepted)> callback)
+{
+    cb_writer_->set_send_action_send_goal_reply_callback(callback);
+}
+
+void CBHandler::set_send_action_get_result_reply_callback(
+        std::function<bool(const std::string&, const UUID&, const std::string&, const uint64_t)> callback)
+{
+    send_action_get_result_reply_callback_ = callback;
 }
 
 } /* namespace participants */
