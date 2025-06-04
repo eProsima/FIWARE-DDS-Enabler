@@ -73,6 +73,13 @@ bool EnablerParticipant::publish(
         const std::string& topic_name,
         const std::string& json)
 {
+    if (topic_name.empty())
+    {
+        EPROSIMA_LOG_ERROR(DDSENABLER_ENABLER_PARTICIPANT,
+                "Failed to publish data: topic name is empty.");
+        return false;
+    }
+
     std::unique_lock<std::mutex> lck(mtx_);
 
     std::string type_name;

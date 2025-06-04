@@ -17,22 +17,34 @@
  *
  */
 
+#include <condition_variable>
 #include <csignal>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
+#include <string>
 #include <thread>
+#include <vector>
 
-#include "CLIParser.hpp"
 #include "ddsenabler/dds_enabler_runner.hpp"
 #include "ddsenabler/DDSEnabler.hpp"
 
+#include "CLIParser.hpp"
+#include "utils.hpp"
+
+CLIParser::example_config config;
 uint32_t received_types_ = 0;
 uint32_t received_topics_ = 0;
 uint32_t received_data_ = 0;
-std::mutex type_received_mutex_;
-std::mutex topic_received_mutex_;
-std::mutex data_received_mutex_;
+std::mutex app_mutex_;
+std::condition_variable app_cv_;
 bool stop_app_ = false;
+
+const std::string SAMPLES_SUBDIR = "samples";
+const std::string TYPES_SUBDIR = "types";
+const std::string TOPICS_SUBDIR = "topics";
 
 // Static type notification callback
 static void test_type_notification_callback(
@@ -42,24 +54,92 @@ static void test_type_notification_callback(
         uint32_t serialized_type_internal_size,
         const char* data_placeholder)
 {
-    std::lock_guard<std::mutex> lock(type_received_mutex_);
+    bool notify = false;
+    {
+        std::lock_guard<std::mutex> lock(app_mutex_);
+        notify = ++received_types_ >= config.expected_types;
+        std::cout << "Type callback received: " << type_name << ", Total types: " <<
+            received_types_ << std::endl << serialized_type << std::endl << std::endl;
+        if (!config.persistence_path.empty() &&
+                !save_type_to_file((std::filesystem::path(config.persistence_path) / TYPES_SUBDIR).string(), type_name,
+                serialized_type_internal, serialized_type_internal_size))
+        {
+            std::cerr << "Failed to save type: " << type_name << std::endl;
+        }
+    }
+    if (notify)
+    {
+        app_cv_.notify_all();
+    }
+}
 
-    received_types_++;
-    std::cout << "Type callback received: " << type_name << ", Total types: " <<
-        received_types_ << std::endl;
+// Static type query callback
+static bool test_type_query_callback(
+        const char* type_name,
+        std::unique_ptr<const unsigned char[]>& serialized_type_internal,
+        uint32_t& serialized_type_internal_size)
+{
+    if (config.persistence_path.empty())
+    {
+        std::cerr << "Persistence path is not set, cannot query type: " << type_name << std::endl;
+        return false;
+    }
+
+    // Load the type from file
+    if (!load_type_from_file((std::filesystem::path(config.persistence_path) / TYPES_SUBDIR).string(), type_name,
+            serialized_type_internal, serialized_type_internal_size))
+    {
+        std::cerr << "Failed to load type: " << type_name << std::endl;
+        return false;
+    }
+    return true;
 }
 
 // Static topic notification callback
 static void test_topic_notification_callback(
         const char* topic_name,
         const char* type_name,
-        const char* serializedQos)
+        const char* serialized_qos)
 {
-    std::lock_guard<std::mutex> lock(topic_received_mutex_);
+    bool notify = false;
+    {
+        std::lock_guard<std::mutex> lock(app_mutex_);
+        notify = ++received_topics_ >= config.expected_topics;
+        std::cout << "Topic callback received: " << topic_name << " of type " << type_name << ", Total topics: " <<
+            received_topics_ << std::endl << serialized_qos << std::endl << std::endl;
+        if (!config.persistence_path.empty() &&
+                !save_topic_to_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(), topic_name,
+                type_name, serialized_qos))
+        {
+            std::cerr << "Failed to save topic: " << topic_name << std::endl;
+        }
+    }
+    if (notify)
+    {
+        app_cv_.notify_all();
+    }
+}
 
-    received_topics_++;
-    std::cout << "Topic callback received: " << topic_name << " of type " << type_name << ", Total topics: " <<
-        received_topics_ << std::endl;
+// Static type query callback
+static bool test_topic_query_callback(
+        const char* topic_name,
+        std::string& type_name,
+        std::string& serialized_qos)
+{
+    if (config.persistence_path.empty())
+    {
+        std::cerr << "Persistence path is not set, cannot query topic: " << topic_name << std::endl;
+        return false;
+    }
+
+    // Load the topic from file
+    if (!load_topic_from_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(), topic_name, type_name,
+            serialized_qos))
+    {
+        std::cerr << "Failed to load topic: " << topic_name << std::endl;
+        return false;
+    }
+    return true;
 }
 
 // Static data notification callback
@@ -68,39 +148,146 @@ static void test_data_notification_callback(
         const char* json,
         int64_t publish_time)
 {
-    std::lock_guard<std::mutex> lock(data_received_mutex_);
-
-    received_data_++;
-    std::cout << "Data callback received: " << topic_name << ", Total data: " <<
-        received_data_ << ", data: " << json << std::endl;
+    bool notify = false;
+    {
+        std::lock_guard<std::mutex> lock(app_mutex_);
+        notify = ++received_data_ >= config.expected_data;
+        std::cout << "Data callback received: " << topic_name << ", Total data: " <<
+            received_data_ << std::endl << json << std::endl << std::endl;
+        if (!config.persistence_path.empty() &&
+                !save_data_to_file((std::filesystem::path(config.persistence_path) / SAMPLES_SUBDIR).string(), topic_name, json,
+                publish_time))
+        {
+            std::cerr << "Failed to save data for topic: " << topic_name << std::endl;
+        }
+    }
+    if (notify)
+    {
+        app_cv_.notify_all();
+    }
 }
 
-int get_received_types()
+bool validate_received(
+        const CLIParser::example_config& config)
 {
-    std::lock_guard<std::mutex> lock(type_received_mutex_);
-
-    return received_types_;
+    return (received_types_ >= config.expected_types) &&
+           (received_topics_ >= config.expected_topics) &&
+           (received_data_ >= config.expected_data);
 }
 
-int get_received_topics()
+bool expected_received(
+        const CLIParser::example_config& config)
 {
-    std::lock_guard<std::mutex> lock(topic_received_mutex_);
-
-    return received_topics_;
+    if (!config.expected_types && !config.expected_topics && !config.expected_data)
+    {
+        // No expectations set, return false to avoid immediate exit
+        return false;
+    }
+    return validate_received(config);
 }
 
-int get_received_data()
+void init_persistence(
+        const std::string& persistence_path)
 {
-    std::lock_guard<std::mutex> lock(data_received_mutex_);
+    auto ensure_directory_exists = [](const std::filesystem::path& path)
+            {
+                if (!std::filesystem::exists(path) && !std::filesystem::create_directories(path))
+                {
+                    std::cerr << "Failed to create directory: " << path << std::endl;
+                }
+            };
 
-    return received_data_;
+    if (!persistence_path.empty())
+    {
+        ensure_directory_exists(persistence_path);
+        std::vector<std::string> subdirs = {SAMPLES_SUBDIR, TYPES_SUBDIR, TOPICS_SUBDIR};
+        for (const auto& sub : subdirs)
+        {
+            ensure_directory_exists(std::filesystem::path(persistence_path) / sub);
+        }
+    }
+}
+
+void publish_routine(
+        std::shared_ptr<eprosima::ddsenabler::DDSEnabler> enabler,
+        const std::string& publish_path,
+        const std::string& topic_name,
+        uint32_t publish_period,
+        uint32_t publish_initial_wait,
+        std::mutex& app_mutex,
+        bool& stop_app)
+{
+    // Wait a bit before starting to publish so types and topics can be discovered
+    std::this_thread::sleep_for(std::chrono::milliseconds(publish_initial_wait));
+
+    std::vector<std::pair<std::filesystem::path, int32_t>> sample_files;
+    for (const auto& entry : std::filesystem::directory_iterator(publish_path))
+    {
+        if (entry.is_regular_file())
+        {
+            std::string filename = entry.path().filename().string();
+            try
+            {
+                // assumes name is just a number
+                sample_files.emplace_back(entry.path(), static_cast<int32_t>(std::stoll(filename)));
+            }
+            catch (const std::invalid_argument& e)
+            {
+                std::cerr << "Skipping non-numeric file: " << filename << std::endl;
+            }
+        }
+    }
+
+    // Sort files by numeric value
+    std::sort(sample_files.begin(), sample_files.end(),
+            [](const auto& a, const auto& b)
+            {
+                return a.second < b.second;
+            });
+
+    for (const auto& [path, number] : sample_files)
+    {
+        {
+            std::lock_guard<std::mutex> lock(app_mutex);
+            if (stop_app)
+            {
+                std::cout << "Publish routine stopped." << std::endl;
+                return;
+            }
+        }
+        std::ifstream file(path, std::ios::binary);
+        if (file)
+        {
+            std::string file_content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+            if (enabler->publish(topic_name, file_content))
+            {
+                std::cout << "Published content from file: " << path.filename() << " in topic: "
+                          << topic_name << std::endl;
+            }
+            else
+            {
+                std::cerr << "Failed to publish content from file: " << path.filename() << " in topic: "
+                          << topic_name << std::endl;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(publish_period));
+        }
+        else
+        {
+            std::cerr << "Failed to open file: " << path << std::endl;
+        }
+    }
 }
 
 void signal_handler(
         int signum)
 {
     std::cout << "Signal " << CLIParser::parse_signal(signum) << " received, stopping..." << std::endl;
-    stop_app_ = true;
+    {
+        std::lock_guard<std::mutex> lock(app_mutex_);
+        stop_app_ = true;
+    }
+    app_cv_.notify_all();
 }
 
 int main(
@@ -109,18 +296,34 @@ int main(
 {
     using namespace eprosima::ddsenabler;
 
-    CLIParser::example_config config = CLIParser::parse_cli_options(argc, argv);
+    config = CLIParser::parse_cli_options(argc, argv);
+
+    init_persistence(config.persistence_path);
 
     CallbackSet callbacks{
         .dds = {
             .type_notification = test_type_notification_callback,
             .topic_notification = test_topic_notification_callback,
-            .data_notification = test_data_notification_callback
+            .data_notification = test_data_notification_callback,
+            .type_query = test_type_query_callback,
+            .topic_query = test_topic_query_callback
         }
     };
 
     std::shared_ptr<DDSEnabler> enabler;
-    create_dds_enabler(config.config_file_path_.c_str(), callbacks, enabler);
+    if (!create_dds_enabler(config.config_file_path.c_str(), callbacks, enabler))
+    {
+        std::cerr << "Failed to create DDS Enabler with the provided configuration." << std::endl;
+        return EXIT_FAILURE;
+    }
+
+    std::thread publish_thread;
+    if (!config.publish_path.empty())
+    {
+        publish_thread = std::thread(publish_routine,
+                        enabler, config.publish_path, config.publish_topic, config.publish_period, config.publish_initial_wait, std::ref(
+                            app_mutex_), std::ref(stop_app_));
+    }
 
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
@@ -129,24 +332,27 @@ int main(
     signal(SIGHUP, signal_handler);
 #endif // _WIN32
 
-    // Loop until timeout seconds
-    auto end_time = std::chrono::steady_clock::now() + std::chrono::seconds(config.timeout_seconds);
-    while (std::chrono::steady_clock::now() < end_time)
+    int ret_code = EXIT_SUCCESS;
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        if (stop_app_)
+        std::unique_lock<std::mutex> lock(app_mutex_);
+        if (app_cv_.wait_for(lock, std::chrono::seconds(config.timeout),
+                []
+                {
+                    return stop_app_ || expected_received(config);
+                }))
         {
-            return EXIT_SUCCESS;
+            ret_code = EXIT_SUCCESS;
         }
-        else if (get_received_types() >= config.expected_types_ &&
-                get_received_topics() >= config.expected_topics_ &&
-                get_received_data() >= config.expected_data_)
+        else
         {
-            std::cout << "Received enough data, stopping..." << std::endl;
-            return EXIT_SUCCESS;
+            std::cerr << "Timeout reached, stopping..." << std::endl;
+            ret_code = validate_received(config) ? EXIT_SUCCESS : EXIT_FAILURE;
         }
     }
 
-    std::cout << "Timeout reached, stopping..." << std::endl;
-    return EXIT_FAILURE;
+    if (publish_thread.joinable())
+    {
+        publish_thread.join();
+    }
+    return ret_code;
 }
