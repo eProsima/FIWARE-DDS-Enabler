@@ -147,7 +147,26 @@ void CBWriter::write_data(
 
     // Fill JSON object with the data
     nlohmann::json json_output;
-    fill_json_(json_output, msg, ss_dyn_data.str());
+    {
+        // Set id to be the source guid prefix
+        std::stringstream ss_source_guid_prefix;
+        ss_source_guid_prefix << msg.source_guid.guid_prefix();
+        json_output["id"] = ss_source_guid_prefix.str();
+
+        // Set type to be fastdds
+        json_output["type"] = "fastdds";
+
+        // Insert type and data (to be filled below) with topic name as key
+        json_output[msg.topic.topic_name()] = {
+            {"type", msg.topic.type_name},
+            {"data", nlohmann::json::object()}
+        };
+
+        // Insert data with instance handle as key
+        std::stringstream ss_instanceHandle;
+        ss_instanceHandle << msg.instanceHandle;
+        json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = nlohmann::json::parse(ss_dyn_data.str());
+    }
 
     // Notify data reception
     if (data_notification_callback_)
@@ -197,31 +216,6 @@ fastdds::dds::DynamicPubSubType CBWriter::get_pubsub_type_(
     dynamic_pubsub_types_[dyn_type] = pubsub_type;
 
     return pubsub_type;
-}
-
-void CBWriter::fill_json_(
-        nlohmann::json& json,
-        const CBMessage& msg,
-        const std::string& serialized_data) noexcept
-{
-    // Set id to be the source guid prefix
-    std::stringstream ss_source_guid_prefix;
-    ss_source_guid_prefix << msg.source_guid.guid_prefix();
-    json["id"] = ss_source_guid_prefix.str();
-
-    // Set type to be fastdds
-    json["type"] = "fastdds";
-
-    // Insert type and data (to be filled below) with topic name as key
-    json[msg.topic.topic_name()] = {
-        {"type", msg.topic.type_name},
-        {"data", nlohmann::json::object()}
-    };
-
-    // Insert data with instance handle as key
-    std::stringstream ss_instanceHandle;
-    ss_instanceHandle << msg.instanceHandle;
-    json[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = nlohmann::json::parse(serialized_data);
 }
 
 } /* namespace participants */

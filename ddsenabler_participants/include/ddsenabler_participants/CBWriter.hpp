@@ -20,8 +20,6 @@
 
 #include <map>
 
-#include <nlohmann/json.hpp>
-
 #include <fastdds/dds/xtypes/dynamic_types/DynamicData.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicPubSubType.hpp>
 #include <fastdds/dds/xtypes/dynamic_types/DynamicType.hpp>
@@ -129,18 +127,6 @@ protected:
      */
     fastdds::dds::DynamicPubSubType get_pubsub_type_(
             const fastdds::dds::DynamicType::_ref_type& dyn_type) noexcept;
-
-    /**
-     * @brief Fills a JSON object with the data from a CBMessage.
-     *
-     * @param [in,out] json JSON object to be filled.
-     * @param [in] msg CBMessage containing the data used to fill the JSON object.
-     * @param [in] serialized_data Serialized data to be added to the JSON object.
-     */
-    void fill_json_(
-            nlohmann::json& json,
-            const CBMessage& msg,
-            const std::string& serialized_data) noexcept;
 
     // Callbacks to notify the CB
     DdsDataNotification data_notification_callback_;
