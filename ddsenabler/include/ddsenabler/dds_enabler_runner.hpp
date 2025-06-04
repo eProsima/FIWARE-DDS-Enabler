@@ -19,33 +19,38 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-
-#include <cpp_utils/event/FileWatcherHandler.hpp>
-#include <cpp_utils/event/PeriodicEventHandler.hpp>
-#include <cpp_utils/exception/ConfigurationException.hpp>
-#include <cpp_utils/exception/InitializationException.hpp>
-#include <cpp_utils/logging/BaseLogConfiguration.hpp>
-#include <cpp_utils/logging/StdLogConsumer.hpp>
-#include <cpp_utils/ReturnCode.hpp>
-#include <cpp_utils/time/time_utils.hpp>
-
-#include <ddspipe_core/logging/DdsLogConsumer.hpp>
-
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
 #include <ddsenabler/CallbackSet.hpp>
 #include <ddsenabler/DDSEnabler.hpp>
 
+#include <ddsenabler/library/library_dll.h>
+
 namespace eprosima {
 namespace ddsenabler {
 
+/**
+ * @brief Create a DDS Enabler instance from a configuration file path.
+ *
+ * @param configuration_path Path to the configuration file.
+ * @param callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param enabler Output parameter to hold the created DDS Enabler instance.
+ * @return true if the DDS Enabler was created successfully, false otherwise.
+ */
+DDSENABLER_DllAPI
 bool create_dds_enabler(
-        const char* ddsEnablerConfigFile,
+        const char* configuration_path,
         const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler);
-
+/**
+ * @brief Create a DDS Enabler instance from a configuration object.
+ *
+ * @param configuration DDS Enabler configuration object.
+ * @param callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param enabler Output parameter to hold the created DDS Enabler instance.
+ * @return true if the DDS Enabler was created successfully, false otherwise.
+ */
+DDSENABLER_DllAPI
 bool create_dds_enabler(
         yaml::EnablerConfiguration configuration,
         const CallbackSet& callbacks,

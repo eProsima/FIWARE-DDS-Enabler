@@ -19,8 +19,12 @@
 
 #include <string>
 
+#include <cpp_utils/exception/ConfigurationException.hpp>
+#include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/Log.hpp>
 #include <cpp_utils/logging/StdLogConsumer.hpp>
+
+#include <ddspipe_core/logging/DdsLogConsumer.hpp>
 
 #include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
@@ -32,35 +36,44 @@ namespace eprosima {
 namespace ddsenabler {
 
 bool create_dds_enabler(
-        const char* ddsEnablerConfigFile,
+        const char* configuration_path,
         const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler)
 {
     std::string dds_enabler_config_file = "";
-    if (ddsEnablerConfigFile != NULL)
+    if (configuration_path != NULL)
     {
-        dds_enabler_config_file = ddsEnablerConfigFile;
+        dds_enabler_config_file = configuration_path;
     }
 
-    // Load configuration from file
-    eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
-
-    // Create DDS Enabler instance
-    if (!create_dds_enabler(
-                configuration,
-                callbacks,
-                enabler))
+    try
     {
-        EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Failed to create DDS Enabler from configuration file: " << dds_enabler_config_file);
-        return false;
+        // Load configuration from file
+        eprosima::ddsenabler::yaml::EnablerConfiguration configuration(dds_enabler_config_file);
+
+        // Create DDS Enabler instance
+        if (!create_dds_enabler(
+                    configuration,
+                    callbacks,
+                    enabler))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Failed to create DDS Enabler from configuration file: " << dds_enabler_config_file);
+            return false;
+        }
+
+        // Set the file watcher to reload the configuration if the file changes
+        if (!enabler->set_file_watcher(dds_enabler_config_file))
+        {
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Failed to set file watcher.");
+            return false;
+        }
     }
-
-    // Set the file watcher to reload the configuration if the file changes
-    if (!enabler->set_file_watcher(dds_enabler_config_file))
+    catch (const eprosima::utils::ConfigurationException& e)
     {
         EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
-                "Failed to set file watcher.");
+                "Error Loading DDS Enabler Configuration. Error message:\n " << e.what());
         return false;
     }
 
@@ -79,8 +92,9 @@ bool create_dds_enabler(
         eprosima::utils::Formatter error_msg;
         if (!configuration.is_valid(error_msg))
         {
-            throw eprosima::utils::ConfigurationException(
-                      eprosima::utils::Formatter() << "Invalid configuration: " << error_msg);
+            EPROSIMA_LOG_ERROR(DDSENABLER_EXECUTION,
+                    "Invalid configuration: " << error_msg);
+            return false;
         }
 
         // Logging

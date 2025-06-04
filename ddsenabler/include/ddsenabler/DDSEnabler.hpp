@@ -42,6 +42,7 @@
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
 
 #include <ddsenabler/CallbackSet.hpp>
+#include <ddsenabler/library/library_dll.h>
 
 namespace eprosima {
 namespace ddsenabler {
@@ -61,6 +62,7 @@ public:
      * @param configuration: Structure encapsulating all enabler configuration options.
      * @param callbacks: Set of callbacks to be used by the enabler.
      */
+    DDSENABLER_DllAPI
     DDSEnabler(
             const yaml::EnablerConfiguration& configuration,
             const CallbackSet& callbacks);
@@ -72,6 +74,7 @@ public:
      *
      * @return \c true if operation was succesful, \c false otherwise.
      */
+    DDSENABLER_DllAPI
     bool set_file_watcher(
             const std::string& file_path);
 
@@ -84,6 +87,7 @@ public:
      * @return \c RETCODE_NO_DATA if new allowed topics list is the same as the previous one
      * @return \c RETCODE_ERROR if any other error has occurred.
      */
+    DDSENABLER_DllAPI
     utils::ReturnCode reload_configuration(
             yaml::EnablerConfiguration& new_configuration);
 
@@ -94,6 +98,7 @@ public:
      * @param json: The JSON message to publish.
      * @return \c true if the message was published successfully, \c false otherwise.
      */
+    DDSENABLER_DllAPI
     bool publish(
             const std::string& topic_name,
             const std::string& json);
