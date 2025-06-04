@@ -677,7 +677,7 @@ bool CBWriter::prepare_json_data_(
     assert(nullptr != dyn_type);
 
     EPROSIMA_LOG_INFO(DDSENABLER_CB_WRITER,
-            "Processing message from topic: " << msg.topic.topic_name() << ".");
+            "Writing message from topic: " << msg.topic.topic_name() << ".");
 
     // Get the dynamic data to be serialized into JSON
     fastdds::dds::DynamicData::_ref_type dyn_data = get_dynamic_data_(msg, dyn_type);
@@ -700,26 +700,26 @@ bool CBWriter::prepare_json_data_(
     }
 
     // Fill JSON object with the data
-    nlohmann::json json_output;
+    {
+        // Set id to be the source guid prefix
+        std::stringstream ss_source_guid_prefix;
+        ss_source_guid_prefix << msg.source_guid.guid_prefix();
+        json_output["id"] = ss_source_guid_prefix.str();
 
-    // Set id to be the source guid prefix
-    std::stringstream ss_source_guid_prefix;
-    ss_source_guid_prefix << msg.source_guid.guid_prefix();
-    json_output["id"] = ss_source_guid_prefix.str();
+        // Set type to be fastdds
+        json_output["type"] = "fastdds";
 
-    // Set type to be fastdds
-    json_output["type"] = "fastdds";
+        // Insert type and data (to be filled below) with topic name as key
+        json_output[msg.topic.topic_name()] = {
+            {"type", msg.topic.type_name},
+            {"data", nlohmann::json::object()}
+        };
 
-    // Insert type and data (to be filled below) with topic name as key
-    json_output[msg.topic.topic_name()] = {
-        {"type", msg.topic.type_name},
-        {"data", nlohmann::json::object()}
-    };
-
-    // Insert data with instance handle as key
-    std::stringstream ss_instanceHandle;
-    ss_instanceHandle << msg.instanceHandle;
-    json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = nlohmann::json::parse(serialized_data);
+        // Insert data with instance handle as key
+        std::stringstream ss_instanceHandle;
+        ss_instanceHandle << msg.instanceHandle;
+        json_output[msg.topic.topic_name()]["data"][ss_instanceHandle.str()] = nlohmann::json::parse(ss_dyn_data.str());
+    }
 
     if (json_output.empty())
     {
