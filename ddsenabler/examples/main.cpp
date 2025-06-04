@@ -108,7 +108,8 @@ static void test_topic_notification_callback(
         std::cout << "Topic callback received: " << topic_name << " of type " << type_name << ", Total topics: " <<
             received_topics_ << std::endl << serialized_qos << std::endl << std::endl;
         if (!config.persistence_path.empty() &&
-                !save_topic_to_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(), topic_name,
+                !save_topic_to_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(),
+                topic_name,
                 type_name, serialized_qos))
         {
             std::cerr << "Failed to save topic: " << topic_name << std::endl;
@@ -133,7 +134,8 @@ static bool test_topic_query_callback(
     }
 
     // Load the topic from file
-    if (!load_topic_from_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(), topic_name, type_name,
+    if (!load_topic_from_file((std::filesystem::path(config.persistence_path) / TOPICS_SUBDIR).string(), topic_name,
+            type_name,
             serialized_qos))
     {
         std::cerr << "Failed to load topic: " << topic_name << std::endl;
@@ -155,7 +157,8 @@ static void test_data_notification_callback(
         std::cout << "Data callback received: " << topic_name << ", Total data: " <<
             received_data_ << std::endl << json << std::endl << std::endl;
         if (!config.persistence_path.empty() &&
-                !save_data_to_file((std::filesystem::path(config.persistence_path) / SAMPLES_SUBDIR).string(), topic_name, json,
+                !save_data_to_file((std::filesystem::path(config.persistence_path) / SAMPLES_SUBDIR).string(),
+                topic_name, json,
                 publish_time))
         {
             std::cerr << "Failed to save data for topic: " << topic_name << std::endl;
@@ -321,7 +324,8 @@ int main(
     if (!config.publish_path.empty())
     {
         publish_thread = std::thread(publish_routine,
-                        enabler, config.publish_path, config.publish_topic, config.publish_period, config.publish_initial_wait, std::ref(
+                        enabler, config.publish_path, config.publish_topic, config.publish_period,
+                        config.publish_initial_wait, std::ref(
                             app_mutex_), std::ref(stop_app_));
     }
 
