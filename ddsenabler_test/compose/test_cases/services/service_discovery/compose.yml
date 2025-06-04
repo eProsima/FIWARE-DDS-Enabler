@@ -10,7 +10,7 @@ services:
       - std_net
     volumes:
       - ../../../scripts:/scripts
-    command: ./build/ddsenabler_test_app/test_app service_client
+    command: ./build/ddsenabler_test_app/test_app service_discovery
 
   add_two_ints_server:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}

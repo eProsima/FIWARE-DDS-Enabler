@@ -19,7 +19,8 @@ services:
       - std_net
     environment:
       - ROS_DOMAIN_ID=33
-    command: ros2 run action_tutorials_cpp fibonacci_action_client
+    command: >
+      sh -c "sleep 3 && ros2 run action_tutorials_cpp fibonacci_action_client"
 
   fibonacci_client_2:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
@@ -30,7 +31,8 @@ services:
       - std_net
     environment:
       - ROS_DOMAIN_ID=33
-    command: ros2 run action_tutorials_cpp fibonacci_action_client
+    command: >
+      sh -c "sleep 3 && ros2 run action_tutorials_cpp fibonacci_action_client"
 
   fibonacci_client_3:
     image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
@@ -41,7 +43,8 @@ services:
       - std_net
     environment:
       - ROS_DOMAIN_ID=33
-    command: ros2 run action_tutorials_cpp fibonacci_action_client
+    command: >
+      sh -c "sleep 3 && ros2 run action_tutorials_cpp fibonacci_action_client"
 
 networks:
   std_net:
