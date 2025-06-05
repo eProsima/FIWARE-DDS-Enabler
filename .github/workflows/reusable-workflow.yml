@@ -74,7 +74,7 @@ jobs:
           packages_names: ${{ env.code_packages_names }}
           cmake_args: -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCOMPILE_EXAMPLES=ON
           workspace_dependencies: install
-          ctest_args: --label-exclude "xfail"
+          ctest_args: --label-exclude "xfail" --repeat-until-fail 50
           colcon_meta_file: src/.github/workflows/configurations/${{ runner.os }}/colcon.meta
           test_report_artifact: test_report${{ inputs.dependencies_artifact_postfix }}_${{ inputs.os }}_${{ matrix.cmake_build_type }}
 
