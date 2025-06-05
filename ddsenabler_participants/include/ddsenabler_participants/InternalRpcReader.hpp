@@ -40,6 +40,7 @@ class InternalRpcReader : public ddspipe::participants::InternalReader
 {
 public:
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         InternalRpcReader(
                 const ddspipe::core::types::ParticipantId& participant_id,
                 const ddspipe::core::types::DdsTopic& topic)
@@ -52,16 +53,19 @@ public:
 
         ~InternalRpcReader() = default;
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         ddspipe::core::types::Guid guid() const override
         {
             return guid_;
         }
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         fastdds::RecursiveTimedMutex& get_rtps_mutex() const override
         {
             return rtps_mutex_;
         }
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         uint64_t get_unread_count() const override
         {
             if(unread_count_ == 0)
@@ -72,6 +76,7 @@ public:
             return unread_count_--;
         }
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         void simulate_data_reception(
                 std::unique_ptr<ddspipe::core::IRoutingData>&& data) noexcept
         {
@@ -80,6 +85,7 @@ public:
                 ddspipe::participants::InternalReader::simulate_data_reception(std::move(data));
         }
 
+        DDSENABLER_PARTICIPANTS_DllAPI
         ddspipe::core::types::DdsTopic topic() const override
         {
             return topic_;
