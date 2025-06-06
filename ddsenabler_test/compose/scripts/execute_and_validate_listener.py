@@ -36,6 +36,12 @@ def parse_options():
         usage=(USAGE)
     )
     parser.add_argument(
+        '-s',
+        '--samples',
+        type=int,
+        help='Samples to receive.'
+    )
+    parser.add_argument(
         '-t',
         '--timeout',
         type=int,
@@ -72,7 +78,7 @@ def _listener_command(args):
     """
     command = [
         'python3',
-        '/opt/ros/humble/lib/demo_nodes_py/listener']
+        '/opt/ros/jazzy/lib/demo_nodes_py/listener']
 
     return command
 
@@ -112,6 +118,31 @@ def _listener_validate_duplicates(stdout_parsed, stderr_parsed):
     return ret
 
 
+def _listener_validate(
+        stdout_parsed,
+        stderr_parsed,
+        samples,
+        duplicates_allow):
+
+    # Check default validator
+    ret_code = validation.validate_default(stdout_parsed, stderr_parsed)
+
+    if duplicates_allow != -1:
+        duplicated_n = len(validation.find_duplicates(stdout_parsed))
+        if duplicated_n > duplicates_allow:
+            log.logger.error(
+                f'{duplicated_n} duplicated messages found. '
+                f'Maximum allowed {duplicates_allow}.')
+            return validation.ReturnCode.NOT_VALID_MESSAGES
+
+    if samples is not None and len(stdout_parsed) != samples:
+        log.logger.error(f'Number of messages received: {len(stdout_parsed)}. '
+                         f'Expected {samples}')
+        return validation.ReturnCode.NOT_VALID_MESSAGES
+
+    return ret_code
+
+
 if __name__ == '__main__':
 
     # Parse arguments
@@ -124,11 +155,13 @@ if __name__ == '__main__':
     # Prepare command
     command = _listener_command(args)
 
-    _listener_validate_function = None
-    if args.allow_duplicates:
-        _listener_validate_function = _listener_validate_duplicates
-    else:
-        _listener_validate_function = validation.validate_default
+    validate_func = (lambda stdout_parsed, stderr_parsed: (
+        _listener_validate(
+            stdout_parsed=stdout_parsed,
+            stderr_parsed=stderr_parsed,
+            samples=args.samples,
+            duplicates_allow=args.allow_duplicates
+            )))
 
     # Run command and validate
     ret_code = validation.run_and_validate(
@@ -136,9 +169,9 @@ if __name__ == '__main__':
         timeout=args.timeout,
         delay=args.delay,
         parse_output_function=_listener_parse_output,
-        validate_output_function=_listener_validate_function,
+        validate_output_function=validate_func,
         timeout_as_error=False)
 
-    print(f'listener validator exited with code {ret_code}')
+    log.logger.info(f'listener validator exited with code {ret_code}')
 
     exit(ret_code.value)

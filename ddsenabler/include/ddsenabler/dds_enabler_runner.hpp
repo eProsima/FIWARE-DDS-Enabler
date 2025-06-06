@@ -19,35 +19,42 @@
 
 #pragma once
 
-#include <cpp_utils/exception/ConfigurationException.hpp>
-#include <cpp_utils/exception/InitializationException.hpp>
-#include <cpp_utils/logging/BaseLogConfiguration.hpp>
-#include <cpp_utils/logging/StdLogConsumer.hpp>
-#include <cpp_utils/ReturnCode.hpp>
-#include <cpp_utils/time/time_utils.hpp>
-#include <cpp_utils/types/Fuzzy.hpp>
-#include <cpp_utils/utils.hpp>
-
-#include <ddspipe_core/logging/DdsLogConsumer.hpp>
-
 #include <ddsenabler_yaml/EnablerConfiguration.hpp>
-#include <ddsenabler_participants/DDSEnablerLogConsumer.hpp>
 
-#include "ddsenabler/DDSEnabler.hpp"
+#include <ddsenabler/CallbackSet.hpp>
+#include <ddsenabler/DDSEnabler.hpp>
 
-using namespace eprosima::ddspipe;
-using namespace eprosima::ddsenabler;
+#include <ddsenabler/library/library_dll.h>
 
 namespace eprosima {
 namespace ddsenabler {
 
+/**
+ * @brief Create a DDS Enabler instance from a configuration file path.
+ *
+ * @param [in] configuration_path Path to the configuration file.
+ * @param [in] callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param [out] enabler Output parameter to hold the created DDS Enabler instance.
+ * @return true if the DDS Enabler was created successfully, false otherwise.
+ */
+DDSENABLER_DllAPI
 bool create_dds_enabler(
-        const char* ddsEnablerConfigFile,
-        participants::DdsNotification data_callback,
-        participants::DdsTypeNotification type_callback,
-        participants::DdsLogFunc log_callback,
-        std::unique_ptr<DDSEnabler>& enabler);
-
+        const char* configuration_path,
+        const CallbackSet& callbacks,
+        std::shared_ptr<DDSEnabler>& enabler);
+/**
+ * @brief Create a DDS Enabler instance from a configuration object.
+ *
+ * @param [in] configuration DDS Enabler configuration object.
+ * @param [in] callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param [out] enabler Output parameter to hold the created DDS Enabler instance.
+ * @return true if the DDS Enabler was created successfully, false otherwise.
+ */
+DDSENABLER_DllAPI
+bool create_dds_enabler(
+        yaml::EnablerConfiguration configuration,
+        const CallbackSet& callbacks,
+        std::shared_ptr<DDSEnabler>& enabler);
 
 } /* namespace ddsenabler */
 } /* namespace eprosima */
