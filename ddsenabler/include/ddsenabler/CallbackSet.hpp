@@ -28,10 +28,19 @@ namespace ddsenabler {
  */
 struct DdsCallbacks
 {
+    //! Callback for notifying the reception of DDS types
     participants::DdsTypeNotification type_notification{nullptr};
+
+    //! Callback for notifying the reception of DDS topics
     participants::DdsTopicNotification topic_notification{nullptr};
+
+    //! Callback for notifying the reception of DDS data
     participants::DdsDataNotification data_notification{nullptr};
+
+    //! Callback for requesting information of a DDS type
     participants::DdsTypeQuery type_query{nullptr};
+
+    //! Callback for requesting information of a DDS topic
     participants::DdsTopicQuery topic_query{nullptr};
 };
 
@@ -40,7 +49,10 @@ struct DdsCallbacks
  */
 struct CallbackSet
 {
+    //! Callback executed when consuming log messages
     participants::DdsLogFunc log{nullptr};
+
+    //! DDS related callbacks
     DdsCallbacks dds;
 };
 

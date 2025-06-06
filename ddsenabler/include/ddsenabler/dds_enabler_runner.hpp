@@ -32,9 +32,9 @@ namespace ddsenabler {
 /**
  * @brief Create a DDS Enabler instance from a configuration file path.
  *
- * @param configuration_path Path to the configuration file.
- * @param callbacks Set of callbacks to be used by the DDS Enabler.
- * @param enabler Output parameter to hold the created DDS Enabler instance.
+ * @param [in] configuration_path Path to the configuration file.
+ * @param [in] callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param [out] enabler Output parameter to hold the created DDS Enabler instance.
  * @return true if the DDS Enabler was created successfully, false otherwise.
  */
 DDSENABLER_DllAPI
@@ -45,9 +45,9 @@ bool create_dds_enabler(
 /**
  * @brief Create a DDS Enabler instance from a configuration object.
  *
- * @param configuration DDS Enabler configuration object.
- * @param callbacks Set of callbacks to be used by the DDS Enabler.
- * @param enabler Output parameter to hold the created DDS Enabler instance.
+ * @param [in] configuration DDS Enabler configuration object.
+ * @param [in] callbacks Set of callbacks to be used by the DDS Enabler.
+ * @param [out] enabler Output parameter to hold the created DDS Enabler instance.
  * @return true if the DDS Enabler was created successfully, false otherwise.
  */
 DDSENABLER_DllAPI
