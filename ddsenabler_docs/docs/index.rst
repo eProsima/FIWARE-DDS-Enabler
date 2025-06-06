@@ -1,6 +1,6 @@
 .. eProsima DDS Enabler documentation master file.
 
-.. include:: rst/formalia/titlepage.rst
+.. include:: formalia/titlepage.rst
 
 
 .. _index_introduction:
@@ -10,7 +10,7 @@
    :maxdepth: 2
    :hidden:
 
-   /rst/formalia/titlepage
+   /formalia/titlepage
 
 
 .. _index_installation:
@@ -21,7 +21,7 @@
    :numbered: 5
    :hidden:
 
-   Linux </rst/installation/linux.rst>
+   Linux </installation/linux.rst>
 
 
 .. _index_getting_started:
@@ -32,7 +32,7 @@
    :numbered: 5
    :hidden:
 
-   /rst/getting_started/project_overview
+   /getting_started/project_overview
 
 
 .. _index_user_manual:
@@ -43,9 +43,20 @@
    :numbered: 5
    :hidden:
 
-   /rst/user_manual/context_broker_interface
-   /rst/user_manual/operation_modes
-   /rst/user_manual/configuration
+   /user_manual/context_broker_interface
+   /user_manual/operation_modes
+   /user_manual/configuration
+
+
+.. _index_api_reference:
+
+.. toctree::
+   :caption: API Reference
+   :maxdepth: 2
+   :numbered: 5
+   :hidden:
+
+   /ddsenabler/api_reference/api_reference
 
 
 .. _index_examples:
@@ -74,7 +85,7 @@
    :numbered: 5
    :hidden:
 
-   /rst/developer_manual/installation/sources/linux
+   /developer_manual/installation/sources/linux
 
 
 .. _index_notes:
@@ -84,7 +95,7 @@
    :maxdepth: 2
    :hidden:
 
-   /rst/notes/notes
+   /notes/notes
 
 
 .. _index_appendix:
@@ -94,4 +105,4 @@
    :maxdepth: 2
    :hidden:
 
-   /rst/appendixes/glossary
+   /appendixes/glossary

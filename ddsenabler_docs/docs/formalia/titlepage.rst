@@ -2,7 +2,7 @@
 eProsima DDS Enabler Documentation
 ##################################
 
-.. image:: /rst/_static/eprosima-logo.svg
+.. image:: /_static/eprosima-logo.svg
   :height: 100px
   :width: 100px
   :align: left
