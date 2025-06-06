@@ -165,11 +165,6 @@ bool EnablerParticipant::create_topic_writer_nts_(
         return false;
     }
 
-    // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
-    // message when not using transient durability
-    std::this_thread::sleep_for(std::chrono::milliseconds(std::static_pointer_cast<EnablerParticipantConfiguration>(
-                configuration_)->initial_publish_wait));
-
     return true;
 }
 
@@ -200,6 +195,7 @@ bool EnablerParticipant::publish(
 
         ddspipe::core::types::Endpoint _;
         create_topic_writer_nts_(topic, i_reader, _, lck);
+        type_name = topic.type_name;
 
         // (Optionally) wait for writer created in DDS participant to match with external readers, to avoid losing this
         // message when not using transient durability
