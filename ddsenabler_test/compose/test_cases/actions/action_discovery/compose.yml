@@ -1,0 +1,29 @@
+# Test description:
+#   Run ddsenabler_test_app action_discovery with a Fibonacci action server.
+#   All participants use domain 33.
+
+services:
+  ddsenabler:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: ddsenabler
+    networks:
+      - std_net
+    command: ./build/ddsenabler_test_app/test_app action_discovery
+
+  fibonacci_server:
+    image: ${DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE}
+    container_name: fibonacci_server
+    depends_on:
+      - ddsenabler
+    networks:
+      - std_net
+    environment:
+      - ROS_DOMAIN_ID=33
+    volumes:
+      - ./../run_action_server_timeout.sh:/run_action_server_timeout.sh:ro
+    entrypoint: ["/bin/bash", "/run_action_server_timeout.sh"]
+
+networks:
+  std_net:
+  default:
+    driver: none
