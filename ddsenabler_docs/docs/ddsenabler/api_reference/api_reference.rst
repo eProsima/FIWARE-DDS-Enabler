@@ -3,19 +3,21 @@
 API Reference
 =============
 
-*DDS Enabler*, as a Data Distribution Service (DDS) standard implementation, exposes the DDS Data-Centric Publish-Subscribe
-(DCPS) Platform Independent Model (PIM) API, as specified in the
-`DDS specification <https://www.omg.org/spec/DDS/1.4/PDF>`_.
-Furthermore, is also gives the user the possibility to directly interact with the underlying Real-time
-Publish-Subscribe (RTPS) API that DDS implements for wired communications, as specified in the
-`RTPS standard <https://www.omg.org/spec/DDSI-RTPS/2.2/PDF>`_.
+This section provides the *eProsima DDS Enabler* C++ API reference.
+*eProsima DDS Enabler* is a modular middleware solution enabling seamless integration between distributed systems
+by building on top of the DDS standard. It allows developers to create scalable, reliable, and real-time communication
+infrastructures with minimal effort.
 
-This section presents the most commonly used APIs provided by *DDS Enabler*.
+As part of the ARISE project, DDS Enabler facilitates OT/IT convergence by bridging robotic (ROS 2) and NGSI-LD context
+brokers, enabling a unified communication framework for industrial environments. Its foundation on Fast DDS guarantees
+low-latency, high-performance capabilities suitable for critical human-robot interaction (HRI) scenarios.
+
+The following pages document the classes, functions, and types exposed by *DDS Enabler*:
 
 .. toctree::
    :caption: DDS Callbacks
 
    /ddsenabler/api_reference/dds_enabler/dds_enabler
+   /ddsenabler/api_reference/callback_set/callback_set
    /ddsenabler/api_reference/dds_callbacks/dds_callbacks
    /ddsenabler/api_reference/dds_callbacks/cb_callbacks
-   /ddsenabler/api_reference/callback_set/callback_set
