@@ -54,7 +54,7 @@ get_target_property(PARTICIPANTS_INCLUDE_DIR ddsenabler_participants INTERFACE_I
 
 message(STATUS "DDS Enabler include directories: ${ENABLER_INCLUDE_DIR} ; ${PARTICIPANTS_INCLUDE_DIR}")
 set(SRC_FILE "${PARTICIPANTS_INCLUDE_DIR}/ddsenabler_participants/CBCallbacks.hpp")
-set(DST_DIR "${PROJECT_SOURCE_DIR}/ddseabler")
+set(DST_DIR "${ENABLER_INCLUDE_DIR}/ddsenabler")
 file(COPY ${SRC_FILE} DESTINATION ${DST_DIR})
 # Collect all public headers
 file(GLOB_RECURSE HPP_FILES

@@ -13,15 +13,15 @@
    /formalia/titlepage
 
 
-.. _index_installation:
+.. .. _index_installation:
 
-.. toctree::
-   :caption: Installation Manual
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
+.. .. toctree::
+..    :caption: Installation Manual
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
-   Linux </installation/linux.rst>
+..    Linux </installation/linux.rst>
 
 
 .. _index_getting_started:
@@ -59,43 +59,43 @@
    /ddsenabler/api_reference/api_reference
 
 
-.. _index_examples:
+.. .. _index_examples:
 
-.. toctree::
-   :caption: Examples
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
-
-
-.. _index_use_cases:
-
-.. toctree::
-   :caption: Use Cases
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
+.. .. toctree::
+..    :caption: Examples
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
 
-.. _index_developer_manual:
+.. .. _index_use_cases:
 
-.. toctree::
-   :caption: Developer Manual
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
-
-   /developer_manual/installation/sources/linux
+.. .. toctree::
+..    :caption: Use Cases
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
 
-.. _index_notes:
+.. .. _index_developer_manual:
 
-.. toctree::
-   :caption: Release Notes
-   :maxdepth: 2
-   :hidden:
+.. .. toctree::
+..    :caption: Developer Manual
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
-   /notes/notes
+..    /developer_manual/installation/sources/linux
+
+
+.. .. _index_notes:
+
+.. .. toctree::
+..    :caption: Release Notes
+..    :maxdepth: 2
+..    :hidden:
+
+..    /notes/notes
 
 
 .. _index_appendix:
