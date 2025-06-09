@@ -334,6 +334,7 @@ script_path = os.path.abspath(pathlib.Path(__file__).parent.absolute())
 # Project directories
 project_source_dir = os.path.abspath("{}/../code".format(script_path))
 project_binary_dir = os.path.abspath("{}/../build".format(script_path))
+projects_dir = os.path.abspath("{}/../..".format(script_path))
 output_dir = os.path.abspath("{}/doxygen".format(project_binary_dir))
 doxygen_html = os.path.abspath("{}/html/doxygen".format(project_binary_dir))
 
@@ -342,7 +343,7 @@ doxyfile_in = os.path.abspath("{}/Doxyfile.in".format(project_source_dir))
 doxyfile_out = os.path.abspath("{}/Doxyfile".format(project_binary_dir))
 
 # Header files
-input_dir = os.path.abspath("{}/ddsenabler/include/ddsenabler".format(project_binary_dir))
+input_dir = os.path.abspath("{}/ddsenabler/include/ddsenabler".format(projects_dir))
 
 # Check if we're running on Read the Docs' servers
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
@@ -351,6 +352,16 @@ if read_the_docs_build:
 
     os.makedirs(os.path.dirname(output_dir), exist_ok=True)
     os.makedirs(os.path.dirname(doxygen_html), exist_ok=True)
+
+    # Copy CBCallbacks.hpp from ddsenabler_participants to input_dir
+    src_file = os.path.abspath("{}/ddsenabler_participants/include/ddsenabler_participants/CBCallbacks.hpp".format(projects_dir))
+    dst_file = os.path.join(input_dir, "CBCallbacks.hpp")
+    os.makedirs(input_dir, exist_ok=True)
+    try:
+        shutil.copy(src_file, dst_file)
+        print("Copied CBCallbacks.hpp to input_dir")
+    except IOError as e:
+        print("Unable to copy CBCallbacks.hpp. Error: {}".format(e))
 
     # Configure Doxyfile
     configure_doxyfile(
