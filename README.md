@@ -1,4 +1,4 @@
-[![DDS Enabler](resources/images/github_banner_ddsenabler.png)](https://eprosima.com/middleware/tools/fiware-dds-enabler)
+<!-- [![DDS Enabler](resources/images/github_banner_ddsenabler.png)](https://eprosima.com/middleware/tools/fiware-dds-enabler) -->
 
 <br>
 
@@ -6,7 +6,7 @@
   <strong>
     <a href="https://eprosima.com/index.php/downloads-all">Download</a>
     <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-    <a href="https://fiware-dds-enabler.readthedocs.io/en/latest/">Docs</a>
+    <a href="https://dds-enabler.readthedocs.io/en/latest/">Docs</a>
     <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
     <a href="https://eprosima.com/index.php/company-all/news">News</a>
     <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -59,7 +59,7 @@ Contact us at **info@eprosima.com** or raise an issue on GitHub.
 
 Explore the full user and developer guide hosted on Read the Docs:
 
-- [Introduction](https://fiware-dds-enabler.readthedocs.io/en/latest/rst/formalia/titlepage.html)
-- [Project Overview](https://fiware-dds-enabler.readthedocs.io/en/latest/rst/getting_started/project_overview.html)
-- [User Manual](https://fiware-dds-enabler.readthedocs.io/en/latest/rst/user_manual/context_broker_interface.html)
-- [API Reference](https://fiware-dds-enabler.readthedocs.io/en/latest/rst/ddsenabler/api_reference/api_reference.html)
+- [Introduction](https://dds-enabler.readthedocs.io/en/latest/rst/formalia/titlepage.html)
+- [Project Overview](https://dds-enabler.readthedocs.io/en/latest/rst/getting_started/project_overview.html)
+- [User Manual](https://dds-enabler.readthedocs.io/en/latest/rst/user_manual/context_broker_interface.html)
+- [API Reference](https://dds-enabler.readthedocs.io/en/latest/rst/ddsenabler/api_reference/api_reference.html)
