@@ -15,7 +15,6 @@ low-latency, high-performance capabilities suitable for critical human-robot int
 The following pages document the classes, functions, and types exposed by *DDS Enabler*:
 
 .. toctree::
-   :caption: DDS Callbacks
 
    /ddsenabler/api_reference/dds_enabler/dds_enabler
    /ddsenabler/api_reference/callback_set/callback_set

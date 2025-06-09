@@ -25,7 +25,7 @@
   <a href="https://github.com/eProsima/FIWARE-DDS-Enabler/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/eProsima/FIWARE-DDS-Enabler.svg"/></a>
   <a href="https://github.com/eProsima/FIWARE-DDS-Enabler/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/eProsima/FIWARE-DDS-Enabler.svg"/></a>
   <br>
-  <a href="https://fiware-dds-enabler.readthedocs.io"><img alt="Documentation badge" src="https://img.shields.io/readthedocs/fiware-dds-enabler.svg"/></a>
+  <a href="https://dds-enabler.readthedocs.io"><img alt="Documentation badge" src="https://img.shields.io/readthedocs/dds-enabler.svg"/></a>
   <a href="https://github.com/eProsima/FIWARE-DDS-Enabler/actions/workflows/nightly-windows-ci.yml"><img alt="Windows CI" src="https://img.shields.io/github/actions/workflow/status/eProsima/FIWARE-DDS-Enabler/nightly-windows-ci.yml?label=Windows%20CI"></a>
   <a href="https://github.com/eProsima/FIWARE-DDS-Enabler/actions/workflows/nightly-ubuntu-ci.yml"><img alt="Ubuntu CI" src="https://img.shields.io/github/actions/workflow/status/eProsima/FIWARE-DDS-Enabler/nightly-ubuntu-ci.yml?label=Ubuntu%20CI"></a>
 </div>
