@@ -27,10 +27,7 @@ project.
 Commercial support
 ^^^^^^^^^^^^^^^^^^
 
-Looking for commercial support? Write us at **info@eprosima.com**.
-
-Contribute, report issues or explore examples on GitHub:
-`FIWARE-DDS-Enabler <https://github.com/eProsima/FIWARE-DDS-Enabler>`_
+Looking for commercial support? Write us at info@eprosima.com.
 
 Find more about us at `eProsima's webpage <https://eprosima.com/>`_.
 
@@ -72,10 +69,5 @@ Structure of the documentation
 
 This documentation is organized into the following main sections:
 
-* :ref:`Project Overview <project_overview>`
-* User Manual:
-    * :ref:`Context Broker Interface <context_broker_interface>`
-    * :ref:`Operation Modes <operation_modes>`
-    * :ref:`Configuration <configuration>`
+* :ref:`Introduction <index_introduction>`
 * :ref:`API Reference <api_reference>`
-* :ref:`Glossary <glossary>`

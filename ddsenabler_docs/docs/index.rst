@@ -24,28 +24,28 @@
 ..    Linux </installation/linux.rst>
 
 
-.. _index_getting_started:
+.. .. _index_getting_started:
 
-.. toctree::
-   :caption: Getting Started
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
+.. .. toctree::
+..    :caption: Getting Started
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
-   /getting_started/project_overview
+..    /getting_started/project_overview
 
 
-.. _index_user_manual:
+.. .. _index_user_manual:
 
-.. toctree::
-   :caption: User Manual
-   :maxdepth: 2
-   :numbered: 5
-   :hidden:
+.. .. toctree::
+..    :caption: User Manual
+..    :maxdepth: 2
+..    :numbered: 5
+..    :hidden:
 
-   /user_manual/context_broker_interface
-   /user_manual/operation_modes
-   /user_manual/configuration
+..    /user_manual/context_broker_interface
+..    /user_manual/operation_modes
+..    /user_manual/configuration
 
 
 .. _index_api_reference:
@@ -98,11 +98,11 @@
 ..    /notes/notes
 
 
-.. _index_appendix:
+.. .. _index_appendix:
 
-.. toctree::
-   :caption: Appendixes
-   :maxdepth: 2
-   :hidden:
+.. .. toctree::
+..    :caption: Appendixes
+..    :maxdepth: 2
+..    :hidden:
 
-   /appendixes/glossary
+..    /appendixes/glossary

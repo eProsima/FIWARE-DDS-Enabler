@@ -18,12 +18,14 @@
 #
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import git
 import json
 import os
 import os.path
 import pathlib
 import re
 import requests
+import shutil
 import subprocess
 import sys
 
@@ -296,6 +298,38 @@ def get_git_branch():
     return None
 
 
+def configure_doxyfile(
+    doxyfile_in,
+    doxyfile_out,
+    input_dir,
+    output_dir,
+    project_binary_dir,
+    project_source_dir,
+):
+    """
+    Configure Doxyfile in the CMake style.
+
+    :param doxyfile_in: Path to input Doxygen configuration file
+    :param doxyfile_out: Path to output Doxygen configuration file
+    :param input_dir: CMakeLists.txt value of DOXYGEN_INPUT_DIR
+    :param output_dir: CMakeLists.txt value of DOXYGEN_OUTPUT_DIR
+    :param project_binary_dir: CMakeLists.txt value of PROJECT_BINARY_DIR
+    :param project_source_dir: CMakeLists.txt value of PROJECT_SOURCE_DIR
+    """
+    print("Configuring Doxyfile")
+    with open(doxyfile_in, "r") as file:
+        filedata = file.read()
+
+    filedata = filedata.replace("@DOXYGEN_INPUT_DIR@", input_dir)
+    filedata = filedata.replace("@DOXYGEN_OUTPUT_DIR@", output_dir)
+    filedata = filedata.replace("@PROJECT_BINARY_DIR@", project_binary_dir)
+    filedata = filedata.replace("@PROJECT_SOURCE_DIR@", project_source_dir)
+
+    os.makedirs(os.path.dirname(doxyfile_out), exist_ok=True)
+    with open(doxyfile_out, "w") as file:
+        file.write(filedata)
+
+
 script_path = os.path.abspath(pathlib.Path(__file__).parent.absolute())
 # Project directories
 project_source_dir = os.path.abspath("{}/../code".format(script_path))
@@ -309,6 +343,75 @@ doxyfile_out = os.path.abspath("{}/Doxyfile".format(project_binary_dir))
 
 # Header files
 input_dir = os.path.abspath("{}/ddsenabler/include/ddsenabler".format(project_binary_dir))
+
+# Check if we're running on Read the Docs' servers
+read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
+if read_the_docs_build:
+    print("Read the Docs environment detected!")
+
+    ddsenabler_repo_name = os.path.abspath("{}/ddsenabler".format(project_binary_dir))
+
+    # Remove repository if exists
+    if os.path.isdir(ddsenabler_repo_name):
+        print("Removing existing repository in {}".format(ddsenabler_repo_name))
+        shutil.rmtree(ddsenabler_repo_name)
+
+    # Create necessary directory path
+    os.makedirs(os.path.dirname(ddsenabler_repo_name), exist_ok=True)
+
+    # Clone repositories
+
+    # - DDS Enabler
+    print("Cloning DDS Enabler")
+    ddsenabler = git.Repo.clone_from(
+        "https://github.com/eProsima/FIWARE-DDS-Enabler.git",
+        ddsenabler_repo_name,
+    )
+
+    # Documentation repository branch
+    docs_branch = get_git_branch()
+    print('Current documentation branch is "{}"'.format(docs_branch))
+
+    # User specified DDS Enabler branch
+    ddsenabler_branch = os.environ.get("DDSENABLER_BRANCH", None)
+
+    # First try to checkout to ${DDSENABLER_BRANCH}
+    # Else try with current documentation branch
+    # Else checkout to master
+    if ddsenabler_branch and ddsenabler.refs.__contains__("origin/{}".format(ddsenabler_branch)):
+        ddsenabler_branch = "origin/{}".format(ddsenabler_branch)
+    elif docs_branch and ddsenabler.refs.__contains__("origin/{}".format(docs_branch)):
+        ddsenabler_branch = "origin/{}".format(docs_branch)
+    else:
+        print(
+            'DDS Enabler does not have either "{}" or "{}" branches'.format(
+                ddsenabler_branch, docs_branch
+            )
+        )
+        ddsenabler_branch = "origin/main"
+
+    # Actual checkout
+    print('Checking out DDS Enabler branch "{}"'.format(ddsenabler_branch))
+    ddsenabler.refs[ddsenabler_branch].checkout()
+
+    os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+    os.makedirs(os.path.dirname(doxygen_html), exist_ok=True)
+
+    # Configure Doxyfile
+    configure_doxyfile(
+        doxyfile_in,
+        doxyfile_out,
+        input_dir,
+        output_dir,
+        project_binary_dir,
+        project_source_dir,
+    )
+    # Generate doxygen documentation
+    doxygen_ret = subprocess.call("doxygen {}".format(doxyfile_out), shell=True)
+    if doxygen_ret != 0:
+        print("Doxygen failed with return code {}".format(doxygen_ret))
+        sys.exit(doxygen_ret)
+
 
 breathe_projects = {"DDSEnabler": os.path.abspath("{}/xml".format(output_dir))}
 breathe_default_project = "DDSEnabler"
