@@ -349,51 +349,6 @@ read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 if read_the_docs_build:
     print("Read the Docs environment detected!")
 
-    ddsenabler_repo_name = os.path.abspath("{}/ddsenabler".format(project_binary_dir))
-
-    # Remove repository if exists
-    if os.path.isdir(ddsenabler_repo_name):
-        print("Removing existing repository in {}".format(ddsenabler_repo_name))
-        shutil.rmtree(ddsenabler_repo_name)
-
-    # Create necessary directory path
-    os.makedirs(os.path.dirname(ddsenabler_repo_name), exist_ok=True)
-
-    # Clone repositories
-
-    # - DDS Enabler
-    print("Cloning DDS Enabler")
-    ddsenabler = git.Repo.clone_from(
-        "https://github.com/eProsima/FIWARE-DDS-Enabler.git",
-        ddsenabler_repo_name,
-    )
-
-    # Documentation repository branch
-    docs_branch = get_git_branch()
-    print('Current documentation branch is "{}"'.format(docs_branch))
-
-    # User specified DDS Enabler branch
-    ddsenabler_branch = os.environ.get("DDSENABLER_BRANCH", None)
-
-    # First try to checkout to ${DDSENABLER_BRANCH}
-    # Else try with current documentation branch
-    # Else checkout to master
-    if ddsenabler_branch and ddsenabler.refs.__contains__("origin/{}".format(ddsenabler_branch)):
-        ddsenabler_branch = "origin/{}".format(ddsenabler_branch)
-    elif docs_branch and ddsenabler.refs.__contains__("origin/{}".format(docs_branch)):
-        ddsenabler_branch = "origin/{}".format(docs_branch)
-    else:
-        print(
-            'DDS Enabler does not have either "{}" or "{}" branches'.format(
-                ddsenabler_branch, docs_branch
-            )
-        )
-        ddsenabler_branch = "origin/main"
-
-    # Actual checkout
-    print('Checking out DDS Enabler branch "{}"'.format(ddsenabler_branch))
-    ddsenabler.refs[ddsenabler_branch].checkout()
-
     os.makedirs(os.path.dirname(output_dir), exist_ok=True)
     os.makedirs(os.path.dirname(doxygen_html), exist_ok=True)
 
