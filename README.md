@@ -1,4 +1,4 @@
-<!-- [![DDS Enabler](resources/images/github_banner_ddsenabler.png)](https://eprosima.com/middleware/tools/fiware-dds-enabler) -->
+[![DDS Enabler](resources/images/github_banner_ddsenabler.png)](https://eprosima.com/middleware/tools/fiware-dds-enabler)
 
 <br>
 
