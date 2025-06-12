@@ -104,16 +104,6 @@ public:
 protected:
 
     /**
-     * @brief Writes the type information used in this topic the first time it is received.
-     *
-     * @param [in] msg Pointer to the data.
-     * @param [in] dyn_type DynamicType containing the type information required.
-     */
-    void write_schema_(
-            const CBMessage& msg,
-            const fastdds::dds::DynamicType::_ref_type& dyn_type);
-
-    /**
      * @brief Returns the dyn_data of a dyn_type.
      *
      * @param [in] msg Pointer to the data.
