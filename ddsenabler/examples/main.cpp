@@ -46,6 +46,32 @@ const std::string SAMPLES_SUBDIR = "samples";
 const std::string TYPES_SUBDIR = "types";
 const std::string TOPICS_SUBDIR = "topics";
 
+// Static log callback
+void test_log_callback(
+        const char* file_name,
+        int line_no,
+        const char* func_name,
+        int category,
+        const char* msg)
+{
+    // NOTE: Default stdout logs can be disabled via configuration ("logging": {"stdout": false}) to avoid duplicated traces
+
+    std::stringstream ss;
+    ss << file_name << ":" << line_no << " (" << func_name << "): " << msg << std::endl;
+    if (category == eprosima::utils::Log::Kind::Info)
+    {
+        std::cout << "[INFO] " << ss.str();
+    }
+    else if (category == eprosima::utils::Log::Kind::Warning)
+    {
+        std::cerr << "[WARNING] " << ss.str();
+    }
+    else if (category == eprosima::utils::Log::Kind::Error)
+    {
+        std::cerr << "[ERROR] " << ss.str();
+    }
+}
+
 // Static type notification callback
 static void test_type_notification_callback(
         const char* type_name,
@@ -211,20 +237,11 @@ void init_persistence(
     }
 }
 
-void publish_routine(
-        std::shared_ptr<eprosima::ddsenabler::DDSEnabler> enabler,
-        const std::string& publish_path,
-        const std::string& topic_name,
-        uint32_t publish_period,
-        uint32_t publish_initial_wait,
-        std::mutex& app_mutex,
-        bool& stop_app)
+void get_sorted_files(
+        const std::string& directory,
+        std::vector<std::pair<std::filesystem::path, int32_t>>& files)
 {
-    // Wait a bit before starting to publish so types and topics can be discovered
-    std::this_thread::sleep_for(std::chrono::milliseconds(publish_initial_wait));
-
-    std::vector<std::pair<std::filesystem::path, int32_t>> sample_files;
-    for (const auto& entry : std::filesystem::directory_iterator(publish_path))
+    for (const auto& entry : std::filesystem::directory_iterator(directory))
     {
         if (entry.is_regular_file())
         {
@@ -232,7 +249,7 @@ void publish_routine(
             try
             {
                 // assumes name is just a number
-                sample_files.emplace_back(entry.path(), static_cast<int32_t>(std::stoll(filename)));
+                files.emplace_back(entry.path(), static_cast<int32_t>(std::stoll(filename)));
             }
             catch (const std::invalid_argument& e)
             {
@@ -242,22 +259,32 @@ void publish_routine(
     }
 
     // Sort files by numeric value
-    std::sort(sample_files.begin(), sample_files.end(),
+    std::sort(files.begin(), files.end(),
             [](const auto& a, const auto& b)
             {
                 return a.second < b.second;
             });
+}
+
+void publish_routine(
+        std::shared_ptr<eprosima::ddsenabler::DDSEnabler> enabler,
+        const std::string& publish_path,
+        const std::string& topic_name,
+        uint32_t publish_period,
+        uint32_t publish_initial_wait,
+        std::mutex& app_mutex,
+        std::condition_variable& app_cv,
+        bool& stop_app)
+{
+    // Wait a bit before starting to publish so types and topics can be discovered
+    std::this_thread::sleep_for(std::chrono::milliseconds(publish_initial_wait));
+
+    // Get collection of files to publish, sorted in increasing order by their name (assumed to be numeric)
+    std::vector<std::pair<std::filesystem::path, int32_t>> sample_files;
+    get_sorted_files(publish_path, sample_files);
 
     for (const auto& [path, number] : sample_files)
     {
-        {
-            std::lock_guard<std::mutex> lock(app_mutex);
-            if (stop_app)
-            {
-                std::cout << "Publish routine stopped." << std::endl;
-                return;
-            }
-        }
         std::ifstream file(path, std::ios::binary);
         if (file)
         {
@@ -273,11 +300,22 @@ void publish_routine(
                 std::cerr << "Failed to publish content from file: " << path.filename() << " in topic: "
                           << topic_name << std::endl;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(publish_period));
         }
         else
         {
             std::cerr << "Failed to open file: " << path << std::endl;
+        }
+
+        // Wait publish period or until stop signal is received
+        std::unique_lock<std::mutex> lock(app_mutex);
+        if (app_cv.wait_for(lock, std::chrono::milliseconds(publish_period),
+                [&stop_app]
+                {
+                    return stop_app;
+                }))
+        {
+            std::cout << "Publish routine stopped." << std::endl;
+            return;
         }
     }
 }
@@ -299,11 +337,14 @@ int main(
 {
     using namespace eprosima::ddsenabler;
 
+    eprosima::utils::Log::ReportFilenames(true);
+
     config = CLIParser::parse_cli_options(argc, argv);
 
     init_persistence(config.persistence_path);
 
     CallbackSet callbacks{
+        .log = test_log_callback,
         .dds = {
             .type_notification = test_type_notification_callback,
             .topic_notification = test_topic_notification_callback,
@@ -326,7 +367,7 @@ int main(
         publish_thread = std::thread(publish_routine,
                         enabler, config.publish_path, config.publish_topic, config.publish_period,
                         config.publish_initial_wait, std::ref(
-                            app_mutex_), std::ref(stop_app_));
+                            app_mutex_), std::ref(app_cv_), std::ref(stop_app_));
     }
 
     signal(SIGINT, signal_handler);

@@ -44,4 +44,4 @@ set(MODULE_THIRDPARTY_PATH
 "../thirdparty")
 
 set(MODULE_CPP_VERSION
-    C++20)
+    C++17)

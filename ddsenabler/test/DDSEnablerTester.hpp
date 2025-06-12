@@ -123,10 +123,13 @@ public:
         }
 
         CallbackSet callbacks{
+            .log = test_log_callback,
             .dds = {
                 .type_notification = test_type_notification_callback,
                 .topic_notification = test_topic_notification_callback,
-                .data_notification = test_data_notification_callback
+                .data_notification = test_data_notification_callback,
+                .type_query = test_type_query_callback,
+                .topic_query = test_topic_query_callback
             }
         };
 
@@ -315,7 +318,7 @@ public:
             std::string& type_name,
             std::string& serialized_qos)
     {
-        return true;
+        return false;
     }
 
     // eprosima::ddsenabler::participants::DdsTypeQuery type_query;
@@ -324,7 +327,7 @@ public:
             std::unique_ptr<const unsigned char []>& serialized_type_internal,
             uint32_t& serialized_type_internal_size)
     {
-        return true;
+        return false;
     }
 
     //eprosima::ddsenabler::participants::DdsLogFunc log_callback;

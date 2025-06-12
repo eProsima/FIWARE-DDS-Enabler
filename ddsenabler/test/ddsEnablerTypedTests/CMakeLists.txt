@@ -469,6 +469,7 @@ set(TEST_LIST
     ddsenabler_send_samples_MutableUnionStruct
     ddsenabler_send_samples_MutableWCharStruct
     ddsenabler_send_samples_InnerStructOptional
+    # TODO: comment out when optionals are supported
     # ddsenabler_send_samples_array_short_align_1_optional
     # ddsenabler_send_samples_array_short_align_2_optional
     # ddsenabler_send_samples_array_short_align_4_optional

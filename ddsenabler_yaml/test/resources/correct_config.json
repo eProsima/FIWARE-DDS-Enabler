@@ -2,7 +2,7 @@
   "dds": {
     "ddsmodule": {
       "dds": {
-        "domain": 0
+        "domain": 4
       },
       "ddsenabler": {
         "initial-publish-wait": 500

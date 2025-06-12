@@ -6,7 +6,7 @@
 #   This test case checks the DDS Enabler is able to publish data in a topic that has previously been discovered.
 #   The DDS Enabler is created after the listener, and before the first message is published an active wait of 2
 #   seconds is introduced to let the enabler receive the topic and type information from the listener.
-#   It is checked that the listener receives all messages (guaranteed by reliability QoS).
+#   It is checked that the listener receives all messages (guaranteed by reliable reliability QoS, which is ROS 2 default).
 
 services:
 

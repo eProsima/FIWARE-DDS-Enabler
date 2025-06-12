@@ -33,6 +33,11 @@ namespace eprosima {
 namespace ddsenabler {
 namespace participants {
 
+/**
+ * @brief Helper class encapsulating the logic to write data, topics and schemas to the CB.
+ *
+ * @warning This class is not thread-safe.
+ */
 class CBWriter
 {
 

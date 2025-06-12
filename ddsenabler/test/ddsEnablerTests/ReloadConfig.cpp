@@ -58,7 +58,7 @@ bool test_topic_query_callback(
         std::string& type_name,
         std::string& serialized_qos)
 {
-    return true;
+    return false;
 }
 
 // eprosima::ddsenabler::participants::DdsTypeQuery type_query;
@@ -67,7 +67,7 @@ bool test_type_query_callback(
         std::unique_ptr<const unsigned char []>& serialized_type_internal,
         uint32_t& serialized_type_internal_size)
 {
-    return true;
+    return false;
 }
 
 //eprosima::ddsenabler::participants::DdsLogFunc log_callback;

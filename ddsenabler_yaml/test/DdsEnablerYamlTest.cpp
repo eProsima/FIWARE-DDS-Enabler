@@ -29,9 +29,10 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_yaml)
     const char* yml_str =
             R"(
             dds:
-              domain: 0
+              domain: 4
 
             ddsenabler:
+                initial-publish-wait: 500
 
             specs:
               threads: 12
@@ -51,6 +52,9 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_yaml)
     utils::Formatter error_msg;
 
     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+    ASSERT_EQ(configuration.simple_configuration->domain.domain_id, 4);
+    ASSERT_EQ(configuration.enabler_configuration->initial_publish_wait, 500);
     ASSERT_EQ(configuration.n_threads, 12);
 
     ASSERT_TRUE(configuration.ddspipe_configuration.log_configuration.is_valid(error_msg));
@@ -112,6 +116,9 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_yaml)
     utils::Formatter error_msg;
 
     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+    ASSERT_EQ(configuration.simple_configuration->domain.domain_id, 0);
+    ASSERT_EQ(configuration.enabler_configuration->initial_publish_wait, 0);
     ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
 }
 
@@ -133,6 +140,9 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_correct_configuration_json)
     utils::Formatter error_msg;
 
     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+    ASSERT_EQ(configuration.simple_configuration->domain.domain_id, 4);
+    ASSERT_EQ(configuration.enabler_configuration->initial_publish_wait, 500);
     ASSERT_EQ(configuration.n_threads, 12);
 
     ASSERT_TRUE(configuration.ddspipe_configuration.log_configuration.is_valid(error_msg));
@@ -165,6 +175,9 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_default_values_configuration_json)
     utils::Formatter error_msg;
 
     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+    ASSERT_EQ(configuration.simple_configuration->domain.domain_id, 0);
+    ASSERT_EQ(configuration.enabler_configuration->initial_publish_wait, 0);
     ASSERT_EQ(configuration.n_threads, DEFAULT_N_THREADS);
 }
 
@@ -186,6 +199,9 @@ TEST(DdsEnablerYamlTest, get_ddsenabler_full_configuration_json)
     utils::Formatter error_msg;
 
     ASSERT_TRUE(configuration.is_valid(error_msg));
+
+    ASSERT_EQ(configuration.simple_configuration->domain.domain_id, 4);
+    ASSERT_EQ(configuration.enabler_configuration->initial_publish_wait, 500);
     ASSERT_EQ(configuration.n_threads, 12);
 }
 

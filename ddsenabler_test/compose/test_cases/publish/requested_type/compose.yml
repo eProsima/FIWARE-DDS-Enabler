@@ -2,7 +2,7 @@
 #   This test case checks the DDS Enabler is able to publish data in an unknown topic.
 #   The topic and type information is requested to the user through callbacks.
 #   The subscriber is created after the DDS Enabler has published all data.
-#   It is checked that the subscriber receives all messages (guaranteed by reliability and durability QoS).
+#   It is checked that the subscriber receives all messages (guaranteed by reliable reliability and transient local durability QoS).
 
 services:
 

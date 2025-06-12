@@ -224,7 +224,9 @@ void EnablerConfiguration::load_ddsenabler_configuration_(
         // Enable manually after all callbacks are set to avoid missing notifications
         ddspipe_configuration.init_enabled = false;
 
-        // NOTE: Trigger discovery also with readers to enable publish feature in their associated topics
+        // Trigger discovery also with readers in order to enable the publish feature in their associated topics
+        // NOTE: discovering a reader is not a requirement for the publish feature, as the related type and topic can be
+        // requested to the user if the corresponding callbacks are set.
         ddspipe_configuration.discovery_trigger = DiscoveryTrigger::ANY;
     }
     catch (const std::exception& e)

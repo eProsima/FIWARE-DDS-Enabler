@@ -660,6 +660,7 @@ DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableUShortStruct, Mutabl
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableUnionStruct, MutableUnionStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_MutableWCharStruct, MutableWCharStructPubSubType);
 DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_InnerStructOptional, InnerStructOptionalPubSubType);
+// TODO: comment out when optionals are supported
 /* DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_array_short_align_1_optional,
         array_short_align_1_optionalPubSubType);
    DEFINE_DDSENABLER_TYPED_TEST(ddsenabler_send_samples_array_short_align_2_optional,
