@@ -85,7 +85,6 @@ bool create_dds_enabler(
         const CallbackSet& callbacks,
         std::shared_ptr<DDSEnabler>& enabler)
 {
-    // Encapsulating execution in block to erase all memory correctly before closing process
     try
     {
         // Verify that the configuration is correct
