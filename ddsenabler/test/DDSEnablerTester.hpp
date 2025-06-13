@@ -83,13 +83,13 @@ public:
         configuration.simple_configuration->domain = DOMAIN_;
 
         CallbackSet callbacks{
-            .log = test_log_callback,
-            .dds = {
-                .type_notification = test_type_notification_callback,
-                .topic_notification = test_topic_notification_callback,
-                .data_notification = test_data_notification_callback,
-                .type_query = test_type_query_callback,
-                .topic_query = test_topic_query_callback
+            test_log_callback,
+            {
+                test_type_notification_callback,
+                test_topic_notification_callback,
+                test_data_notification_callback,
+                test_type_query_callback,
+                test_topic_query_callback
             }
         };
 
@@ -123,13 +123,13 @@ public:
         }
 
         CallbackSet callbacks{
-            .log = test_log_callback,
-            .dds = {
-                .type_notification = test_type_notification_callback,
-                .topic_notification = test_topic_notification_callback,
-                .data_notification = test_data_notification_callback,
-                .type_query = test_type_query_callback,
-                .topic_query = test_topic_query_callback
+            test_log_callback,
+            {
+                test_type_notification_callback,
+                test_topic_notification_callback,
+                test_data_notification_callback,
+                test_type_query_callback,
+                test_topic_query_callback
             }
         };
 
