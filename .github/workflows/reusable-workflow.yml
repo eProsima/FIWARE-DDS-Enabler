@@ -72,7 +72,7 @@ jobs:
         uses: eProsima/eProsima-CI/multiplatform/colcon_build_test@main
         with:
           packages_names: ${{ env.code_packages_names }}
-          cmake_args: -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
+          cmake_args: -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} -DCOMPILE_EXAMPLES=ON
           workspace_dependencies: install
           ctest_args: --label-exclude "xfail"
           colcon_meta_file: src/.github/workflows/configurations/${{ runner.os }}/colcon.meta

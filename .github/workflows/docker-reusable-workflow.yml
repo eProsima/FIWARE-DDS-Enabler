@@ -82,10 +82,21 @@ jobs:
             -t ${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }} \
             -f Dockerfile .
 
-      # Check Docker images exist
-      - name: Check if Docker images exist
+      # Check DDS Enabler Docker images exist
+      - name: Check if DDS Enabler Docker images exist
         run: |
-          [ -n "$(docker images -q ${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }})" ] || echo "DDS Enabler Docker image does not exists"
+          [ -n "$(docker images -q ${{ env.DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE }})" ] || echo "DDS Enabler Docker image does not exist"
+
+      # Pull ROS 2 Docker image
+      - name: Pull ROS 2 Docker image
+        run: |
+          docker image pull \
+            ${{ env.DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE }}
+
+      # Check ROS 2 Docker images exist
+      - name: Check if ROS 2 Docker images exist
+        run: |
+          [ -n "$(docker images -q ${{ env.DDSENABLER_COMPOSE_TEST_ROS2_DOCKER_IMAGE }})" ] || echo "ROS 2 Docker image does not exist"
 
       - name: Download dependencies and install requirements
         uses: ./src/.github/actions/project_dependencies

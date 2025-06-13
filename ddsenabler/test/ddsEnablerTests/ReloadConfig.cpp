@@ -22,29 +22,72 @@
 #include <sstream>
 #include <string>
 
-// Static type callback
-void type_callback(
-        const char* typeName,
-        const char* topicName,
-        const char* serializedType)
-{
-}
-
 static uint32_t data_callback_count = 0;
 
-// Static data callback
-void data_callback(
-        const char* typeName,
-        const char* topicName,
+// Empty callbacks just to create the enabler being tested
+
+// eprosima::ddsenabler::participants::DdsDataNotification data_notification;
+void test_data_notification_callback(
+        const char* topic_name,
         const char* json,
-        int64_t publishTime)
+        int64_t publish_time)
 {
 }
 
-void write_json_file(const std::string filePath, bool block) {
+// eprosima::ddsenabler::participants::DdsTypeNotification type_notification;
+void test_type_notification_callback(
+        const char* type_name,
+        const char* serialized_type,
+        const unsigned char* serialized_type_internal,
+        uint32_t serialized_type_internal_size,
+        const char* data_placeholder)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTopicNotification topic_notification;
+void test_topic_notification_callback(
+        const char* topic_name,
+        const char* type_name,
+        const char* serialized_qos)
+{
+}
+
+// eprosima::ddsenabler::participants::DdsTopicQuery topic_query;
+bool test_topic_query_callback(
+        const char* topic_name,
+        std::string& type_name,
+        std::string& serialized_qos)
+{
+    return false;
+}
+
+// eprosima::ddsenabler::participants::DdsTypeQuery type_query;
+bool test_type_query_callback(
+        const char* type_name,
+        std::unique_ptr<const unsigned char []>& serialized_type_internal,
+        uint32_t& serialized_type_internal_size)
+{
+    return false;
+}
+
+//eprosima::ddsenabler::participants::DdsLogFunc log_callback;
+void test_log_callback(
+        const char* file_name,
+        int line_no,
+        const char* func_name,
+        int category,
+        const char* msg)
+{
+}
+
+void write_json_file(
+        const std::string filePath,
+        bool block)
+{
 
     // The JSON template with a placeholder for the domain
-    std::string jsonTemplate = R"({
+    std::string jsonTemplate =
+            R"({
   "dds": {
     "ddsmodule": {
       "dds": {
@@ -70,22 +113,31 @@ void write_json_file(const std::string filePath, bool block) {
 
     // Replace the %d placeholder with the provided domain
     char buffer[1024];
-    snprintf(buffer, sizeof(buffer), jsonTemplate.c_str(), block ? "\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]," : "");
+    snprintf(buffer, sizeof(buffer),
+            jsonTemplate.c_str(),
+            block ? "\n    \"blocklist\": [\n        {\n            \"name\": \"*\"\n        }\n    ]," : "");
 
     // Write the formatted JSON to the file
     std::ofstream outFile(filePath);
-    if (outFile.is_open()) {
+    if (outFile.is_open())
+    {
         outFile << buffer;
         outFile.close();
-    } else {
+    }
+    else
+    {
         throw std::ios_base::failure("Failed to open the file for writing.");
     }
 }
 
-void write_yaml_file(const std::string filePath, bool block) {
+void write_yaml_file(
+        const std::string filePath,
+        bool block)
+{
 
     // The JSON template with a placeholder for the domain
-    std::string Template = R"(
+    std::string Template =
+            R"(
 dds:
     domain: 0
 
@@ -104,10 +156,13 @@ topics:
 
     // Write the formatted YAML to the file
     std::ofstream outFile(filePath);
-    if (outFile.is_open()) {
+    if (outFile.is_open())
+    {
         outFile << buffer;
         outFile.close();
-    } else {
+    }
+    else
+    {
         throw std::ios_base::failure("Failed to open the file for writing.");
     }
 }
@@ -118,15 +173,20 @@ namespace eprosima {
 namespace ddsenabler {
 
 // Class that exposes the protected attribute configuration_
-class DDSEnablerAccessor : public DDSEnabler {
+class DDSEnablerAccessor : public DDSEnabler
+{
 public:
+
     using DDSEnabler::DDSEnabler;
-    const void get_allowed_topics(std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const {
+    const void get_allowed_topics(
+            std::shared_ptr<ddspipe::core::AllowedTopicList>& ptr) const
+    {
         std::lock_guard<std::mutex> lock(mutex_);
         ptr = std::make_shared<ddspipe::core::AllowedTopicList>(
             this->configuration_.ddspipe_configuration.allowlist,
             this->configuration_.ddspipe_configuration.blocklist);
     }
+
 };
 
 // Test the configuration reload when the json configuration file is modified
@@ -135,9 +195,20 @@ TEST(ReloadConfig, json)
     auto configfile = "./file_watcher_test.json";
     write_json_file(configfile, false);
 
+    CallbackSet callbacks{
+        test_log_callback,
+        {
+            test_type_notification_callback,
+            test_topic_notification_callback,
+            test_data_notification_callback,
+            test_type_query_callback,
+            test_topic_query_callback
+        }
+    };
+
     // Create DDS Enabler
-    std::unique_ptr<DDSEnabler> enabler;
-    ASSERT_TRUE(create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler));
+    std::shared_ptr<DDSEnabler> enabler;
+    ASSERT_TRUE(create_dds_enabler(configfile, callbacks, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());
@@ -166,10 +237,20 @@ TEST(ReloadConfig, yaml)
     auto configfile = "./file_watcher_test.yaml";
     write_yaml_file(configfile, 0);
 
+    CallbackSet callbacks{
+        test_log_callback,
+        {
+            test_type_notification_callback,
+            test_topic_notification_callback,
+            test_data_notification_callback,
+            test_type_query_callback,
+            test_topic_query_callback
+        }
+    };
+
     // Create DDS Enabler
-    std::unique_ptr<DDSEnabler> enabler;
-    bool result = create_dds_enabler(configfile, data_callback, type_callback, nullptr, enabler);
-    ASSERT_TRUE(result);
+    std::shared_ptr<DDSEnabler> enabler;
+    ASSERT_TRUE(create_dds_enabler(configfile, callbacks, enabler));
 
     // Create DDSEnablerAccessor to access protected configuration
     auto enabler_accessor = static_cast<DDSEnablerAccessor*>(enabler.get());

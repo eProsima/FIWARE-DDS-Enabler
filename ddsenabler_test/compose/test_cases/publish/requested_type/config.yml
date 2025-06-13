@@ -1,0 +1,9 @@
+dds:
+  domain: 33
+
+  topics:
+    - name: "test_topic"
+      type: "Configuration"
+      qos:
+        reliability: true
+        durability: true

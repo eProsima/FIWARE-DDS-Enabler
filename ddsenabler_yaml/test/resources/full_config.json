@@ -2,7 +2,7 @@
   "dds": {
     "ddsmodule": {
       "dds": {
-        "domain": 0,
+        "domain": 4,
         "allowlist": [
           {
             "name": "*"
@@ -23,7 +23,9 @@
           }
         ]
       },
-      "ddsenabler": null,
+      "ddsenabler": {
+        "initial-publish-wait": 500
+      },
       "specs": {
         "threads": 12,
         "logging": {

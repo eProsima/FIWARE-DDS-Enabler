@@ -176,7 +176,7 @@ def _subscriber_validate(
     ret_code = validation.validate_default(stdout_parsed['messages'], stderr_parsed)
 
     if duplicates_allow != -1:
-        duplicated_n = len(find_duplicates(stdout_parsed['messages']))
+        duplicated_n = len(validation.find_duplicates(stdout_parsed['messages']))
         if duplicated_n > duplicates_allow:
             log.logger.error(
                 f'{duplicated_n} duplicated messages found. '
@@ -206,31 +206,6 @@ def _subscriber_validate(
         return validation.ReturnCode.NOT_VALID_UNMATCHES
 
     return ret_code
-
-
-def find_duplicates(data):
-    """
-    Find duplicates in a list os strings.
-
-    :param data: List of strings
-    :return: List of tuples with the index of the duplicated strings
-    """
-    # TODO: add more logic so duplicated allow are only first messages
-    duplicates = []
-    lines_seen = {}
-
-    for idx, line in enumerate(data):
-        if line not in lines_seen:
-            lines_seen[line] = idx
-        else:
-            duplicates.append((lines_seen[line], idx))
-
-    if duplicates:
-        log.logger.info('Found duplicated messages')
-    else:
-        log.logger.debug('None duplicated messages found')
-
-    return duplicates
 
 
 def check_transient(data):

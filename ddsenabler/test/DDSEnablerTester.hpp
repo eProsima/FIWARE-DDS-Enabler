@@ -24,7 +24,7 @@
 #include <fastdds/dds/xtypes/dynamic_types/DynamicTypeBuilderFactory.hpp>
 #include <fastdds/dds/xtypes/type_representation/TypeObject.hpp>
 
-#include "DDSEnabler.hpp"
+#include "ddsenabler/dds_enabler_runner.hpp"
 
 using namespace eprosima::ddspipe;
 using namespace eprosima::ddsenabler;
@@ -56,6 +56,7 @@ public:
     {
         std::cout << "Setting up test..." << std::endl;
         received_types_ = 0;
+        received_topics_ = 0;
         received_data_ = 0;
         current_test_instance_ = this;  // Set the current instance for callbacks
     }
@@ -65,33 +66,42 @@ public:
     {
         std::cout << "Tearing down test..." << std::endl;
         std::cout << "Received types before reset: " << received_types_ << std::endl;
+        std::cout << "Received topics before reset: " << received_topics_ << std::endl;
         std::cout << "Received data before reset: " << received_data_ << std::endl;
         received_types_ = 0;
+        received_topics_ = 0;
         received_data_ = 0;
         current_test_instance_ = nullptr;
     }
 
     // Create the DDSEnabler and bind the static callbacks
-    std::unique_ptr<DDSEnabler> create_ddsenabler()
+    std::shared_ptr<DDSEnabler> create_ddsenabler()
     {
         YAML::Node yml;
 
         eprosima::ddsenabler::yaml::EnablerConfiguration configuration(yml);
         configuration.simple_configuration->domain = DOMAIN_;
 
-        auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
+        CallbackSet callbacks{
+            test_log_callback,
+            {
+                test_type_notification_callback,
+                test_topic_notification_callback,
+                test_data_notification_callback,
+                test_type_query_callback,
+                test_topic_query_callback
+            }
+        };
 
-        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
-
-        // Bind the static callbacks (no captures allowed)
-        enabler->set_data_callback(test_data_callback);
-        enabler->set_type_callback(test_type_callback);
+        // Create DDS Enabler
+        std::shared_ptr<DDSEnabler> enabler;
+        bool result = create_dds_enabler(configuration, callbacks, enabler);
 
         return enabler;
     }
 
     // Create the DDSEnabler and bind the static callbacks
-    std::unique_ptr<DDSEnabler> create_ddsenabler_w_history()
+    std::shared_ptr<DDSEnabler> create_ddsenabler_w_history()
     {
         const char* yml_str =
                 R"(
@@ -112,15 +122,18 @@ public:
             return nullptr;
         }
 
-        auto close_handler = std::make_shared<eprosima::utils::event::MultipleEventHandler>();
+        CallbackSet callbacks{
+            test_log_callback,
+            {
+                test_type_notification_callback,
+                test_topic_notification_callback,
+                test_data_notification_callback,
+                test_type_query_callback,
+                test_topic_query_callback
+            }
+        };
 
-        auto enabler = std::make_unique<DDSEnabler>(configuration, close_handler);
-
-        // Bind the static callbacks (no captures allowed)
-        enabler->set_data_callback(test_data_callback);
-        enabler->set_type_callback(test_type_callback);
-
-        return enabler;
+        return std::make_shared<DDSEnabler>(configuration, callbacks);
     }
 
     bool create_publisher(
@@ -249,37 +262,82 @@ public:
         return true;
     }
 
-    // Static type callback
-    static void test_type_callback(
-            const char* typeName,
-            const char* topicName,
-            const char* serializedType)
-    {
-        if (current_test_instance_)
-        {
-            std::lock_guard<std::mutex> lock(current_test_instance_->type_received_mutex_);
-
-            current_test_instance_->received_types_++;
-            std::cout << "Type callback received: " << typeName << ", Total types: " <<
-                current_test_instance_->received_types_ << std::endl;
-        }
-    }
-
-    // Static data callback
-    static void test_data_callback(
-            const char* typeName,
-            const char* topicName,
+    // eprosima::ddsenabler::participants::DdsDataNotification data_notification;
+    static void test_data_notification_callback(
+            const char* topic_name,
             const char* json,
-            int64_t publishTime)
+            int64_t publish_time)
     {
         if (current_test_instance_)
         {
             std::lock_guard<std::mutex> lock(current_test_instance_->data_received_mutex_);
 
             current_test_instance_->received_data_++;
-            std::cout << "Data callback received: " << typeName << ", Total data: " <<
+            std::cout << "Data callback received: " << topic_name << ", Total data: " <<
                 current_test_instance_->received_data_ << std::endl;
         }
+    }
+
+    // eprosima::ddsenabler::participants::DdsTypeNotification type_notification;
+    static void test_type_notification_callback(
+            const char* type_name,
+            const char* serialized_type,
+            const unsigned char* serialized_type_internal,
+            uint32_t serialized_type_internal_size,
+            const char* data_placeholder)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->type_received_mutex_);
+
+            current_test_instance_->received_types_++;
+            std::cout << "Type callback received: " << type_name << ", Total types: " <<
+                current_test_instance_->received_types_ << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::DdsTopicNotification topic_notification
+    static void test_topic_notification_callback(
+            const char* topic_name,
+            const char* type_name,
+            const char* serialized_qos)
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->topic_received_mutex_);
+
+            current_test_instance_->received_topics_++;
+            std::cout << "Topic callback received: " << topic_name << ", Total topics: " <<
+                current_test_instance_->received_topics_ << std::endl;
+        }
+    }
+
+    // eprosima::ddsenabler::participants::DdsTopicQuery topic_query;
+    static bool test_topic_query_callback(
+            const char* topic_name,
+            std::string& type_name,
+            std::string& serialized_qos)
+    {
+        return false;
+    }
+
+    // eprosima::ddsenabler::participants::DdsTypeQuery type_query;
+    static bool test_type_query_callback(
+            const char* type_name,
+            std::unique_ptr<const unsigned char []>& serialized_type_internal,
+            uint32_t& serialized_type_internal_size)
+    {
+        return false;
+    }
+
+    //eprosima::ddsenabler::participants::DdsLogFunc log_callback;
+    static void test_log_callback(
+            const char* fileName,
+            int lineNo,
+            const char* funcName,
+            int category,
+            const char* msg)
+    {
     }
 
     int get_received_types()
@@ -289,6 +347,20 @@ public:
             std::lock_guard<std::mutex> lock(current_test_instance_->type_received_mutex_);
 
             return current_test_instance_->received_types_;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    int get_received_topics()
+    {
+        if (current_test_instance_)
+        {
+            std::lock_guard<std::mutex> lock(current_test_instance_->topic_received_mutex_);
+
+            return current_test_instance_->received_topics_;
         }
         else
         {
@@ -315,10 +387,12 @@ public:
 
     // Test-specific received counters
     int received_types_ = 0;
+    int received_topics_ = 0;
     int received_data_ = 0;
 
-    // Mutex for synchronizing access to received_types_ and received_data_
+    // Mutex for synchronizing access to received_types_, received_topics_ and received_data_
     std::mutex type_received_mutex_;
+    std::mutex topic_received_mutex_;
     std::mutex data_received_mutex_;
 };
 
