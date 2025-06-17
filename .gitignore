@@ -56,10 +56,8 @@ log/
 .vscode
 
 ### Documentation ###
-ddsenabler_docs/docs/rst/_static/css/online_eprosima_rtd_theme.css
 ddsenabler_docs/docs/_static/css/eprosima-furo.css
 ddsenabler_docs/docs/_static/eprosima-logo-white.png
-ddsenabler_docs/docs/_static/dds-enabler-logo.png
 ddsenabler_docs/docs/_templates/sidebar/commercial-support.html
 
 ### Python ###

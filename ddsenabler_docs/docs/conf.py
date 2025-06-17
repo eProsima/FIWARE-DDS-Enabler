@@ -106,112 +106,118 @@ def download_json():
 
     :return: dictionary.
     """
-    url = "https://raw.githubusercontent.com/eProsima/all-docs/master/source/_static/json/eprosima-furo.json"
+    url = (
+        'https://raw.githubusercontent.com/eProsima/all-docs/master/source/_static/json/'
+        'eprosima-furo.json'
+    )
     ret = dict()
     try:
         req = requests.get(url, allow_redirects=True, timeout=10)
     except requests.RequestException as e:
         print(
-            "Failed to download the JSON with the eProsima theme."
-            "Request Error: {}".format(e)
+            'Failed to download the JSON with the eProsima theme.'
+            'Request Error: {}'.format(e)
         )
         return ret
     if req.status_code != 200:
         print(
-            "Failed to download the JSON with the eProsima theme."
-            "Return code: {}".format(req.status_code)
+            'Failed to download the JSON with the eProsima theme.'
+            'Return code: {}'.format(req.status_code)
         )
         return ret
     ret = json.loads(req.content)
     return ret
 
 
+def _download_and_write(url, dest, err_prefix):
+    """
+    Download a file from the given URL and write its content to the specified destination.
+
+    :param url: The URL to fetch.
+    :param dest: The local filesystem path where the content will be saved.
+    :param err_prefix: A prefix for error messages in case of failure.
+
+    :return: True if the download and write succeed, False otherwise.
+    """
+    try:
+        resp = requests.get(url, allow_redirects=True, timeout=10)
+    except requests.RequestException as e:
+        print(f'{err_prefix} Request Error: {e}')
+        return False
+    if resp.status_code != 200:
+        print(f'{err_prefix} Return code: {resp.status_code}')
+        return False
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    try:
+        with open(dest, 'wb') as f:
+            f.write(resp.content)
+    except OSError:
+        print(f'Failed to create file: {dest}')
+        return False
+    return True
+
+
 def retrieve_custom_sidebar(root_dir):
     """
     Generate the custom sidebar, downloading necessary custom files.
 
-    Custom files are hosted in the eProsima GitHub repository with the index of all eProsima product documentation
-    (https://github.com/eProsima/all-docs).
+    Custom files are hosted in the eProsima GitHub repository, with the index of all
+    eProsima product documentation (https://github.com/eProsima/all-docs).
 
     :return: Custom sidebars if the file was downloaded and generated successfully.
         Readthedocs default ones if not.
     """
-    url = "https://raw.githubusercontent.com/eProsima/all-docs/master/source/_templates/sidebar/commercial-support.html"
-    url_img = "https://raw.githubusercontent.com/eProsima/all-docs/master/source/_static/eprosima-logo-white.png"
-    ret = {
-        "**": [
-            "sidebar/brand.html",
-            "sidebar/search.html",
-            "sidebar/scroll-start.html",
-            "sidebar/navigation.html",
-            "sidebar/ethical-ads.html",
-            "sidebar/scroll-end.html",
-            "sidebar/variant-selector.html",
+    html_url = (
+        'https://raw.githubusercontent.com/eProsima/all-docs/'
+        'master/source/_templates/sidebar/commercial-support.html'
+    )
+    img_url = (
+        'https://raw.githubusercontent.com/eProsima/all-docs/'
+        'master/source/_static/eprosima-logo-white.png'
+    )
+    default = {
+        '**': [
+            'sidebar/brand.html',
+            'sidebar/search.html',
+            'sidebar/scroll-start.html',
+            'sidebar/navigation.html',
+            'sidebar/ethical-ads.html',
+            'sidebar/scroll-end.html',
+            'sidebar/variant-selector.html',
         ]
     }
-    if not os.path.isfile(
-        "{}/_templates/sidebar/commercial-support.html".format(root_dir)
-    ):
-        try:
-            req = requests.get(url, allow_redirects=True, timeout=10)
-        except requests.RequestException as e:
-            print(
-                "Failed to download the HTML with the eProsima commecial support button."
-                "Request Error: {}".format(e)
-            )
-            return ret
-        if req.status_code != 200:
-            print(
-                "Failed to download the HTML with the eProsima commercial support button."
-                "Return code: {}".format(req.status_code)
-            )
-            return ret
-        os.makedirs(
-            os.path.dirname("{}/_templates/sidebar/".format(root_dir)), exist_ok=True
-        )
-        html_path = "{}/_templates/sidebar/commercial-support.html".format(root_dir)
-        with open(html_path, "wb") as f:
-            try:
-                f.write(req.content)
-            except OSError:
-                print("Failed to create the file: {}".format(html_path))
-                return ret
+    html_path = f'{root_dir}/_templates/sidebar/commercial-support.html'
+    if not os.path.isfile(html_path):
+        if not _download_and_write(
+                html_url,
+                html_path,
+                'Failed to download the HTML with the eProsima commercial '
+                'support button.'
+        ):
+            return default
 
-    if not os.path.isfile("{}/_static/eprosima-logo-white.png".format(root_dir)):
-        try:
-            req = requests.get(url_img, allow_redirects=True, timeout=10)
-        except requests.RequestException as e:
-            print(
-                "Failed to download the image for the eProsima commecial support button."
-                "Request Error: {}".format(e)
-            )
-            return ret
-        if req.status_code != 200:
-            print(
-                "Failed to download the image for the eProsima commercial support button."
-                "Return code: {}".format(req.status_code)
-            )
-            return ret
-        img_path = "{}/_static/eprosima-logo-white.png".format(root_dir)
-        with open(img_path, "wb") as f:
-            try:
-                f.write(req.content)
-            except OSError:
-                print("Failed to create the file: {}".format(img_path))
-                return ret
-    ret = {
-        "**": [
-            "sidebar/brand.html",
-            "sidebar/commercial-support.html",
-            "sidebar/search.html",
-            "sidebar/scroll-start.html",
-            "sidebar/navigation.html",
-            "sidebar/ethical-ads.html",
-            "sidebar/scroll-end.html",
-            "sidebar/variant-selector.html",
+    img_path = f'{root_dir}/_static/eprosima-logo-white.png'
+    if not os.path.isfile(img_path):
+        if not _download_and_write(
+                img_url,
+                img_path,
+                'Failed to download the image for the eProsima commercial '
+                'support button.'
+        ):
+            return default
+
+    return {
+        '**': [
+            'sidebar/brand.html',
+            'sidebar/commercial-support.html',
+            'sidebar/search.html',
+            'sidebar/scroll-start.html',
+            'sidebar/navigation.html',
+            'sidebar/ethical-ads.html',
+            'sidebar/scroll-end.html',
+            'sidebar/variant-selector.html',
         ]
     }
-    return ret
 
 
 def download_css(html_css_dir):
@@ -226,28 +232,31 @@ def download_css(html_css_dir):
     :return: True if the file was downloaded and generated successfully.
         False if not.
     """
-    url = "https://raw.githubusercontent.com/eProsima/all-docs/master/source/_static/css/eprosima-furo.css"
+    url = (
+        'https://raw.githubusercontent.com/eProsima/all-docs/master/source/'
+        '_static/css/eprosima-furo.css'
+    )
     try:
         req = requests.get(url, allow_redirects=True, timeout=10)
     except requests.RequestException as e:
         print(
-            "Failed to download the CSS with the eProsima rtd theme."
-            "Request Error: {}".format(e)
+            'Failed to download the CSS with the eProsima rtd theme.'
+            'Request Error: {}'.format(e)
         )
         return False
     if req.status_code != 200:
         print(
-            "Failed to download the CSS with the eProsima rtd theme."
-            "Return code: {}".format(req.status_code)
+            'Failed to download the CSS with the eProsima rtd theme.'
+            'Return code: {}'.format(req.status_code)
         )
         return False
-    os.makedirs(os.path.dirname("{}/_static/css/".format(html_css_dir)), exist_ok=True)
-    theme_path = "{}/_static/css/eprosima-furo.css".format(html_css_dir)
-    with open(theme_path, "wb") as f:
+    os.makedirs(os.path.dirname('{}/_static/css/'.format(html_css_dir)), exist_ok=True)
+    theme_path = '{}/_static/css/eprosima-furo.css'.format(html_css_dir)
+    with open(theme_path, 'wb') as f:
         try:
             f.write(req.content)
         except OSError:
-            print("Failed to create the file: {}".format(theme_path))
+            print('Failed to create the file: {}'.format(theme_path))
             return False
     return True
 
@@ -259,10 +268,10 @@ def select_css(html_css_dir):
     :param html_css_dir: The directory to save the CSS stylesheet.
     :return: Returns a list of CSS files to be imported.
     """
-    ret = ""
-    common_css = "css/eprosima-furo.css"
+    ret = ''
+    common_css = 'css/eprosima-furo.css'
     if download_css(html_css_dir):
-        print("Applying common CSS style file: {}".format(common_css))
+        print('Applying common CSS style file: {}'.format(common_css))
         ret = common_css
 
     return ret
@@ -275,7 +284,7 @@ def get_git_branch():
     # Invoke git to get the current branch which we use to get the theme
     try:
         p = subprocess.Popen(
-            ["git", "rev-parse", "--verify", "HEAD"],
+            ['git', 'rev-parse', '--verify', 'HEAD'],
             stdout=subprocess.PIPE,
             cwd=path_to_here,
         )
@@ -283,7 +292,7 @@ def get_git_branch():
         commit = p.communicate()[0].decode().rstrip()
 
         p = subprocess.Popen(
-            ["git", "name-rev", "--name-only", commit],
+            ['git', 'name-rev', '--name-only', commit],
             stdout=subprocess.PIPE,
             cwd=path_to_here,
         )
@@ -291,7 +300,7 @@ def get_git_branch():
         return p.communicate()[0].decode().rstrip()
 
     except Exception:
-        print("Could not get the branch")
+        print('Could not get the branch')
 
     # Couldn't figure out the branch probably due to an error
     return None
@@ -315,52 +324,55 @@ def configure_doxyfile(
     :param project_binary_dir: CMakeLists.txt value of PROJECT_BINARY_DIR
     :param project_source_dir: CMakeLists.txt value of PROJECT_SOURCE_DIR
     """
-    print("Configuring Doxyfile")
-    with open(doxyfile_in, "r") as file:
+    print('Configuring Doxyfile')
+    with open(doxyfile_in, 'r') as file:
         filedata = file.read()
 
-    filedata = filedata.replace("@DOXYGEN_INPUT_DIR@", input_dir)
-    filedata = filedata.replace("@DOXYGEN_OUTPUT_DIR@", output_dir)
-    filedata = filedata.replace("@PROJECT_BINARY_DIR@", project_binary_dir)
-    filedata = filedata.replace("@PROJECT_SOURCE_DIR@", project_source_dir)
+    filedata = filedata.replace('@DOXYGEN_INPUT_DIR@', input_dir)
+    filedata = filedata.replace('@DOXYGEN_OUTPUT_DIR@', output_dir)
+    filedata = filedata.replace('@PROJECT_BINARY_DIR@', project_binary_dir)
+    filedata = filedata.replace('@PROJECT_SOURCE_DIR@', project_source_dir)
 
     os.makedirs(os.path.dirname(doxyfile_out), exist_ok=True)
-    with open(doxyfile_out, "w") as file:
+    with open(doxyfile_out, 'w') as file:
         file.write(filedata)
 
 
 script_path = os.path.abspath(pathlib.Path(__file__).parent.absolute())
 # Project directories
-project_source_dir = os.path.abspath("{}/../code".format(script_path))
-project_binary_dir = os.path.abspath("{}/../build".format(script_path))
-projects_dir = os.path.abspath("{}/../..".format(script_path))
-output_dir = os.path.abspath("{}/doxygen".format(project_binary_dir))
-doxygen_html = os.path.abspath("{}/html/doxygen".format(project_binary_dir))
+project_source_dir = os.path.abspath('{}/../code'.format(script_path))
+project_binary_dir = os.path.abspath('{}/../build'.format(script_path))
+projects_dir = os.path.abspath('{}/../..'.format(script_path))
+output_dir = os.path.abspath('{}/doxygen'.format(project_binary_dir))
+doxygen_html = os.path.abspath('{}/html/doxygen'.format(project_binary_dir))
 
 # Doxyfile
-doxyfile_in = os.path.abspath("{}/Doxyfile.in".format(project_source_dir))
-doxyfile_out = os.path.abspath("{}/Doxyfile".format(project_binary_dir))
+doxyfile_in = os.path.abspath('{}/Doxyfile.in'.format(project_source_dir))
+doxyfile_out = os.path.abspath('{}/Doxyfile'.format(project_binary_dir))
 
 # Header files
-input_dir = os.path.abspath("{}/ddsenabler/include/ddsenabler".format(projects_dir))
+input_dir = os.path.abspath('{}/ddsenabler/include/ddsenabler'.format(projects_dir))
 
 # Check if we're running on Read the Docs' servers
-read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
+read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
 if read_the_docs_build:
-    print("Read the Docs environment detected!")
+    print('Read the Docs environment detected!')
 
     os.makedirs(os.path.dirname(output_dir), exist_ok=True)
     os.makedirs(os.path.dirname(doxygen_html), exist_ok=True)
 
     # Copy CBCallbacks.hpp from ddsenabler_participants to input_dir
-    src_file = os.path.abspath("{}/ddsenabler_participants/include/ddsenabler_participants/CBCallbacks.hpp".format(projects_dir))
-    dst_file = os.path.join(input_dir, "CBCallbacks.hpp")
+    src_file = os.path.abspath(
+        '{}/ddsenabler_participants/include/'
+        'ddsenabler_participants/CBCallbacks.hpp'.format(projects_dir)
+    )
+    dst_file = os.path.join(input_dir, 'CBCallbacks.hpp')
     os.makedirs(input_dir, exist_ok=True)
     try:
         shutil.copy(src_file, dst_file)
-        print("Copied CBCallbacks.hpp to input_dir")
+        print('Copied CBCallbacks.hpp to input_dir')
     except IOError as e:
-        print("Unable to copy CBCallbacks.hpp. Error: {}".format(e))
+        print('Unable to copy CBCallbacks.hpp. Error: {}'.format(e))
 
     # Configure Doxyfile
     configure_doxyfile(
@@ -372,14 +384,14 @@ if read_the_docs_build:
         project_source_dir,
     )
     # Generate doxygen documentation
-    doxygen_ret = subprocess.call("doxygen {}".format(doxyfile_out), shell=True)
+    doxygen_ret = subprocess.call('doxygen {}'.format(doxyfile_out), shell=True)
     if doxygen_ret != 0:
-        print("Doxygen failed with return code {}".format(doxygen_ret))
+        print('Doxygen failed with return code {}'.format(doxygen_ret))
         sys.exit(doxygen_ret)
 
 
-breathe_projects = {"DDSEnabler": os.path.abspath("{}/xml".format(output_dir))}
-breathe_default_project = "DDSEnabler"
+breathe_projects = {'DDSEnabler': os.path.abspath('{}/xml'.format(output_dir))}
+breathe_default_project = 'DDSEnabler'
 breathe_show_define_initializer = True
 
 # -- General configuration ------------------------------------------------
@@ -392,11 +404,11 @@ breathe_show_define_initializer = True
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "breathe",
-    "sphinxcontrib.plantuml",
-    "sphinx_copybutton",
-    "sphinx_design",
-    "sphinx_toolbox.collapse",
+    'breathe',
+    'sphinxcontrib.plantuml',
+    'sphinx_copybutton',
+    'sphinx_design',
+    'sphinx_toolbox.collapse',
 ]
 
 sphinx_tabs_disable_css_loading = False
@@ -405,11 +417,11 @@ sphinx_tabs_disable_tab_closing = True
 try:
     import sphinxcontrib.spelling  # noqa: F401
 
-    extensions.append("sphinxcontrib.spelling")
+    extensions.append('sphinxcontrib.spelling')
 
     # spelling_word_list_filename = 'spelling_wordlist.txt'
     spelling_word_list_filename = [
-        "spelling_wordlist.txt"
+        'spelling_wordlist.txt'
     ]
 
     from sphinxcontrib.spelling.filters import ContractionFilter
@@ -422,33 +434,33 @@ except ImportError:
 
 # Default behaviour for `autodoc`: always show documented members.
 autodoc_default_options = {
-    "members": True,
-    "undoc-members": False,
+    'members': True,
+    'undoc-members': False,
 }
 
-plantuml = "/usr/bin/plantuml -Djava.awt.headless=true "
-plantuml_output_format = "svg"
+plantuml = '/usr/bin/plantuml -Djava.awt.headless=true '
+plantuml_output_format = 'svg'
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
+templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = ".rst"
+source_suffix = '.rst'
 
 # The encoding of source files.
 #
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = "index"
+master_doc = 'index'
 
 # General information about the project.
 project = PROJECT_NAME
-copyright = "2025, eProsima"
-author = "eProsima"
+copyright = '2025, eProsima'
+author = 'eProsima'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -470,8 +482,8 @@ release = '{}.{}.{}'.format(versions['major'], versions['minor'], versions['patc
 # for a list of supported languages.
 #
 # This is also used if you do content translation via gettext catalogs.
-# Usually you set "language" from the command line for these cases.
-language = "en"
+# Usually you set 'language' from the command line for these cases.
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -486,10 +498,10 @@ language = "en"
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
 exclude_patterns = [
-    "*/includes/*.rst",
-    "*/*/includes/*.rst",
-    "*/*/*/includes/*.rst",
-    "*/*/*/*/includes/*.rst",
+    '*/includes/*.rst',
+    '*/*/includes/*.rst',
+    '*/*/*/includes/*.rst',
+    '*/*/*/*/includes/*.rst',
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
@@ -514,20 +526,20 @@ exclude_patterns = [
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
 
-# If true, keep warnings as "system message" paragraphs in the built documents.
+# If true, keep warnings as 'system message' paragraphs in the built documents.
 # keep_warnings = False
 
 suppress_warnings = [
-    "cpp.duplicate_declaration",
-    "cpp.parse_function_declaration",
-    "config.cache",
+    'cpp.duplicate_declaration',
+    'cpp.parse_function_declaration',
+    'config.cache',
 ]
 
 # Check if we are checking the spelling. In this case...
-if "spelling" in sys.argv:
+if 'spelling' in sys.argv:
     # Avoid the warning of a wrong reference in the TOC entries,
     # because fails the Python API Reference reference.
-    suppress_warnings.append("toc.excluded")
+    suppress_warnings.append('toc.excluded')
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -537,26 +549,26 @@ todo_include_todos = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# so a file named 'default.css' will overwrite the builtin 'default.css'.
+html_static_path = ['_static']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "furo"
+html_theme = 'furo'
 
-html_logo = "_static/dds-enabler-logo.png"
+html_logo = '_static/dds-enabler-logo.png'
 
 # The name for this set of Sphinx documents.
-# "<project> v<release> documentation" by default.
+# '<project> v<release> documentation' by default.
 #
-html_title = f"<center><i>{release}</i></center>"
+html_title = f'<center><i>{release}</i></center>'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs. This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
 #
-html_favicon = "_static/eprosima-logo.svg"
+html_favicon = '_static/eprosima-logo.svg'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -620,11 +632,11 @@ html_sidebars = retrieve_custom_sidebar(script_path)
 #
 # html_show_sourcelink = True
 
-# If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
+# If true, 'Created using Sphinx' is shown in the HTML footer. Default is True.
 #
 # html_show_sphinx = True
 
-# If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
+# If true, '(C) Copyright ...' is shown in the HTML footer. Default is True.
 #
 # html_show_copyright = True
 
@@ -634,7 +646,7 @@ html_sidebars = retrieve_custom_sidebar(script_path)
 #
 # html_use_opensearch = ''
 
-# This is the file name suffix for HTML files (e.g. ".xhtml").
+# This is the file name suffix for HTML files (e.g. '.xhtml').
 # html_file_suffix = None
 
 # Language to be used for generating the HTML full-text search index.
@@ -693,7 +705,7 @@ latex_documents = [
 #
 # latex_logo = 01-figures/logo.png
 
-# For "manual" documents, if this is true, then toplevel headings are parts,
+# For 'manual' documents, if this is true, then toplevel headings are parts,
 # not chapters.
 #
 # latex_use_parts = False
@@ -761,6 +773,6 @@ texinfo_documents = [
 #
 # texinfo_show_urls = 'footnote'
 
-# If true, do not generate a @detailmenu in the "Top" node's menu.
+# If true, do not generate a @detailmenu in the 'Top' node's menu.
 #
 # texinfo_no_detailmenu = False

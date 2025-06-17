@@ -48,8 +48,6 @@ Leverage [OMG DDS-XTypes 1.3](https://www.omg.org/spec/DDS-XTypes/1.3) and Fast 
 - **Bidirectional FIWARE Integration**
   Routes DDS samples to NGSI-LD Context Brokers and injects context updates back into DDS topics.
 
-![DDS Enabler Architecture](docs/rst/figures/ddsenabler_architecture.png)
-
 ## Commercial support
 
 Looking for commercial support? Write us to info@eprosima.com
