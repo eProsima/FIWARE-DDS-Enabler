@@ -1,0 +1,5 @@
+dds:
+  domain: 33
+
+  allowlist:
+    - name: "rt/chatter"

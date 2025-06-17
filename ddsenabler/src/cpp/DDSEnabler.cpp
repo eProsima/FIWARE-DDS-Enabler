@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <filesystem>
-#include <math.h>
-
 #include <cpp_utils/exception/InitializationException.hpp>
 #include <cpp_utils/utils.hpp>
 
@@ -34,9 +31,8 @@ using namespace eprosima::utils;
 
 DDSEnabler::DDSEnabler(
         const yaml::EnablerConfiguration& configuration,
-        std::shared_ptr<eprosima::utils::event::MultipleEventHandler> event_handler)
+        const CallbackSet& callbacks)
     : configuration_(configuration)
-    , event_handler_(event_handler)
 {
     // Load the Enabler's internal topics from a configuration object.
     load_internal_topics_(configuration_);
@@ -53,12 +49,12 @@ DDSEnabler::DDSEnabler(
     // Create CB Handler configuration
     participants::CBHandlerConfiguration handler_config;
 
-    // Create DynTypes Participant
-    dyn_participant_ = std::make_shared<DynTypesParticipant>(
+    // Create DDS Participant
+    dds_participant_ = std::make_shared<DdsParticipant>(
         configuration_.simple_configuration,
         payload_pool_,
         discovery_database_);
-    dyn_participant_->init();
+    dds_participant_->init();
 
     // Create CB Handler
     cb_handler_ = std::make_shared<participants::CBHandler>(
@@ -66,7 +62,7 @@ DDSEnabler::DDSEnabler(
         payload_pool_);
 
     // Create Enabler Participant
-    enabler_participant_ = std::make_shared<SchemaParticipant>(
+    enabler_participant_ = std::make_shared<EnablerParticipant>(
         configuration_.enabler_configuration,
         payload_pool_,
         discovery_database_,
@@ -77,20 +73,31 @@ DDSEnabler::DDSEnabler(
 
     // Populate Participant Database
     participants_database_->add_participant(
-        dyn_participant_->id(),
-        dyn_participant_);
+        dds_participant_->id(),
+        dds_participant_);
 
     participants_database_->add_participant(
         enabler_participant_->id(),
         enabler_participant_);
 
     // Create DDS Pipe
+    // NOTE: Create disabled, and enable after all callbacks are set to avoid missing notifications
     pipe_ = std::make_unique<DdsPipe>(
         configuration_.ddspipe_configuration,
         discovery_database_,
         payload_pool_,
         participants_database_,
         thread_pool_);
+
+    // Set user defined callbacks in all internal entities requiring it
+    set_internal_callbacks_(callbacks);
+
+    // Enable DDS Pipe after having set all callbacks
+    if (pipe_->enable() != utils::ReturnCode::RETCODE_OK)
+    {
+        throw utils::InitializationException(
+                  utils::Formatter() << "Failed to enable DDS Pipe.");
+    }
 }
 
 bool DDSEnabler::set_file_watcher(
@@ -121,11 +128,13 @@ bool DDSEnabler::set_file_watcher(
                     }
                     else if (ret == utils::ReturnCode::RETCODE_NO_DATA)
                     {
-                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION, "No relevant changes in configuration file " << file_path);
+                        EPROSIMA_LOG_INFO(DDSENABLER_EXECUTION,
+                                "No relevant changes in configuration file " << file_path);
                     }
                     else
                     {
-                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION, "Failed to reload configuration from file " << file_path);
+                        EPROSIMA_LOG_WARNING(DDSENABLER_EXECUTION,
+                                "Failed to reload configuration from file " << file_path);
                     }
                 }
                 catch (const std::exception& e)
@@ -136,7 +145,8 @@ bool DDSEnabler::set_file_watcher(
             };
 
     // Creating FileWatcher event handler
-    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback, file_path);
+    file_watcher_handler_ = std::make_unique<eprosima::utils::event::FileWatcherHandler>(file_watcher_callback,
+                    file_path);
 
     return true;
 }
@@ -174,6 +184,38 @@ void DDSEnabler::load_internal_topics_(
         configuration.ddspipe_configuration.allowlist.insert(
             utils::Heritable<WildcardDdsFilterTopic>::make_heritable(internal_topic));
     }
+}
+
+void DDSEnabler::set_internal_callbacks_(
+        const CallbackSet& callbacks)
+{
+    if (callbacks.dds.type_notification)
+    {
+        cb_handler_->set_type_notification_callback(callbacks.dds.type_notification);
+    }
+    if (callbacks.dds.topic_notification)
+    {
+        cb_handler_->set_topic_notification_callback(callbacks.dds.topic_notification);
+    }
+    if (callbacks.dds.data_notification)
+    {
+        cb_handler_->set_data_notification_callback(callbacks.dds.data_notification);
+    }
+    if (callbacks.dds.type_query)
+    {
+        cb_handler_->set_type_query_callback(callbacks.dds.type_query);
+    }
+    if (callbacks.dds.topic_query)
+    {
+        enabler_participant_->set_topic_query_callback(callbacks.dds.topic_query);
+    }
+}
+
+bool DDSEnabler::publish(
+        const std::string& topic_name,
+        const std::string& json)
+{
+    return enabler_participant_->publish(topic_name, json);
 }
 
 } /* namespace ddsenabler */

@@ -27,8 +27,9 @@
 #include <ddspipe_core/types/topic/dds/DistributedTopic.hpp>
 #include <ddspipe_core/types/topic/filter/IFilterTopic.hpp>
 
-#include <ddspipe_participants/configuration/ParticipantConfiguration.hpp>
 #include <ddspipe_participants/configuration/SimpleParticipantConfiguration.hpp>
+
+#include <ddsenabler_participants/EnablerParticipantConfiguration.hpp>
 
 #include <ddspipe_yaml/Yaml.hpp>
 #include <ddspipe_yaml/YamlReader.hpp>
@@ -67,7 +68,7 @@ public:
 
     // Participants configurations
     std::shared_ptr<ddspipe::participants::SimpleParticipantConfiguration> simple_configuration;
-    std::shared_ptr<ddspipe::participants::ParticipantConfiguration> enabler_configuration;
+    std::shared_ptr<ddsenabler::participants::EnablerParticipantConfiguration> enabler_configuration;
 
     unsigned int n_threads = DEFAULT_N_THREADS;
 
@@ -75,25 +76,25 @@ public:
 
 protected:
 
-    void load_ddsenabler_configuration(
+    void load_ddsenabler_configuration_(
             const Yaml& yml);
 
-    void load_enabler_configuration(
+    void load_enabler_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_specs_configuration(
+    void load_specs_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_dds_configuration(
+    void load_dds_configuration_(
             const Yaml& yml,
             const ddspipe::yaml::YamlReaderVersion& version);
 
-    void load_ddsenabler_configuration_from_yaml_file(
+    void load_ddsenabler_configuration_from_yaml_file_(
             const std::string& file_path);
 
-    void load_ddsenabler_configuration_from_json_file(
+    void load_ddsenabler_configuration_from_json_file_(
             const std::string& file_path);
 };
 

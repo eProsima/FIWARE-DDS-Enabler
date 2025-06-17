@@ -27,6 +27,7 @@ namespace yaml {
 
 constexpr const char* ENABLER_DDS_TAG("dds");
 constexpr const char* ENABLER_ENABLER_TAG("ddsenabler");
+constexpr const char* ENABLER_INITIAL_PUBLISH_WAIT_TAG("initial-publish-wait");
 
 } /* namespace yaml */
 } /* namespace ddsenabler */

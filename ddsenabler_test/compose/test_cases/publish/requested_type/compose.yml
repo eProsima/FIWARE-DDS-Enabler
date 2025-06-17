@@ -1,0 +1,35 @@
+# Test description:
+#   This test case checks the DDS Enabler is able to publish data in an unknown topic.
+#   The topic and type information is requested to the user through callbacks.
+#   The subscriber is created after the DDS Enabler has published all data.
+#   It is checked that the subscriber receives all messages (guaranteed by reliable reliability and transient local durability QoS).
+
+services:
+
+  # ENABLER
+  ddsenabler:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: ddsenabler
+    networks:
+      - std_net
+    volumes:
+      - ./config.yml:/config/config.yml
+      - ./samples:/samples
+      - ./persistence:/persistence
+    command: ./build/ddsenabler/examples/ddsenabler_example --config /config/config.yml --timeout 5 --publish-path /samples --publish-topic test_topic --publish-period 200 --persistence-path /persistence
+
+  subscriber:
+    image: ${DDSENABLER_COMPOSE_TEST_DOCKER_IMAGE}
+    container_name: subscriber
+    depends_on:
+      - ddsenabler
+    networks:
+      - std_net
+    volumes:
+      - ../../../scripts:/scripts
+    command: sh -c "sleep 1 && python3 /scripts/execute_and_validate_subscriber.py --exe build/fastdds_configuration_example/configuration --samples 5 --timeout 4 --args '--samples 5 --domain 33 --name test_topic --reliable --transient-local --keep-all'"
+
+networks:
+  std_net:
+  default:
+    driver: none
