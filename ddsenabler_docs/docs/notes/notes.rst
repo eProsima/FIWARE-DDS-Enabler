@@ -1,4 +1,4 @@
-.. include:: ../exports/alias.include
+.. include:: ../3-exports/alias.include
 
 .. _release_notes:
 

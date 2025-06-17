@@ -40,11 +40,11 @@
 - **Flexible YAML Configuration**
   Fine-tune QoS, network filters, topic allow-listing/deny-listing and discovery via a human-readable YAML file.
 - **Dynamic Types via XTypes**
-  Leverage `OMG DDS-XTypes 1.3 <https://www.omg.org/spec/DDS-XTypes/1.3>`_ and Fast DDS serialization utilities for runtime type registration and discovery.
+Leverage [OMG DDS-XTypes 1.3](https://www.omg.org/spec/DDS-XTypes/1.3) and Fast DDS serialization utilities for runtime type registration and discovery.
 - **Core Engine Powered by DDS-Pipe**
-  Built on `eProsima DDS Pipe <https://github.com/eProsima/DDS-Pipe>`_, ensuring low-latency, high-throughput payload forwarding and reliable discovery across distributed systems.
+  Built on [eProsima DDS Pipe](https://github.com/eProsima/DDS-Pipe), ensuring low-latency, high-throughput payload forwarding and reliable discovery across distributed systems.
 - **Serialization Utilities**
-  Convert DDS data to JSON for REST integration and to human-readable IDL; JSON→DDS deserializer support is in development.
+  Convert DDS data to JSON and vice versa for REST integration and to human-readable IDL.
 - **Bidirectional FIWARE Integration**
   Routes DDS samples to NGSI-LD Context Brokers and injects context updates back into DDS topics.
 
@@ -52,14 +52,15 @@
 
 ## Commercial support
 
-Looking for professional support or custom integration?
-Contact us at **info@eprosima.com** or raise an issue on GitHub.
+Looking for commercial support? Write us to info@eprosima.com
+
+Find more about us at [eProsima’s webpage](https://eprosima.com/).
 
 ## Documentation
 
-Explore the full user and developer guide hosted on Read the Docs:
+Explore the full user and developer guide hosted on ReadTheDocs:
 
-- [Introduction](https://dds-enabler.readthedocs.io/en/latest/rst/formalia/titlepage.html)
+- [Introduction](https://dds-enabler.readthedocs.io/en/latest/rst/02-formalia/titlepage.html)
 - [Project Overview](https://dds-enabler.readthedocs.io/en/latest/rst/getting_started/project_overview.html)
 - [User Manual](https://dds-enabler.readthedocs.io/en/latest/rst/user_manual/context_broker_interface.html)
 - [API Reference](https://dds-enabler.readthedocs.io/en/latest/rst/ddsenabler/api_reference/api_reference.html)

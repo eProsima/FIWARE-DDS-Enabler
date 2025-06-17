@@ -18,7 +18,6 @@
 #
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import git
 import json
 import os
 import os.path

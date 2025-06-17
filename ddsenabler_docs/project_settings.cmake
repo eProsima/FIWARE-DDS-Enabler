@@ -24,6 +24,7 @@ set(MODULE_SUMMARY
 
 set(MODULE_FIND_PACKAGES
     Sphinx
+    ddsenabler
 )
 
 set(MODULE_DEPENDENCIES

@@ -45,90 +45,75 @@ project(
 ####################################################################################################
 # Build Doxygen documentation
 ####################################################################################################
+if (BUILD_DOCS)
+    find_package(ddsenabler REQUIRED)
+    get_target_property(ENABLER_INCLUDE_DIR ddsenabler INTERFACE_INCLUDE_DIRECTORIES)
 
-find_package(ddsenabler REQUIRED)
-get_target_property(ENABLER_INCLUDE_DIR ddsenabler INTERFACE_INCLUDE_DIRECTORIES)
+    find_package(ddsenabler_participants REQUIRED)
+    get_target_property(PARTICIPANTS_INCLUDE_DIR ddsenabler_participants INTERFACE_INCLUDE_DIRECTORIES)
 
-find_package(ddsenabler_participants REQUIRED)
-get_target_property(PARTICIPANTS_INCLUDE_DIR ddsenabler_participants INTERFACE_INCLUDE_DIRECTORIES)
+    message(STATUS "DDS Enabler include directories: ${ENABLER_INCLUDE_DIR} ; ${PARTICIPANTS_INCLUDE_DIR}")
+    set(SRC_FILE "${PARTICIPANTS_INCLUDE_DIR}/ddsenabler_participants/CBCallbacks.hpp")
+    set(DST_DIR "${ENABLER_INCLUDE_DIR}/ddsenabler")
+    file(COPY ${SRC_FILE} DESTINATION ${DST_DIR})
+    # Collect all public headers
+    file(GLOB_RECURSE HPP_FILES
+        "${ENABLER_INCLUDE_DIR}/ddsenabler/**/*.h*"
+    )
 
-message(STATUS "DDS Enabler include directories: ${ENABLER_INCLUDE_DIR} ; ${PARTICIPANTS_INCLUDE_DIR}")
-set(SRC_FILE "${PARTICIPANTS_INCLUDE_DIR}/ddsenabler_participants/CBCallbacks.hpp")
-set(DST_DIR "${ENABLER_INCLUDE_DIR}/ddsenabler")
-file(COPY ${SRC_FILE} DESTINATION ${DST_DIR})
-# Collect all public headers
-file(GLOB_RECURSE HPP_FILES
-    "${ENABLER_INCLUDE_DIR}/ddsenabler/**/*.h*"
-)
+    find_package(Doxygen REQUIRED)
+    # Create doxygen directories
+    add_custom_target(doc-dirs
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/doxygen
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/html
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/html/doxygen
+        COMMENT "Creating documentation directories" VERBATIM)
 
-find_package(Doxygen REQUIRED)
-# Create doxygen directories
-add_custom_target(doc-dirs
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/doxygen
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/html
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${PROJECT_BINARY_DIR}/html/doxygen
-    COMMENT "Creating documentation directories" VERBATIM)
+    # Doxygen related variables
+    set(DOXYGEN_INPUT_DIR
+        "${ENABLER_INCLUDE_DIR}/ddsenabler"
+    )
+    # convert CMake list (;) to space-separated for Doxygen
+    string(REPLACE ";" " " DOXYGEN_INPUT_DIR "${DOXYGEN_INPUT_DIR}")
 
-# Doxygen related variables
-set(DOXYGEN_INPUT_DIR
-    "${ENABLER_INCLUDE_DIR}/ddsenabler"
-)
-# convert CMake list (;) to space-separated for Doxygen
-string(REPLACE ";" " " DOXYGEN_INPUT_DIR "${DOXYGEN_INPUT_DIR}")
+    set(DOXYGEN_OUTPUT_DIR "${PROJECT_BINARY_DIR}/doxygen")
+    set(DOXYGEN_INDEX_FILE "${PROJECT_BINARY_DIR}/doxygen/xml/index.xml")
+    set(DOXYFILE_IN "${CMAKE_CURRENT_SOURCE_DIR}/code/Doxyfile.in")
+    set(DOXYFILE_OUT ${PROJECT_BINARY_DIR}/Doxyfile)
 
-set(DOXYGEN_OUTPUT_DIR "${PROJECT_BINARY_DIR}/doxygen")
-set(DOXYGEN_INDEX_FILE "${PROJECT_BINARY_DIR}/doxygen/xml/index.xml")
-set(DOXYFILE_IN "${CMAKE_CURRENT_SOURCE_DIR}/code/Doxyfile.in")
-set(DOXYFILE_OUT ${PROJECT_BINARY_DIR}/Doxyfile)
+    # Configure doxygen
+    configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
 
-# Configure doxygen
-configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
+    # Doxygen command
+    add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
+        DEPENDS ${HPP_FILES}
+        MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
+        COMMENT "Generating doxygen documentation")
 
-# Doxygen command
-add_custom_command(OUTPUT ${DOXYGEN_INDEX_FILE}
-    COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
-    DEPENDS ${HPP_FILES}
-    MAIN_DEPENDENCY ${DOXYFILE_OUT} ${DOXYFILE_IN}
-    COMMENT "Generating doxygen documentation")
+    # Generate API reference
+    add_custom_target(doxygen ALL
+        DEPENDS ${DOXYGEN_INDEX_FILE}
+        COMMENT "Generated API documentation with doxygen" VERBATIM)
+    add_dependencies(doxygen doc-dirs)
 
-# Generate API reference
-add_custom_target(doxygen ALL
-    DEPENDS ${DOXYGEN_INDEX_FILE}
-    COMMENT "Generated API documentation with doxygen" VERBATIM)
-add_dependencies(doxygen doc-dirs)
-
-# Install doxygen generated XML files
-install(DIRECTORY ${PROJECT_BINARY_DIR}/doxygen/xml
-    DESTINATION doxygen)
+    # Install doxygen generated XML files
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/doxygen/xml
+        DESTINATION doxygen)
 
 
-####################################################################################################
-# Find Sphinx
-####################################################################################################
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/code/cmake" ${CMAKE_MODULE_PATH})
-find_package(Sphinx REQUIRED)
+    ####################################################################################################
+    # Find Sphinx
+    ####################################################################################################
+    set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/code/cmake" ${CMAKE_MODULE_PATH})
+    find_package(Sphinx REQUIRED)
 
-####################################################################################################
-# Compile code used in documentation
-####################################################################################################
-# Option to compile documentation tests
-option(COMPILE_TESTS "Compile DDS Enabler docs tests" ON)
-if(COMPILE_TESTS)
-    # CTest needs to be included here, otherwise it is not possible to run the tests from the root
-    # of the build directory
-    enable_testing()
-    include(CTest)
-    add_subdirectory(code)
-endif()
-
-####################################################################################################
-# Build Sphinx documentation
-####################################################################################################
-# It is possible to build and run tests without generating the documentation output. This saves time
-# while developing, since generating the documentation from the RSTs takes quite some time.
-set(SPHINX_SOURCE "${CMAKE_SOURCE_DIR}/docs")
-option(BUILD_DOCUMENTATION "Generate documentation" ON)
-if (BUILD_DOCUMENTATION)
+    ####################################################################################################
+    # Build Sphinx documentation
+    ####################################################################################################
+    # It is possible to build and run tests without generating the documentation output. This saves time
+    # while developing, since generating the documentation from the RSTs takes quite some time.
+    set(SPHINX_SOURCE "${CMAKE_SOURCE_DIR}/docs")
 
     # CMake project always build the documentaion using HTML builder. Users can always build with
     # other builders using sphinx directly
@@ -159,3 +144,17 @@ if (BUILD_DOCUMENTATION)
         "eProsima DDS Enabler documetation in ${DDSENABLER_DOCS_BUILDER} format")
     set(CPACK_COMPONENTS_ALL ${CPACK_COMPONENTS_ALL} ${DDSENABLER_DOCS_BUILDER})
 endif()
+
+###############################################################################
+# Test
+###############################################################################
+# Compile tests if CMake options requires it
+compile_test_documentation(
+    "${PROJECT_SOURCE_DIR}/test" # Test directory
+)
+
+###############################################################################
+# Packaging
+###############################################################################
+# Install package
+eprosima_packaging()

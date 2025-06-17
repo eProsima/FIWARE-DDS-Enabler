@@ -44,22 +44,22 @@ Key characteristics include:
 - **Real-time publish-subscribe middleware**: Built on the DDS standard, enabling low-latency and reliable communication.
 - **Seamless OT/IT integration**: Acts as a translator between DDS-based systems and NGSI-LD context brokers.
 - **ROS 2 and FIWARE compatibility**: Enables industrial robots and context-aware applications to operate through the same infrastructure.
-- **Scalable and extensible architecture**: Fully compatible with modern I4.0 deployments, providing flexibility for growth and adaptation.
+- **Scalable and extensible architecture**: Fully compatible with modern Industry 5.0 deployments, providing flexibility for growth and adaptation.
 
 Under the hood, DDS Enabler also provides:
 
-- **Transparent DDS Management**
+- **Transparent DDS Management.**
   Auto-create and discover DomainParticipants, Publishers, Subscribers, topics and types without manual code.
-- **Flexible YAML Configuration**
+- **Flexible YAML Configuration.**
   Fine-tune QoS, network filters and discovery through a human-readable YAML file.
-- **Dynamic Types via XTypes**
+- **Dynamic Types via XTypes.**
   Leverage `OMG DDS-XTypes 1.3 <https://www.omg.org/spec/DDS-XTypes/1.3>`_ and Fast DDS serialization utilities for
   on-the-fly type registration.
-- **Core Engine Powered by DDS-Pipe**
+- **Core Engine Powered by DDS-Pipe.**
   Built on `eProsima DDS Pipe <https://github.com/eProsima/DDS-Pipe>`_, ensuring high throughput and reliable
   participant discovery.
-- **Serialization Utilities**
-  Convert DDS data to JSON and IDL strings, with JSON→DDS deserialization under development.
+- **Serialization Utilities.**
+  Convert DDS data to JSON and vice versa for REST integration and to human-readable IDL.
 
 DDS Enabler is a flagship component of the ARISE project:
 `ARISE Middleware <https://arise-middleware.eu/>`_.

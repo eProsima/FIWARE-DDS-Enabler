@@ -1,6 +1,6 @@
 .. eProsima DDS Enabler documentation master file.
 
-.. include:: formalia/titlepage.rst
+.. include:: 02-formalia/titlepage.rst
 
 
 .. _index_introduction:
@@ -10,7 +10,7 @@
    :maxdepth: 2
    :hidden:
 
-   /formalia/titlepage
+   /02-formalia/titlepage
 
 
 .. .. _index_installation:

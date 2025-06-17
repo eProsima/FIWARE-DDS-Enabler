@@ -199,3 +199,5 @@ jobs:
 
       - name: Python Linter
         uses: eProsima/eProsima-CI/ubuntu/python_linter@v0
+        with:
+            file_extensions_grep_args: "-e '^(?!ddsenabler_docs/).+\\.py$'"

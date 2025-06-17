@@ -33,6 +33,15 @@ In order to install this package independently, use the following command:
 colcon build --packages-select ddsenabler_docs
 ```
 
+To generate the documentation locally, build the docs package with the docs flag enabled: `BUILD_DOCS`
+
+```bash
+colcon build --packages-select ddsenabler_docs --cmake-args -DBUILD_DOCS=ON
+```
+
+Once the build completes, the generated HTML files can be found under `build/ddsenabler_docs/html`
+
+
 In order to compile and execute the package **tests**, a specific CMake option is required: `BUILD_DOCS_TESTS`.
 
 ```bash
