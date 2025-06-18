@@ -1,0 +1,10 @@
+.. |FastDDSDocs| replace:: `Fast DDS Documentation <https://fast-dds.docs.eprosima.com/en/v2.3.0/>`__
+.. |DDSSpecification| replace:: `DDS specification <https://www.omg.org/spec/DDS/1.4/About-DDS/>`__
+
+.. |ddsenabler| replace:: *DDS Enabler*
+.. |fastdds| replace:: *Fast DDS*
+
+.. |eddsenabler| replace:: *eProsima DDS Enabler*
+.. |efastdds| replace:: *eProsima Fast DDS*
+
+.. |k8s| replace:: *K8s*
